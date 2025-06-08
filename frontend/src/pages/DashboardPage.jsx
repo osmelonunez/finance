@@ -1,0 +1,122 @@
+import { useEffect, useState } from 'react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from 'recharts';
+
+export default function DashboardPage() {
+  const [incomes, setIncomes] = useState([]);
+  const [expenses, setExpenses] = useState([]);
+  const [filters, setFilters] = useState({ month: '', year: '' });
+
+  useEffect(() => {
+    async function fetchData() {
+      const resIncomes = await fetch('/api/incomes');
+      const resExpenses = await fetch('/api/expenses');
+      const incomesData = await resIncomes.json();
+      const expensesData = await resExpenses.json();
+      setIncomes(incomesData);
+      setExpenses(expensesData);
+    }
+    fetchData();
+  }, []);
+
+  const filteredIncomes = incomes.filter(i => (!filters.month || parseInt(i.month) === parseInt(filters.month)) && (!filters.year || parseInt(i.year) === parseInt(filters.year)));
+  const filteredExpenses = expenses.filter(e => (!filters.month || parseInt(e.month) === parseInt(filters.month)) && (!filters.year || parseInt(e.year) === parseInt(filters.year)));
+
+  const totalIncome = filteredIncomes.reduce((sum, i) => sum + parseFloat(i.amount), 0);
+  const totalExpenses = filteredExpenses.reduce((sum, e) => sum + parseFloat(e.cost), 0);
+  const balance = totalIncome - totalExpenses;
+
+  const groupedData = Array.from({ length: 12 }, (_, month) => {
+    const incomeMonth = incomes.filter(i => parseInt(i.month) === month + 1 && (!filters.year || parseInt(i.year) === parseInt(filters.year))).reduce((sum, i) => sum + parseFloat(i.amount), 0);
+    const expenseMonth = expenses.filter(e => parseInt(e.month) === month + 1 && (!filters.year || parseInt(e.year) === parseInt(filters.year))).reduce((sum, e) => sum + parseFloat(e.cost), 0);
+    return {
+      name: new Date(0, month).toLocaleString('en', { month: 'short' }),
+      income: incomeMonth,
+      expense: expenseMonth,
+      balance: incomeMonth - expenseMonth
+    };
+  });
+
+  const COLORS = ['#3b82f6', '#ef4444', '#10b981'];
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex flex-wrap gap-4 mb-4">
+        <select name="month" onChange={(e) => setFilters(prev => ({ ...prev, month: e.target.value }))} className="border px-4 py-2 rounded">
+          <option value="">All Months</option>
+          {[...Array(12)].map((_, i) => (
+            <option key={i + 1} value={i + 1}>{new Date(0, i).toLocaleString('en', { month: 'long' })}</option>
+          ))}
+        </select>
+        <select name="year" onChange={(e) => setFilters(prev => ({ ...prev, year: e.target.value }))} className="border px-4 py-2 rounded">
+          <option value="">All Years</option>
+          {Array.from({ length: 6 }, (_, i) => 2025 + i).map(y => <option key={y}>{y}</option>)}
+        </select>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white p-4 rounded shadow text-center">
+          <h3 className="text-sm text-gray-500">Total Income</h3>
+          <p className="text-xl text-green-600 font-bold">{totalIncome.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
+        </div>
+        <div className="bg-white p-4 rounded shadow text-center">
+          <h3 className="text-sm text-gray-500">Total Expenses</h3>
+          <p className="text-xl text-red-600 font-bold">{totalExpenses.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
+        </div>
+        <div className="bg-white p-4 rounded shadow text-center">
+          <h3 className="text-sm text-gray-500">Balance</h3>
+          <p className="text-xl text-blue-600 font-bold">{balance.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white p-4 rounded shadow">
+          <h3 className="text-sm text-gray-600 mb-2">Income vs. Expenses (Line)</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={groupedData}>
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Line type="monotone" dataKey="income" stroke="#10b981" strokeWidth={2} />
+              <Line type="monotone" dataKey="expense" stroke="#ef4444" strokeWidth={2} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="bg-white p-4 rounded shadow">
+          <h3 className="text-sm text-gray-600 mb-2">Incomes, Expenses, Balance (Donut)</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <PieChart>
+              <Pie
+                dataKey="value"
+                data={[{ name: 'Incomes', value: totalIncome }, { name: 'Expenses', value: totalExpenses }, { name: 'Balance', value: balance }]}
+                cx="50%"
+                cy="50%"
+                outerRadius={90}
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
+              >
+                {COLORS.map((color, index) => (
+                  <Cell key={index} fill={color} />
+                ))}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="bg-white p-4 rounded shadow">
+        <h3 className="text-sm text-gray-600 mb-2">Income vs. Expenses vs. Balance (Bar)</h3>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={groupedData}>
+            <XAxis dataKey="name" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="income" fill="#10b981" name="Incomes" />
+            <Bar dataKey="expense" fill="#ef4444" name="Expenses" />
+            <Bar dataKey="balance" fill="#3b82f6" name="Balance" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
