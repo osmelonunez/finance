@@ -61,6 +61,6 @@ app.get('/api/incomes', async (req, res) => {
   res.json(result.rows);
 });
 
-app.listen(process.env.PORT, () => {
+app.listen(process.env.PORT, '0.0.0.0', () => {
   console.log(`Backend listening on port ${process.env.PORT}`);
 });

@@ -15,5 +15,6 @@ export default defineConfig({
     proxy: {
       '/api': 'http://backend:3001',
     },
+    allowedHosts: ['finance'], // 👈 Agrega esto
   },
 });
