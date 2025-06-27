@@ -30,9 +30,9 @@ export default function DashboardPage() {
     const expenseMonth = expenses.filter(e => parseInt(e.month) === month + 1 && (!filters.year || parseInt(e.year) === parseInt(filters.year))).reduce((sum, e) => sum + parseFloat(e.cost), 0);
     return {
       name: new Date(0, month).toLocaleString('en', { month: 'short' }),
-      income: incomeMonth,
-      expense: expenseMonth,
-      balance: incomeMonth - expenseMonth
+      income: parseFloat(incomeMonth.toFixed(2)),
+      expense: parseFloat(expenseMonth.toFixed(2)),
+      balance: parseFloat((incomeMonth - expenseMonth).toFixed(2))
     };
   });
 
@@ -92,7 +92,7 @@ export default function DashboardPage() {
                 cx="50%"
                 cy="50%"
                 outerRadius={90}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(2)}%`}
               >
                 {COLORS.map((color, index) => (
                   <Cell key={index} fill={color} />
