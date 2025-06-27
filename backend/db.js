@@ -43,7 +43,8 @@ async function initializeDatabase() {
       name VARCHAR(255) NOT NULL,
       cost NUMERIC(10, 2) NOT NULL,
       month INT NOT NULL,
-      year INT NOT NULL
+      year INT NOT NULL,
+      category VARCHAR(50)
     );
   `);
   console.log("✅ Tabla 'expenses' verificada/creada.");

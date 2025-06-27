@@ -13,16 +13,16 @@ app.get('/api/expenses', async (req, res) => {
 });
 
 app.post('/api/expenses', async (req, res) => {
-  const { name, cost, month, year } = req.body;
-  await pool.query('INSERT INTO expenses (name, cost, month, year) VALUES ($1, $2, $3, $4)', [name, cost, month, year]);
+  const { name, cost, month, year, category } = req.body;
+  await pool.query('INSERT INTO expenses (name, cost, month, year, category) VALUES ($1, $2, $3, $4, $5)', [name, cost, month, year, category]);
   const result = await pool.query('SELECT * FROM expenses');
   res.json(result.rows);
 });
 
 app.put('/api/expenses/:id', async (req, res) => {
   const { id } = req.params;
-  const { name, cost, month, year } = req.body;
-  await pool.query('UPDATE expenses SET name=$1, cost=$2, month=$3, year=$4 WHERE id=$5', [name, cost, month, year, id]);
+  const { name, cost, month, year, category } = req.body;
+  await pool.query('UPDATE expenses SET name=$1, cost=$2, month=$3, year=$4, category=$5 WHERE id=$6', [name, cost, month, year, category, id]);
   const result = await pool.query('SELECT * FROM expenses');
   res.json(result.rows);
 });

@@ -4,8 +4,8 @@ import { Trash2, Wrench } from 'lucide-react';
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState([]);
   const [filtered, setFiltered] = useState([]);
-  const [filters, setFilters] = useState({ month: '', year: '' });
-  const [newExpense, setNewExpense] = useState({ name: '', cost: '', month: '', year: '' });
+  const [filters, setFilters] = useState({ month: '', year: '', category: '' });
+  const [newExpense, setNewExpense] = useState({ name: '', cost: '', month: '', year: '', category: '' });
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
@@ -28,6 +28,8 @@ export default function ExpensesPage() {
     let result = [...expenses];
     if (filters.month) result = result.filter(e => parseInt(e.month) === parseInt(filters.month));
     if (filters.year) result = result.filter(e => parseInt(e.year) === parseInt(filters.year));
+    if (filters.category) result = result.filter(e => e.category === filters.category);
+    if (filters.category) result = result.filter(e => e.category === filters.category);
     setFiltered(result);
   }, [filters, expenses]);
 
@@ -174,6 +176,7 @@ export default function ExpensesPage() {
             <th className="p-3">Cost</th>
             <th className="p-3">Month</th>
             <th className="p-3">Year</th>
+            <th className="p-3">Category</th>
             <th className="p-3">Actions</th>
           </tr>
         </thead>
@@ -184,6 +187,7 @@ export default function ExpensesPage() {
               <td className="p-3 text-red-500 font-medium">{parseFloat(e.cost).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</td>
               <td className="p-3">{new Date(0, e.month - 1).toLocaleString('en', { month: 'long' })}</td>
               <td className="p-3">{e.year}</td>
+              <td className="p-3">{e.category}</td>
               <td className="p-3">
                 <div className="inline-flex gap-1">
                   <button className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600" onClick={() => handleEditClick(e)} title="Editar">
@@ -216,6 +220,15 @@ export default function ExpensesPage() {
                 <option value="">Year</option>
                 {[2025, 2026, 2027, 2028, 2029, 2030].map(y => <option key={y}>{y}</option>)}
               </select>
+              <select name="category" value={newExpense.category} onChange={handleInputChange} className="border rounded px-3 py-2">
+                <option value="">Category</option>
+                <option value="Food">Food</option>
+                <option value="Transport">Transport</option>
+                <option value="Utilities">Utilities</option>
+                <option value="Leisure">Leisure</option>
+                <option value="Other">Other</option>
+              </select>
+
             </div>
             <div className="flex justify-end gap-4">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 border rounded text-gray-600">Cancel</button>
