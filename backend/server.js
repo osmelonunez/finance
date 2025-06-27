@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const pool = require('./db');
+const db = require('./db');
 require('dotenv').config();
 
 const app = express();
@@ -8,57 +8,111 @@ app.use(cors());
 app.use(express.json());
 
 app.get('/api/expenses', async (req, res) => {
-  const result = await pool.query('SELECT * FROM expenses');
+  const result = await db.query('SELECT * FROM expenses');
   res.json(result.rows);
 });
 
 app.post('/api/expenses', async (req, res) => {
   const { name, cost, month, year, category } = req.body;
-  await pool.query('INSERT INTO expenses (name, cost, month, year, category) VALUES ($1, $2, $3, $4, $5)', [name, cost, month, year, category]);
-  const result = await pool.query('SELECT * FROM expenses');
+  await db.query('INSERT INTO expenses (name, cost, month, year, category) VALUES ($1, $2, $3, $4, $5)', [name, cost, month, year, category]);
+  const result = await db.query('SELECT * FROM expenses');
   res.json(result.rows);
 });
 
 app.put('/api/expenses/:id', async (req, res) => {
   const { id } = req.params;
   const { name, cost, month, year, category } = req.body;
-  await pool.query('UPDATE expenses SET name=$1, cost=$2, month=$3, year=$4, category=$5 WHERE id=$6', [name, cost, month, year, category, id]);
-  const result = await pool.query('SELECT * FROM expenses');
+  await db.query('UPDATE expenses SET name=$1, cost=$2, month=$3, year=$4, category=$5 WHERE id=$6', [name, cost, month, year, category, id]);
+  const result = await db.query('SELECT * FROM expenses');
   res.json(result.rows);
 });
 
 app.delete('/api/expenses/:id', async (req, res) => {
   const { id } = req.params;
-  await pool.query('DELETE FROM expenses WHERE id=$1', [id]);
-  const result = await pool.query('SELECT * FROM expenses');
+  await db.query('DELETE FROM expenses WHERE id=$1', [id]);
+  const result = await db.query('SELECT * FROM expenses');
   res.json(result.rows);
 });
 
 app.post('/api/incomes', async (req, res) => {
   const { name, amount, month, year } = req.body;
-  await pool.query('INSERT INTO incomes (name, amount, month, year) VALUES ($1, $2, $3, $4)', [name, amount, month, year]);
-  const result = await pool.query('SELECT * FROM incomes');
+  await db.query('INSERT INTO incomes (name, amount, month, year) VALUES ($1, $2, $3, $4)', [name, amount, month, year]);
+  const result = await db.query('SELECT * FROM incomes');
   res.json(result.rows);
 });
 
 app.put('/api/incomes/:id', async (req, res) => {
   const { id } = req.params;
   const { name, amount, month, year } = req.body;
-  await pool.query('UPDATE incomes SET name=$1, amount=$2, month=$3, year=$4 WHERE id=$5', [name, amount, month, year, id]);
-  const result = await pool.query('SELECT * FROM incomes');
+  await db.query('UPDATE incomes SET name=$1, amount=$2, month=$3, year=$4 WHERE id=$5', [name, amount, month, year, id]);
+  const result = await db.query('SELECT * FROM incomes');
   res.json(result.rows);
 });
 
 app.delete('/api/incomes/:id', async (req, res) => {
   const { id } = req.params;
-  await pool.query('DELETE FROM incomes WHERE id=$1', [id]);
-  const result = await pool.query('SELECT * FROM incomes');
+  await db.query('DELETE FROM incomes WHERE id=$1', [id]);
+  const result = await db.query('SELECT * FROM incomes');
   res.json(result.rows);
 });
 
 app.get('/api/incomes', async (req, res) => {
-  const result = await pool.query('SELECT * FROM incomes');
+  const result = await db.query('SELECT * FROM incomes');
   res.json(result.rows);
+});
+
+app.get('/api/categories', async (req, res) => {
+  try {
+    const result = await db.query('SELECT id, name FROM categories ORDER BY name');
+    console.log('🟢 Categorías obtenidas:', result.rows);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error al obtener categorías:', err);
+    res.status(500).json({ error: 'Error interno al consultar categorías' });
+  }
+});
+
+
+app.post('/api/categories', async (req, res) => {
+  const { name } = req.body;
+  if (!name?.trim()) return res.status(400).json({ error: 'Nombre inválido' });
+
+  try {
+    await db.query('INSERT INTO categories (name) VALUES ($1)', [name.trim()]);
+    const result = await db.query('SELECT id, name FROM categories ORDER BY name');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error al agregar categoría:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.put('/api/categories/:id', async (req, res) => {
+  const { id } = req.params;
+  const { name } = req.body;
+  if (!name?.trim()) return res.status(400).json({ error: 'Nombre inválido' });
+
+  try {
+    await db.query('UPDATE categories SET name = $1 WHERE id = $2', [name.trim(), id]);
+    const result = await db.query('SELECT id, name FROM categories ORDER BY name');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error al actualizar categoría:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.delete('/api/categories/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await db.query('DELETE FROM categories WHERE id = $1', [id]);
+    const result = await db.query('SELECT id, name FROM categories ORDER BY name');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error al eliminar categoría:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 app.listen(process.env.PORT, '0.0.0.0', () => {

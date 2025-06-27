@@ -5,6 +5,7 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import ExpensesPage from './pages/ExpensesPage';
 import IncomesPage from './pages/IncomesPage';
+import CategoryManager from './pages/CategoryManager';
 import DashboardPage from './pages/DashboardPage';
 import Navbar from './components/Navbar';
 
@@ -27,6 +28,7 @@ export default function App() {
             <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
             <Route path="/expenses" element={<PrivateRoute><ExpensesPage /></PrivateRoute>} />
             <Route path="/incomes" element={<PrivateRoute><IncomesPage /></PrivateRoute>} />
+            <Route path="/categories" element={<PrivateRoute><CategoryManager /></PrivateRoute>} />
           </Routes>
         </main>
       </div>

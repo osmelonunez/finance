@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Trash2, Wrench } from 'lucide-react';
 
 export default function ExpensesPage() {
+  const navigate = useNavigate();
   const [expenses, setExpenses] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [filters, setFilters] = useState({ month: '', year: '', category: '' });
@@ -159,6 +161,9 @@ export default function ExpensesPage() {
             {[2025, 2026, 2027, 2028, 2029, 2030].map(y => <option key={y}>{y}</option>)}
           </select>
 
+          <button onClick={() => navigate('/categories')} className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
+            Manage Categories
+          </button>
           <button onClick={() => setShowModal(true)} className="bg-green-600 text-white px-6 py-2 rounded hover:bg-blue-700 ml-auto">
             Add Expense
           </button>
