@@ -7,6 +7,7 @@ export default function ExpensesPage() {
   const [expenses, setExpenses] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [filters, setFilters] = useState({ month: '', year: '', category: '' });
+  const [categories, setCategories] = useState([]);
   const [newExpense, setNewExpense] = useState({ name: '', cost: '', month: '', year: '', category: '' });
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -23,6 +24,15 @@ export default function ExpensesPage() {
           if (a.month !== b.month) return a.month - b.month;
           return parseFloat(b.cost) - parseFloat(a.cost);
         });
+      });
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/categories')
+      .then(res => res.json())
+      .then(data => {
+        const sorted = data.sort((a, b) => a.name.localeCompare(b.name));
+        setCategories(sorted);
       });
   }, []);
 
@@ -227,11 +237,9 @@ export default function ExpensesPage() {
               </select>
               <select name="category" value={newExpense.category} onChange={handleInputChange} className="border rounded px-3 py-2">
                 <option value="">Category</option>
-                <option value="Food">Food</option>
-                <option value="Transport">Transport</option>
-                <option value="Utilities">Utilities</option>
-                <option value="Leisure">Leisure</option>
-                <option value="Other">Other</option>
+                {categories.map((cat, i) => (
+                  <option key={i} value={cat.name}>{cat.name}</option>
+                ))}
               </select>
 
             </div>
