@@ -160,11 +160,16 @@ app.delete('/api/categories/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
+    const result = await db.query('SELECT 1 FROM expenses WHERE category_id = $1 LIMIT 1', [id]);
+    if (result.rowCount > 0) {
+      return res.status(400).json({ error: 'Cannot delete category: it is used by one or more expenses.' });
+    }
+
     await db.query('DELETE FROM categories WHERE id = $1', [id]);
-    const result = await db.query('SELECT id, name FROM categories ORDER BY name');
-    res.json(result.rows);
+    const updated = await db.query('SELECT id, name FROM categories ORDER BY name');
+    res.json(updated.rows);
   } catch (err) {
-    console.error('Error al eliminar categoría:', err);
+    console.error('Error deleting category:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
