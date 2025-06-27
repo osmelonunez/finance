@@ -174,6 +174,69 @@ app.delete('/api/categories/:id', async (req, res) => {
   }
 });
 
+// Obtener todos los ahorros
+app.get('/api/savings', async (req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM savings ORDER BY year, month');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error al obtener ahorros:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Agregar nuevo ahorro
+app.post('/api/savings', async (req, res) => {
+  const { name, amount, month, year } = req.body;
+  if (!name?.trim() || !amount || !month || !year) {
+    return res.status(400).json({ error: 'Datos incompletos' });
+  }
+
+  try {
+    await db.query(
+      'INSERT INTO savings (name, amount, month, year) VALUES ($1, $2, $3, $4)',
+      [name.trim(), amount, month, year]
+    );
+    const result = await db.query('SELECT * FROM savings ORDER BY year, month');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error al agregar ahorro:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Editar ahorro
+app.put('/api/savings/:id', async (req, res) => {
+  const { id } = req.params;
+  const { name, amount, month, year } = req.body;
+
+  try {
+    await db.query(
+      'UPDATE savings SET name = $1, amount = $2, month = $3, year = $4 WHERE id = $5',
+      [name.trim(), amount, month, year, id]
+    );
+    const result = await db.query('SELECT * FROM savings ORDER BY year, month');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error al actualizar ahorro:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Eliminar ahorro
+app.delete('/api/savings/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await db.query('DELETE FROM savings WHERE id = $1', [id]);
+    const result = await db.query('SELECT * FROM savings ORDER BY year, month');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error al eliminar ahorro:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.listen(process.env.PORT, '0.0.0.0', () => {
   console.log(`Backend listening on port ${process.env.PORT}`);
 });

@@ -8,12 +8,14 @@ import IncomesPage from './pages/IncomesPage';
 import CategoryManager from './pages/CategoryManager';
 import DashboardPage from './pages/DashboardPage';
 import Navbar from './components/Navbar';
+import SavingsPage from './pages/SavingsPage';
 
 const navLinks = [
   { to: '/', label: 'Home' },
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/expenses', label: 'Expenses' },
-  { to: '/incomes', label: 'Incomes' }
+  { to: '/incomes', label: 'Incomes' },
+  { to: '/savings', label: 'Savings' }
 ];
 
 export default function App() {
@@ -29,6 +31,7 @@ export default function App() {
             <Route path="/expenses" element={<PrivateRoute><ExpensesPage /></PrivateRoute>} />
             <Route path="/incomes" element={<PrivateRoute><IncomesPage /></PrivateRoute>} />
             <Route path="/categories" element={<PrivateRoute><CategoryManager /></PrivateRoute>} />
+            <Route path="/savings" element={<PrivateRoute><SavingsPage /></PrivateRoute>} />
           </Routes>
         </main>
       </div>

@@ -68,6 +68,18 @@ async function initializeDatabase() {
   `);
   console.log("✅ Tabla 'categories' verificada/creada.");
 
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS savings (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255),
+      amount NUMERIC(10, 2) NOT NULL,
+      month INT NOT NULL,
+      year INT NOT NULL
+    );
+  `);
+  console.log("✅ Tabla 'savings' verificada/creada.");
+
+
   await client.end();
   console.log("🏁 Inicialización de base de datos finalizada.");
 }
