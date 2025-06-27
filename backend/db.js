@@ -44,7 +44,7 @@ async function initializeDatabase() {
       cost NUMERIC(10, 2) NOT NULL,
       month INT NOT NULL,
       year INT NOT NULL,
-      category VARCHAR(50)
+      category_id INT REFERENCES categories(id) ON DELETE SET NULL
     );
   `);
   console.log("✅ Tabla 'expenses' verificada/creada.");

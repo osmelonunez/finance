@@ -152,7 +152,7 @@ export default function ExpensesPage() {
             <option value="ymname">Y-M-Name</option>
           </select>
 
-          <input type="text" name="search" placeholder="Search by name..." className="border rounded px-3 py-2 w-60" onChange={(e) => {
+          <input type="text" name="search" placeholder="Search by name..." className="border rounded px-3 py-2 w-44" onChange={(e) => {
             const term = e.target.value.toLowerCase();
             const filteredList = expenses.filter(exp =>
               exp.name.toLowerCase().includes(term)
@@ -166,15 +166,23 @@ export default function ExpensesPage() {
               <option key={i + 1} value={i + 1}>{new Date(0, i).toLocaleString('en', { month: 'long' })}</option>
             ))}
           </select>
+          
           <select name="year" value={filters.year} onChange={handleFilterChange} className="border rounded px-3 py-2">
             <option value="">All Years</option>
             {[2025, 2026, 2027, 2028, 2029, 2030].map(y => <option key={y}>{y}</option>)}
           </select>
+          
+          <select name="category" value={filters.category} onChange={handleFilterChange} className="border rounded px-3 py-2">
+            <option value="">All Categories</option>
+            {categories.map(cat => (
+              <option key={cat.id} value={cat.name}>{cat.name}</option>
+            ))}
+          </select>
 
-          <button onClick={() => navigate('/categories')} className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
-            Manage Categories
+          <button onClick={() => navigate('/categories')} className="bg-yellow-500 text-white px-5 py-2 rounded hover:bg-yellow-600">
+            Add Categories
           </button>
-          <button onClick={() => setShowModal(true)} className="bg-green-600 text-white px-6 py-2 rounded hover:bg-blue-700 ml-auto">
+          <button onClick={() => setShowModal(true)} className="bg-green-600 text-white px-5 py-2 rounded hover:bg-blue-700 ml-auto">
             Add Expense
           </button>
         </div>
@@ -235,10 +243,10 @@ export default function ExpensesPage() {
                 <option value="">Year</option>
                 {[2025, 2026, 2027, 2028, 2029, 2030].map(y => <option key={y}>{y}</option>)}
               </select>
-              <select name="category" value={newExpense.category} onChange={handleInputChange} className="border rounded px-3 py-2">
+              <select name="category" value={newExpense.category_id} onChange={handleInputChange} className="border rounded px-3 py-2">
                 <option value="">Category</option>
-                {categories.map((cat, i) => (
-                  <option key={i} value={cat.name}>{cat.name}</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
               </select>
 
