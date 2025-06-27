@@ -147,7 +147,7 @@ export default function IncomesPage() {
             type="text"
             name="search"
             placeholder="Search by name..."
-            className="border rounded px-3 py-2 w-60"
+            className="border rounded px-3 py-2 w-44"
             onChange={(e) => {
               const term = e.target.value.toLowerCase();
               const filteredList = incomes.filter(exp =>
