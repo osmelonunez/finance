@@ -3,7 +3,7 @@
 services:
   backend:
     build: ./backend
-    image: finance-backend:1
+    image: finance-backend:${BACKEND_TAG}
     container_name: finance-backend
     env_file:
       - ./backend/.env
@@ -12,7 +12,7 @@ services:
 
   frontend:
     build: ./frontend
-    image: finance-frontend:1
+    image: finance-frontend:${FRONTEND_TAG}
     container_name: finance-frontend
     ports:
       - "5173:5173"
