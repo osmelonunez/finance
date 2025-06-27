@@ -7,6 +7,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const upload = multer({ dest: 'uploads/' });
+app.use('/uploads', express.static('uploads'));
+
 app.get('/api/expenses', async (req, res) => {
   try {
     const result = await db.query(`
@@ -22,25 +25,25 @@ app.get('/api/expenses', async (req, res) => {
   }
 });
 
-app.post('/api/expenses', async (req, res) => {
-  try {
-    const { name, cost, month, year, category_id } = req.body;
-    await db.query(
-      'INSERT INTO expenses (name, cost, month, year, category_id) VALUES ($1, $2, $3, $4, $5)',
-      [name, cost, month, year, category_id]
-    );
-    const updated = await db.query(`
-      SELECT e.id, e.name, e.cost, e.month, e.year, c.name AS category
-      FROM expenses e
-      LEFT JOIN categories c ON e.category_id = c.id
-      ORDER BY e.year, e.month;
-    `);
-    res.json(updated.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to add expense' });
-  }
+app.post('/api/expenses', upload.single('receipt'), async (req, res) => {
+  const { name, cost, month, year, category_id } = req.body;
+  const receipt_url = req.file ? req.file.filename : null;
+
+  await db.query(
+    'INSERT INTO expenses (name, cost, month, year, category_id, receipt_url) VALUES ($1, $2, $3, $4, $5, $6)',
+    [name, cost, month, year, category_id, receipt_url]
+  );
+
+  const result = await db.query(`
+    SELECT e.*, c.name AS category
+    FROM expenses e
+    LEFT JOIN categories c ON e.category_id = c.id
+    ORDER BY year DESC, month DESC
+  `);
+
+  res.json(result.rows);
 });
+
 
 
 app.put('/api/expenses/:id', async (req, res) => {

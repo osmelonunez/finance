@@ -6,9 +6,10 @@ export default function ExpensesPage() {
   const navigate = useNavigate();
   const [expenses, setExpenses] = useState([]);
   const [filtered, setFiltered] = useState([]);
-  const [filters, setFilters] = useState({ month: '', year: '', category: '' });
+  const [filters, setFilters] = useState({ month: '', year: '', category_id: '' });
   const [categories, setCategories] = useState([]);
-  const [newExpense, setNewExpense] = useState({ name: '', cost: '', month: '', year: '', category: '' });
+  const [file, setFile] = useState(null);
+const [newExpense, setNewExpense] = useState({ name: '', cost: '', month: '', year: '', category_id: '' });
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
@@ -50,7 +51,11 @@ export default function ExpensesPage() {
     setFilters(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleInputChange = (e) => {
+  const handleFileChange = (e) => {
+  setFile(e.target.files[0]);
+};
+
+const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewExpense(prev => ({ ...prev, [name]: value }));
   };
@@ -58,11 +63,14 @@ export default function ExpensesPage() {
   const handleAddExpense = async () => {
     if (!newExpense.name || !newExpense.cost || !newExpense.month || !newExpense.year) return;
 
-    const res = await fetch('/api/expenses', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newExpense)
-    });
+    const formData = new FormData();
+Object.entries(newExpense).forEach(([key, val]) => formData.append(key, val));
+if (file) formData.append('receipt', file);
+
+const res = await fetch('/api/expenses', {
+  method: 'POST',
+  body: formData
+});
 
     if (res.ok) {
       const updated = await res.json();
@@ -152,7 +160,7 @@ export default function ExpensesPage() {
             <option value="ymname">Y-M-Name</option>
           </select>
 
-          <input type="text" name="search" placeholder="Search by name..." className="border rounded px-3 py-2 w-44" onChange={(e) => {
+          <input type="text" name="search" placeholder="Search by name..." className="border rounded px-3 py-2 w-60" onChange={(e) => {
             const term = e.target.value.toLowerCase();
             const filteredList = expenses.filter(exp =>
               exp.name.toLowerCase().includes(term)
@@ -172,17 +180,17 @@ export default function ExpensesPage() {
             {[2025, 2026, 2027, 2028, 2029, 2030].map(y => <option key={y}>{y}</option>)}
           </select>
           
-          <select name="category" value={filters.category} onChange={handleFilterChange} className="border rounded px-3 py-2">
+          <select name="category_id" value={filters.category_id} onChange={handleFilterChange} className="border rounded px-3 py-2">
             <option value="">All Categories</option>
             {categories.map(cat => (
               <option key={cat.id} value={cat.name}>{cat.name}</option>
             ))}
           </select>
 
-          <button onClick={() => navigate('/categories')} className="bg-yellow-500 text-white px-5 py-2 rounded hover:bg-yellow-600">
-            Add Categories
+          <button onClick={() => navigate('/categories')} className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
+            Manage Categories
           </button>
-          <button onClick={() => setShowModal(true)} className="bg-green-600 text-white px-5 py-2 rounded hover:bg-blue-700 ml-auto">
+          <button onClick={() => setShowModal(true)} className="bg-green-600 text-white px-6 py-2 rounded hover:bg-blue-700 ml-auto">
             Add Expense
           </button>
         </div>
@@ -211,6 +219,7 @@ export default function ExpensesPage() {
               <td className="p-3">{new Date(0, e.month - 1).toLocaleString('en', { month: 'long' })}</td>
               <td className="p-3">{e.year}</td>
               <td className="p-3">{e.category}</td>
+              <td className="p-3">{e.receipt_url ? <a href={`/uploads/${e.receipt_url}`} target="_blank" className="text-blue-500 underline">Factura</a> : '-'}</td>
               <td className="p-3">
                 <div className="inline-flex gap-1">
                   <button className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600" onClick={() => handleEditClick(e)} title="Editar">
@@ -232,7 +241,8 @@ export default function ExpensesPage() {
             <h3 className="text-lg font-semibold">{newExpense.id ? "Edit Expense" : "Add Expense"}</h3>
             <div className="grid md:grid-cols-4 gap-4">
               <input name="name" value={newExpense.name} onChange={handleInputChange} placeholder="Name" className="border rounded px-3 py-2" />
-              <input name="cost" value={newExpense.cost} onChange={handleInputChange} placeholder="Cost" type="number" className="border rounded px-3 py-2" />
+              <input type="file" name="receipt" onChange={handleFileChange} className="border rounded px-3 py-2" />
+          <input name="cost" value={newExpense.cost} onChange={handleInputChange} placeholder="Cost" type="number" className="border rounded px-3 py-2" />
               <select name="month" value={newExpense.month} onChange={handleInputChange} className="border rounded px-3 py-2">
                 <option value="">Month</option>
                 {[...Array(12)].map((_, i) => (
@@ -243,19 +253,12 @@ export default function ExpensesPage() {
                 <option value="">Year</option>
                 {[2025, 2026, 2027, 2028, 2029, 2030].map(y => <option key={y}>{y}</option>)}
               </select>
-              
-              <select
-                name="category_id"
-                value={newExpense.category_id}
-                onChange={handleInputChange}
-                className="border rounded px-3 py-2"
-              >
+              <select name="category_id" value={newExpense.category_id} onChange={handleInputChange} className="border rounded px-3 py-2">
                 <option value="">Category</option>
-                {categories.map(cat => (
+                {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
               </select>
-
 
             </div>
             <div className="flex justify-end gap-4">

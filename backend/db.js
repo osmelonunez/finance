@@ -44,7 +44,8 @@ async function initializeDatabase() {
       cost NUMERIC(10, 2) NOT NULL,
       month INT NOT NULL,
       year INT NOT NULL,
-      category_id INTEGER REFERENCES categories(id) ON DELETE RESTRICT
+      category_id INTEGER REFERENCES categories(id) ON DELETE RESTRICT,
+      receipt_url TEXT
     );
   `);
   console.log("✅ Tabla 'expenses' verificada/creada.");
