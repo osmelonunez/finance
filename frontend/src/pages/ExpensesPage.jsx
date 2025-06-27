@@ -243,12 +243,19 @@ export default function ExpensesPage() {
                 <option value="">Year</option>
                 {[2025, 2026, 2027, 2028, 2029, 2030].map(y => <option key={y}>{y}</option>)}
               </select>
-              <select name="category" value={newExpense.category_id} onChange={handleInputChange} className="border rounded px-3 py-2">
+              
+              <select
+                name="category_id"
+                value={newExpense.category_id}
+                onChange={handleInputChange}
+                className="border rounded px-3 py-2"
+              >
                 <option value="">Category</option>
-                {categories.map((cat) => (
+                {categories.map(cat => (
                   <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
               </select>
+
 
             </div>
             <div className="flex justify-end gap-4">
