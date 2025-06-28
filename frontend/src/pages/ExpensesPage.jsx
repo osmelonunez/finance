@@ -8,7 +8,6 @@ export default function ExpensesPage() {
   const [filtered, setFiltered] = useState([]);
   const [filters, setFilters] = useState({ month: '', year: '', category_id: '' });
   const [categories, setCategories] = useState([]);
-  const [file, setFile] = useState(null);
 const [newExpense, setNewExpense] = useState({ name: '', cost: '', month: '', year: '', category_id: '' });
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -51,31 +50,27 @@ const [newExpense, setNewExpense] = useState({ name: '', cost: '', month: '', ye
     setFilters(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = (e) => {
-  setFile(e.target.files[0]);
-};
-
+  
 const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewExpense(prev => ({ ...prev, [name]: value }));
   };
 
   const handleAddExpense = async () => {
-    if (!newExpense.name || !newExpense.cost || !newExpense.month || !newExpense.year) return;
+    if (!newExpense.name || !newExpense.cost || !newExpense.month || !newExpense.year || !newExpense.category_id) return;
 
-    const formData = new FormData();
-Object.entries(newExpense).forEach(([key, val]) => formData.append(key, val));
-if (file) formData.append('receipt', file);
-
-const res = await fetch('/api/expenses', {
-  method: 'POST',
-  body: formData
-});
+    const res = await fetch('/api/expenses', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(newExpense)
+    });
 
     if (res.ok) {
       const updated = await res.json();
       setExpenses(updated);
-      setNewExpense({ id: '', name: '', cost: '', month: '', year: '' });
+      setNewExpense({ id: '', name: '', cost: '', month: '', year: '', category_id: '' });
       setShowModal(false);
     }
   };
@@ -98,7 +93,7 @@ const res = await fetch('/api/expenses', {
       const updated = await res.json();
       setExpenses(updated);
       setShowModal(false);
-      setNewExpense({ id: '', name: '', cost: '', month: '', year: '' });
+      setNewExpense({ id: '', name: '', cost: '', month: '', year: '', category_id: '' });
     }
   };
 
