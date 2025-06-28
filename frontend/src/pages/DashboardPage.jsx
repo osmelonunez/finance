@@ -44,7 +44,7 @@ export default function DashboardPage() {
     };
   });
 
-  const COLORS = ['#3b82f6', '#ef4444', '#10b981'];
+  const COLORS = ['#10b981', '#ef4444', '#fbbf24', '#3b82f6'];
 
   return (
     <div className="p-6 space-y-6">
@@ -107,7 +107,7 @@ export default function DashboardPage() {
                 outerRadius={90}
                 label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(2)}%`}
               >
-                {[...COLORS, '#fbbf24'].map((color, index) => (
+                {COLORS.map((color, index) => (
                   <Cell key={index} fill={color} />
                 ))}
               </Pie>
