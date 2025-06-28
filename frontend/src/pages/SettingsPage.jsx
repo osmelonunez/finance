@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Layers, Calendar } from 'lucide-react';
 
 export default function SettingsPage() {
   const [years, setYears] = useState([]);
@@ -66,7 +67,10 @@ export default function SettingsPage() {
         </div>
 
         <div className="pt-4">
-          <h3 className="text-md font-semibold text-gray-700 mb-2">Categories</h3>
+          <div className="flex items-center gap-2 mb-2">
+            <Layers size={18} className="text-blue-600" />
+            <h3 className="text-md font-semibold text-gray-700">Categories</h3>
+          </div>
           <Link
             to="/categories"
             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
@@ -76,7 +80,10 @@ export default function SettingsPage() {
         </div>
 
         <div className="pt-6">
-          <h3 className="text-md font-semibold text-gray-700 mb-2 border-t pt-4">Years</h3>
+          <div className="flex items-center gap-2 mb-2 border-t pt-4">
+            <Calendar size={18} className="text-green-600" />
+            <h3 className="text-md font-semibold text-gray-700">Years</h3>
+          </div>
           <div className="flex gap-2">
             <button
               onClick={() => { setAction('add'); setShowYearModal(true); setErrorMessage(''); setSuccessMessage(''); }}
