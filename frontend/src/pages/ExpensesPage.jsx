@@ -40,8 +40,7 @@ const [newExpense, setNewExpense] = useState({ name: '', cost: '', month: '', ye
     let result = [...expenses];
     if (filters.month) result = result.filter(e => parseInt(e.month) === parseInt(filters.month));
     if (filters.year) result = result.filter(e => parseInt(e.year) === parseInt(filters.year));
-    if (filters.category) result = result.filter(e => e.category === filters.category);
-    if (filters.category) result = result.filter(e => e.category === filters.category);
+    if (filters.category_id) result = result.filter(e => e.category === filters.category_id);
     setFiltered(result);
   }, [filters, expenses]);
 
