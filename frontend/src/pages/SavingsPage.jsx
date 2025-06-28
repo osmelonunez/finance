@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Trash2, Wrench } from 'lucide-react';
+import { Trash2, Wrench, FilePlus } from 'lucide-react';
 
 export default function SavingsPage() {
   const [savings, setSavings] = useState([]);
@@ -12,6 +12,11 @@ export default function SavingsPage() {
   const [sort, setSort] = useState(localStorage.getItem('savingsSort') || '');
   const [filterMonth, setFilterMonth] = useState(localStorage.getItem('savingsMonth') || '');
   const [filterYear, setFilterYear] = useState(localStorage.getItem('savingsYear') || '');
+
+  const [showCopyModal, setShowCopyModal] = useState(false);
+  const [copySavingData, setCopySavingData] = useState(null);
+  const [copyTargetMonth, setCopyTargetMonth] = useState('');
+  const [copyTargetYear, setCopyTargetYear] = useState('');
 
   const fetchSavings = async () => {
     const res = await fetch('/api/savings');
@@ -116,7 +121,14 @@ export default function SavingsPage() {
       return 0;
     });
 
-  return (
+  
+  const handleCopyClick = (saving) => {
+    setCopySavingData(saving);
+    setCopyTargetMonth('');
+    setCopyTargetYear('');
+    setShowCopyModal(true);
+  };
+return (
     <div className="space-y-8">
       <h2 className="text-2xl font-bold text-gray-800">Savings</h2>
 
@@ -174,6 +186,9 @@ export default function SavingsPage() {
                 <td className="p-3">{s.year_value}</td>
                 <td className="p-3 text-right">
                   <div className="inline-flex gap-1">
+                    <button className="p-2 bg-gray-400 text-white rounded hover:bg-gray-500" onClick={() => handleCopyClick(s)} title="Copy">
+                      <FilePlus size={16} />
+                    </button>
                     <button className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600" onClick={() => handleEditClick(s)} title="Edit">
                       <Wrench size={16} />
                     </button>
@@ -230,6 +245,58 @@ export default function SavingsPage() {
           </div>
         </div>
       )}
-    </div>
+    
+      {showCopyModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md space-y-4">
+            <h3 className="text-lg font-semibold">Copy Saving</h3>
+            <p className="text-gray-700">
+              You're copying: <strong>{copySavingData?.name}</strong>
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <select value={copyTargetMonth} onChange={e => setCopyTargetMonth(e.target.value)} className="border rounded px-3 py-2">
+                <option value="">Select Month</option>
+                {months.map(m => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+              <select value={copyTargetYear} onChange={e => setCopyTargetYear(e.target.value)} className="border rounded px-3 py-2">
+                <option value="">Select Year</option>
+                {years.map(y => (
+                  <option key={y.id} value={y.id}>{y.value}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex justify-end gap-4">
+              <button onClick={() => setShowCopyModal(false)} className="px-4 py-2 border rounded text-gray-600">Cancel</button>
+              <button
+                onClick={() => {
+                  if (!copyTargetMonth || !copyTargetYear) return;
+                  const newEntry = {
+                    name: copySavingData.name,
+                    amount: copySavingData.amount,
+                    month_id: copyTargetMonth,
+                    year_id: copyTargetYear
+                  };
+                  fetch('/api/savings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newEntry)
+                  })
+                    .then(res => res.json())
+                    .then(data => {
+                      setSavings(data);
+                      setShowCopyModal(false);
+                    });
+                }}
+                className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+</div>
   );
 }
