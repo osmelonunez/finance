@@ -12,6 +12,10 @@ export default function IncomesPage() {
   const [sort, setSort] = useState(localStorage.getItem('incomesSort') || '');
   const [filterMonth, setFilterMonth] = useState(localStorage.getItem('incomesMonth') || '');
   const [filterYear, setFilterYear] = useState(localStorage.getItem('incomesYear') || '');
+  const [showCopyModal, setShowCopyModal] = useState(false);
+  const [copyIncomeData, setCopyIncomeData] = useState(null);
+  const [copyTargetMonth, setCopyTargetMonth] = useState('');
+  const [copyTargetYear, setCopyTargetYear] = useState('');
 
   const fetchIncomes = async () => {
     const res = await fetch('/api/incomes');
@@ -66,26 +70,10 @@ export default function IncomesPage() {
   };
 
   const handleCopyClick = (income) => {
-    const name = income.name;
-    const amount = income.amount;
-    const targetMonth = prompt("Enter target month ID (1–12):");
-    const targetYear = prompt("Enter target year ID:");
-
-    if (!targetMonth || !targetYear) return;
-
-    const newEntry = {
-      name,
-      amount,
-      month_id: targetMonth,
-      year_id: targetYear
-    };
-
-    fetch('/api/incomes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newEntry)
-    }).then(res => res.json())
-      .then(setIncomes);
+    setCopyIncomeData(income);
+    setCopyTargetMonth('');
+    setCopyTargetYear('');
+    setShowCopyModal(true);
   };
 
   const handleUpdateIncome = async () => {
@@ -241,6 +229,58 @@ export default function IncomesPage() {
             <div className="flex justify-end gap-4">
               <button className="px-4 py-2 rounded border text-gray-600 hover:bg-gray-100" onClick={() => setIncomeToDelete(null)}>Cancel</button>
               <button className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700" onClick={handleDeleteIncome}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCopyModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md space-y-4">
+            <h3 className="text-lg font-semibold">Copy Income</h3>
+            <p className="text-gray-700">
+              You're copying: <strong>{copyIncomeData?.name}</strong>
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <select value={copyTargetMonth} onChange={e => setCopyTargetMonth(e.target.value)} className="border rounded px-3 py-2">
+                <option value="">Select Month</option>
+                {months.map(m => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+              <select value={copyTargetYear} onChange={e => setCopyTargetYear(e.target.value)} className="border rounded px-3 py-2">
+                <option value="">Select Year</option>
+                {years.map(y => (
+                  <option key={y.id} value={y.id}>{y.value}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex justify-end gap-4">
+              <button onClick={() => setShowCopyModal(false)} className="px-4 py-2 border rounded text-gray-600">Cancel</button>
+              <button
+                onClick={() => {
+                  if (!copyTargetMonth || !copyTargetYear) return;
+                  const newEntry = {
+                    name: copyIncomeData.name,
+                    amount: copyIncomeData.amount,
+                    month_id: copyTargetMonth,
+                    year_id: copyTargetYear
+                  };
+                  fetch('/api/incomes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newEntry)
+                  })
+                    .then(res => res.json())
+                    .then(data => {
+                      setIncomes(data);
+                      setShowCopyModal(false);
+                    });
+                }}
+                className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
+              >
+                Copy
+              </button>
             </div>
           </div>
         </div>
