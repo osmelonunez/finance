@@ -175,7 +175,7 @@ const handleInputChange = (e) => {
             {[2025, 2026, 2027, 2028, 2029, 2030].map(y => <option key={y}>{y}</option>)}
           </select>
           
-          <select name="category_id" value={filters.category_id} onChange={handleFilterChange} className="border rounded px-3 py-2">
+          <select name="category_id" value={filters.category_id} onChange={handleFilterChange} className="border rounded px-3 py-2 w-[140px]">
             <option value="">All Categories</option>
             {categories.map(cat => (
               <option key={cat.id} value={cat.name}>{cat.name}</option>
