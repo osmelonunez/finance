@@ -9,6 +9,7 @@ import CategoryManager from './pages/CategoryManager';
 import DashboardPage from './pages/DashboardPage';
 import Navbar from './components/Navbar';
 import SavingsPage from './pages/SavingsPage';
+import SettingsPage from './pages/SettingsPage';
 
 const navLinks = [
   { to: '/', label: 'Home' },
@@ -32,6 +33,7 @@ export default function App() {
             <Route path="/incomes" element={<PrivateRoute><IncomesPage /></PrivateRoute>} />
             <Route path="/categories" element={<PrivateRoute><CategoryManager /></PrivateRoute>} />
             <Route path="/savings" element={<PrivateRoute><SavingsPage /></PrivateRoute>} />
+            <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
           </Routes>
         </main>
       </div>

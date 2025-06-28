@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { LogOut } from 'lucide-react';
+import { LogOut, Settings } from 'lucide-react';
 
 export default function Navbar({ links = [] }) {
   const { logout } = useAuth();
@@ -25,13 +25,21 @@ export default function Navbar({ links = [] }) {
             </Link>
           ))}
         </div>
-        <button
-          onClick={handleLogout}
-          className="px-4 py-2 rounded-full text-red-500 border border-transparent hover:border-red-500 hover:bg-red-50 transition-all flex items-center gap-2"
-        >
-          <LogOut size={18} />
-          Logout
-        </button>
+        <div className="flex items-center gap-4">
+          <Link
+            to="/settings"
+            className="text-gray-600 hover:text-black flex items-center gap-1"
+          >
+            <Settings size={18} />
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 rounded-full text-red-500 border border-transparent hover:border-red-500 hover:bg-red-50 transition-all flex items-center gap-2"
+          >
+            <LogOut size={18} />
+            Logout
+          </button>
+        </div>
       </div>
     </nav>
   );
