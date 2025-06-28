@@ -1,7 +1,7 @@
 const { Pool, Client } = require('pg');
 require('dotenv').config();
 
-const dbName = 'finance';
+const dbName = process.env.DB_NAME;
 
 async function initializeDatabase() {
   console.log("🔍 Comprobando existencia de la base de datos...");
