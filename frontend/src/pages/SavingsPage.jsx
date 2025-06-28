@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Trash2, Wrench, FilePlus } from 'lucide-react';
+import { Trash2, Wrench, CopyPlus } from 'lucide-react';
 
 export default function SavingsPage() {
   const [savings, setSavings] = useState([]);
@@ -186,8 +186,8 @@ return (
                 <td className="p-3">{s.year_value}</td>
                 <td className="p-3 text-right">
                   <div className="inline-flex gap-1">
-                    <button className="p-2 bg-gray-400 text-white rounded hover:bg-gray-500" onClick={() => handleCopyClick(s)} title="Copy">
-                      <FilePlus size={16} />
+                    <button className="p-2 bg-cyan-500 text-white rounded hover:bg-cyan-600" onClick={() => handleCopyClick(e)} title="Copy">
+                      <CopyPlus size={16} />
                     </button>
                     <button className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600" onClick={() => handleEditClick(s)} title="Edit">
                       <Wrench size={16} />

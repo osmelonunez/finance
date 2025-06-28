@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Wrench, FilePlus } from 'lucide-react';
+import { Trash2, Wrench, CopyPlus  } from 'lucide-react';
 
 export default function ExpensesPage() {
   const navigate = useNavigate();
@@ -170,9 +170,6 @@ return (
             ))}
           </select>
 
-          <button onClick={() => navigate('/categories')} className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
-            Add Categories
-          </button>
           <button onClick={() => setShowModal(true)} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-blue-700 ml-auto">
             Add Expense
           </button>
@@ -204,9 +201,9 @@ return (
               <td className="p-3">{e.category_name}</td>
               <td className="p-3">
                 <div className="inline-flex gap-1">
-                    <button className="p-2 bg-gray-400 text-white rounded hover:bg-gray-500" onClick={() => handleCopyClick(e)} title="Copy">
-                      <FilePlus size={16} />
-                    </button>
+                  <button className="p-2 bg-cyan-500 text-white rounded hover:bg-cyan-600" onClick={() => handleCopyClick(e)} title="Copy">
+                    <CopyPlus size={16} />
+                  </button>
                   <button className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600" onClick={() => handleEditClick(e)} title="Editar">
                     <Wrench size={16} />
                   </button>
