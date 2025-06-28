@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ACTION="$1"
-WORKSPACE="/Users/osmel/git"
+WORKSPACE="$HOME/git"
 PROJECT_DIR="$WORKSPACE/finance"
 
 # Colores ANSI
