@@ -116,62 +116,70 @@ app.get('/api/incomes', async (req, res) => {
   res.json(result.rows);
 });
 
+// Obtener todas las categorías
 app.get('/api/categories', async (req, res) => {
   try {
-    const result = await db.query('SELECT id, name FROM categories ORDER BY name');
-    console.log('🟢 Categorías obtenidas:', result.rows);
+    const result = await db.query('SELECT id, name, description FROM categories ORDER BY name');
     res.json(result.rows);
   } catch (err) {
-    console.error('Error al obtener categorías:', err);
-    res.status(500).json({ error: 'Error interno al consultar categorías' });
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener categorías' });
   }
 });
 
-
+// Agregar una nueva categoría
 app.post('/api/categories', async (req, res) => {
-  const { name } = req.body;
-  if (!name?.trim()) return res.status(400).json({ error: 'Nombre inválido' });
+  const { name, description } = req.body;
+  if (!name) {
+    return res.status(400).json({ error: 'El nombre es requerido' });
+  }
 
   try {
-    await db.query('INSERT INTO categories (name) VALUES ($1)', [name.trim()]);
-    const result = await db.query('SELECT id, name FROM categories ORDER BY name');
-    res.json(result.rows);
+    const result = await db.query(
+      'INSERT INTO categories (name, description) VALUES ($1, $2) RETURNING *',
+      [name, description || null]
+    );
+    res.json(result.rows[0]);
   } catch (err) {
-    console.error('Error al agregar categoría:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error(err);
+    res.status(500).json({ error: 'Error al agregar la categoría' });
   }
 });
 
+// Actualizar una categoría
 app.put('/api/categories/:id', async (req, res) => {
   const { id } = req.params;
-  const { name } = req.body;
-  if (!name?.trim()) return res.status(400).json({ error: 'Nombre inválido' });
+  const { name, description } = req.body;
 
   try {
-    await db.query('UPDATE categories SET name = $1 WHERE id = $2', [name.trim(), id]);
-    const result = await db.query('SELECT id, name FROM categories ORDER BY name');
-    res.json(result.rows);
+    await db.query(
+      'UPDATE categories SET name = $1, description = $2 WHERE id = $3',
+      [name, description || null, id]
+    );
+    res.sendStatus(200);
   } catch (err) {
-    console.error('Error al actualizar categoría:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error(err);
+    res.status(500).json({ error: 'Error al actualizar la categoría' });
   }
 });
 
+// Eliminar una categoría (verifica si está en uso)
 app.delete('/api/categories/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    const result = await db.query('SELECT 1 FROM expenses WHERE category_id = $1 LIMIT 1', [id]);
-    if (result.rowCount > 0) {
-      return res.status(400).json({ error: 'Cannot delete category: it is used by one or more expenses.' });
+    // Verificar si hay gastos asociados a esta categoría
+    const usageCheck = await db.query('SELECT 1 FROM expenses WHERE category_id = $1 LIMIT 1', [id]);
+    if (usageCheck.rowCount > 0) {
+      return res.status(400).json({ error: 'The category cannot be deleted because it is in use.' });
     }
 
+    // Eliminar la categoría si no está en uso
     await db.query('DELETE FROM categories WHERE id = $1', [id]);
-    const updated = await db.query('SELECT id, name FROM categories ORDER BY name');
-    res.json(updated.rows);
+    res.sendStatus(200);
   } catch (err) {
-    console.error('Error deleting category:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error(err);
+    res.status(500).json({ error: 'Error al eliminar la categoría' });
   }
 });
 

@@ -38,18 +38,6 @@ async function initializeDatabase() {
   await client.connect();
 
   await client.query(`
-    CREATE TABLE IF NOT EXISTS expenses (
-      id SERIAL PRIMARY KEY,
-      name VARCHAR(255) NOT NULL,
-      cost NUMERIC(10, 2) NOT NULL,
-      month INT NOT NULL,
-      year INT NOT NULL,
-      category_id INTEGER REFERENCES categories(id) ON DELETE RESTRICT
-    );
-  `);
-  console.log("✅ Tabla 'expenses' verificada/creada.");
-
-  await client.query(`
     CREATE TABLE IF NOT EXISTS incomes (
       id SERIAL PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
@@ -59,14 +47,6 @@ async function initializeDatabase() {
     );
   `);
   console.log("✅ Tabla 'incomes' verificada/creada.");
-
-  await client.query(`
-    CREATE TABLE IF NOT EXISTS categories (
-      id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL UNIQUE
-    );
-  `);
-  console.log("✅ Tabla 'categories' verificada/creada.");
 
   await client.query(`
     CREATE TABLE IF NOT EXISTS savings (
@@ -79,10 +59,51 @@ async function initializeDatabase() {
   `);
   console.log("✅ Tabla 'savings' verificada/creada.");
 
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS categories (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      description TEXT
+    );
+  `);
+  console.log("✅ Tabla 'categories' verificada/creada.");
+
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS expenses (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      cost NUMERIC(10, 2) NOT NULL,
+      month INT NOT NULL,
+      year INT NOT NULL,
+      category_id INTEGER REFERENCES categories(id) ON DELETE RESTRICT
+    );
+  `);
+  console.log("✅ Tabla 'expenses' verificada/creada.");
+
+  console.log("🏁 Inicialización de base de datos finalizada.");
+
+  // Suponiendo que 'client' es la conexión activa a la base de datos
+  await client.query(`
+    INSERT INTO categories (name, description)
+    VALUES 
+      ('Gastos Básicos', 'Alquiler o hipoteca, comunidad, servicios (luz, agua, fibra/móvil, gas), seguros de vida y de hogar'),
+      ('Hogar', 'Reformas, compras para el hogar'),
+      ('Alimentación', 'Supermercado, cafés y snacks'),
+      ('Ocio', 'Salidas, viajes, cine, conciertos'),
+      ('Transporte', 'Seguro del coche, mantenimiento, combustible, tarjeta de transporte'),
+      ('Personal', 'Ropa, calzado, peluquería, barbería'),
+      ('Deporte', 'Gimnasio, yoga, natación'),
+      ('Salud', 'Seguros de salud, medicamentos'),
+      ('Suscripciones', 'Netflix, iCloud, Spotify, Amazon Prime'),
+      ('Finanzas y deudas', 'Pagos aplazados, préstamos')
+    ON CONFLICT DO NOTHING;
+  `);
+  console.log("✅ Categorías insertadas en la tabla 'categories'.");
 
   await client.end();
-  console.log("🏁 Inicialización de base de datos finalizada.");
+
 }
+
 
 // Ejecutar inicialización antes de exportar el pool
 initializeDatabase().catch(err => {

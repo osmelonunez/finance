@@ -4,8 +4,10 @@ import { Trash2, Wrench } from 'lucide-react';
 export default function CategoryManager() {
   const [categories, setCategories] = useState([]);
   const [newCategory, setNewCategory] = useState('');
+  const [newDescription, setNewDescription] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
+  const [editingDescription, setEditingDescription] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState(null);
@@ -38,7 +40,7 @@ export default function CategoryManager() {
       const res = await fetch('/api/categories', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newCategory.trim() })
+        body: JSON.stringify({ name: newCategory.trim(), description: newDescription.trim() })
       });
 
       const data = await res.json();
@@ -49,6 +51,7 @@ export default function CategoryManager() {
       }
 
       setNewCategory('');
+      setNewDescription('');
       setShowModal(false);
       fetchCategories();
       showStatus('Category added successfully');
@@ -63,11 +66,12 @@ export default function CategoryManager() {
     const res = await fetch(`/api/categories/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: editingName.trim() })
+      body: JSON.stringify({ name: editingName.trim(), description: editingDescription.trim() })
     });
     if (res.ok) {
       setEditingId(null);
       setEditingName('');
+      setEditingDescription('');
       fetchCategories();
       showStatus('Category updated successfully');
     } else {
@@ -111,6 +115,7 @@ export default function CategoryManager() {
           <thead className="bg-gray-50 text-left">
             <tr>
               <th className="p-3">Name</th>
+              <th className="p-3">Description</th>
               <th className="p-3 text-right">Actions</th>
             </tr>
           </thead>
@@ -128,6 +133,17 @@ export default function CategoryManager() {
                     cat.name
                   )
                 }</td>
+                <td className="p-3">{
+                  editingId === cat.id ? (
+                    <input
+                      value={editingDescription}
+                      onChange={(e) => setEditingDescription(e.target.value)}
+                      className="border rounded px-2 py-1"
+                    />
+                  ) : (
+                    cat.description || '—'
+                  )
+                }</td>
                 <td className="p-3 text-right">
                   <div className="inline-flex gap-1">
                     {editingId === cat.id ? (
@@ -140,7 +156,11 @@ export default function CategoryManager() {
                     ) : (
                       <button
                         className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                        onClick={() => { setEditingId(cat.id); setEditingName(cat.name); }}
+                        onClick={() => {
+                          setEditingId(cat.id);
+                          setEditingName(cat.name);
+                          setEditingDescription(cat.description || '');
+                        }}
                         title="Editar"
                       >
                         <Wrench size={16} />
@@ -170,6 +190,12 @@ export default function CategoryManager() {
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value)}
               placeholder="Category name"
+              className="w-full border rounded px-3 py-2"
+            />
+            <textarea
+              value={newDescription}
+              onChange={(e) => setNewDescription(e.target.value)}
+              placeholder="Category description"
               className="w-full border rounded px-3 py-2"
             />
             <div className="flex justify-end gap-4">
