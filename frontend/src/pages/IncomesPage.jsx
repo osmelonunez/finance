@@ -1,103 +1,40 @@
 import { useEffect, useState } from 'react';
-import { Trash2, Wrench } from 'lucide-react';
+import { Trash2, Wrench, FilePlus } from 'lucide-react';
 
 export default function IncomesPage() {
   const [incomes, setIncomes] = useState([]);
-  const [filtered, setFiltered] = useState([]);
-  const [filters, setFilters] = useState({ month_id: '', year_id: '' });
-  const [newIncome, setNewIncome] = useState({ name: '', amount: '', month_id: '', year_id: '' });
   const [months, setMonths] = useState([]);
   const [years, setYears] = useState([]);
-  const [sort, setSort] = useState('');
-  const [search, setSearch] = useState('');
+  const [newIncome, setNewIncome] = useState({ name: '', amount: '', month_id: '', year_id: '' });
   const [showModal, setShowModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [incomeToDelete, setIncomeToDelete] = useState(null);
+  const [search, setSearch] = useState(localStorage.getItem('incomesSearch') || '');
+  const [sort, setSort] = useState(localStorage.getItem('incomesSort') || '');
+  const [filterMonth, setFilterMonth] = useState(localStorage.getItem('incomesMonth') || '');
+  const [filterYear, setFilterYear] = useState(localStorage.getItem('incomesYear') || '');
+
+  const fetchIncomes = async () => {
+    const res = await fetch('/api/incomes');
+    if (res.ok) {
+      const data = await res.json();
+      setIncomes(data);
+    }
+  };
 
   useEffect(() => {
-    fetch('/api/incomes')
-      .then(res => res.json())
-      .then(data => {
-        setIncomes(data);
-        setFiltered(data);
-      });
-
-    fetch('/api/months')
-      .then(res => res.json())
-      .then(setMonths);
-
-    fetch('/api/years')
-      .then(res => res.json())
-      .then(setYears);
+    fetchIncomes();
+    fetch('/api/months').then(res => res.json()).then(setMonths);
+    fetch('/api/years').then(res => res.json()).then(setYears);
   }, []);
 
-  useEffect(() => {
-    let result = [...incomes];
-    if (filters.month_id) result = result.filter(e => parseInt(e.month_id) === parseInt(filters.month_id));
-    if (filters.year_id) result = result.filter(e => parseInt(e.year_id) === parseInt(filters.year_id));
-    if (search) result = result.filter(e => e.name.toLowerCase().includes(search.toLowerCase()));
-    if (sort === 'name') result.sort((a, b) => a.name.localeCompare(b.name));
-    if (sort === 'amount') result.sort((a, b) => parseFloat(b.amount) - parseFloat(a.amount));
-    setFiltered(result);
-  }, [filters, incomes, sort, search]);
-
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters(prev => ({ ...prev, [name]: value }));
-  };
+  useEffect(() => localStorage.setItem('incomesSearch', search), [search]);
+  useEffect(() => localStorage.setItem('incomesSort', sort), [sort]);
+  useEffect(() => localStorage.setItem('incomesMonth', filterMonth), [filterMonth]);
+  useEffect(() => localStorage.setItem('incomesYear', filterYear), [filterYear]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewIncome(prev => ({ ...prev, [name]: value }));
-  };
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
-  const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-  const handleEditClick = (income) => {
-    setNewIncome({
-      id: income.id,
-      name: income.name,
-      amount: income.amount,
-      month_id: income.month_id,
-      year_id: income.year_id
-    });
-    setShowModal(true);
-  };
-
-  const handleDeleteIncome = (income) => {
-    setIncomeToDelete(income);
-    setShowDeleteModal(true);
-  };
-
-  const confirmDeleteIncome = async () => {
-    if (!incomeToDelete) return;
-    const res = await fetch(`/api/incomes/${incomeToDelete.id}`, { method: 'DELETE' });
-    if (res.ok) {
-      const updated = await res.json();
-      setIncomes(updated);
-    }
-    setShowDeleteModal(false);
-    setIncomeToDelete(null);
-  };
-
-  const handleUpdateIncome = async () => {
-    if (!newIncome.id || !newIncome.name || !newIncome.amount || !newIncome.month_id || !newIncome.year_id) return;
-
-    const res = await fetch(`/api/incomes/${newIncome.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newIncome)
-    });
-
-    if (res.ok) {
-      const updated = await res.json();
-      setIncomes(updated);
-      setNewIncome({ id: '', name: '', amount: '', month_id: '', year_id: '' });
-      setShowModal(false);
-    }
   };
 
   const handleAddIncome = async () => {
@@ -117,80 +54,159 @@ export default function IncomesPage() {
     }
   };
 
+  const handleEditClick = (income) => {
+    setNewIncome({
+      id: income.id,
+      name: income.name,
+      amount: income.amount,
+      month_id: income.month_id,
+      year_id: income.year_id
+    });
+    setShowModal(true);
+  };
+
+  const handleCopyClick = (income) => {
+    const name = income.name;
+    const amount = income.amount;
+    const targetMonth = prompt("Enter target month ID (1–12):");
+    const targetYear = prompt("Enter target year ID:");
+
+    if (!targetMonth || !targetYear) return;
+
+    const newEntry = {
+      name,
+      amount,
+      month_id: targetMonth,
+      year_id: targetYear
+    };
+
+    fetch('/api/incomes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newEntry)
+    }).then(res => res.json())
+      .then(setIncomes);
+  };
+
+  const handleUpdateIncome = async () => {
+    if (!newIncome.id || !newIncome.name || !newIncome.amount || !newIncome.month_id || !newIncome.year_id) return;
+
+    const res = await fetch(`/api/incomes/${newIncome.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newIncome)
+    });
+
+    if (res.ok) {
+      const updated = await res.json();
+      setIncomes(updated);
+      setShowModal(false);
+      setNewIncome({ name: '', amount: '', month_id: '', year_id: '' });
+    }
+  };
+
+  const handleDeleteIncome = async () => {
+    const res = await fetch(`/api/incomes/${incomeToDelete.id}`, { method: 'DELETE' });
+    if (res.ok) {
+      const updated = await res.json();
+      setIncomes(updated);
+    }
+    setIncomeToDelete(null);
+  };
+
+  const filtered = incomes
+    .filter(e =>
+      e.name.toLowerCase().includes(search.toLowerCase()) &&
+      (filterMonth === '' || e.month_id === parseInt(filterMonth)) &&
+      (filterYear === '' || e.year_id === parseInt(filterYear))
+    )
+    .sort((a, b) => {
+      if (sort === 'amount') return b.amount - a.amount;
+      if (sort === 'month') return a.month_id - b.month_id;
+      if (sort === 'year') return a.year_id - b.year_id;
+      if (sort === 'name') return a.name.localeCompare(b.name);
+      return 0;
+    });
+
   return (
     <div className="space-y-8">
       <h2 className="text-2xl font-bold text-gray-800">Incomes</h2>
 
       <div className="bg-white p-6 rounded-xl shadow space-y-4">
-        <div className="flex flex-wrap gap-4 items-center">
-          <select name="sort" value={sort} onChange={(e) => setSort(e.target.value)} className="border rounded px-3 py-2">
-            <option value="">Sort by</option>
-            <option value="name">Name</option>
-            <option value="amount">Amount</option>
-          </select>
-
-          <input type="text" name="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name..." className="border rounded px-3 py-2 w-44" />
-
-          <select name="month_id" value={filters.month_id} onChange={handleFilterChange} className="border rounded px-3 py-2">
-            <option value="">All Months</option>
-            {months.map(m => (
-              <option key={m.id} value={m.id}>{m.name}</option>
-            ))}
-          </select>
-
-          <select name="year_id" value={filters.year_id} onChange={handleFilterChange} className="border rounded px-3 py-2">
-            <option value="">All Years</option>
-            {years.map(y => (
-              <option key={y.id} value={y.id}>{y.value}</option>
-            ))}
-          </select>
-
-          <button onClick={() => setShowModal(true)} className="bg-green-600 text-white px-6 py-2 rounded hover:bg-blue-700 ml-auto">
+        <div className="flex flex-wrap justify-between items-center gap-2">
+          <div className="flex gap-2 flex-wrap items-center">
+            <select value={sort} onChange={e => setSort(e.target.value)} className="border rounded px-3 py-2">
+              <option value="">Sort by</option>
+              <option value="name">Name</option>
+              <option value="amount">Amount</option>
+              <option value="month">Month</option>
+              <option value="year">Year</option>
+            </select>
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search by name..."
+              className="border rounded px-3 py-2 w-44"
+            />
+            <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)} className="border rounded px-3 py-2">
+              <option value="">All Months</option>
+              {months.map(m => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+            <select value={filterYear} onChange={e => setFilterYear(e.target.value)} className="border rounded px-3 py-2">
+              <option value="">All Years</option>
+              {years.map(y => (
+                <option key={y.id} value={y.id}>{y.value}</option>
+              ))}
+            </select>
+          </div>
+          <button onClick={() => setShowModal(true)} className="bg-green-600 text-white px-5 py-2 rounded hover:bg-blue-700">
             Add Income
           </button>
         </div>
-      </div>
 
-      <div className="bg-green-100 border border-green-300 rounded-lg p-4 text-right text-green-800 font-semibold">
-        Total: {filtered.reduce((acc, e) => acc + parseFloat(e.amount), 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
-      </div>
-
-      <table className="min-w-full bg-white shadow rounded-xl">
-        <thead className="bg-gray-50 text-left">
-          <tr>
-            <th className="p-3">Name</th>
-            <th className="p-3">Amount</th>
-            <th className="p-3">Month</th>
-            <th className="p-3">Year</th>
-            <th className="p-3">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {paginated.map((e, i) => (
-            <tr key={i} className="border-t hover:bg-gray-50">
-              <td className="p-3">{e.name}</td>
-              <td className="p-3 text-red-500 font-medium">{parseFloat(e.amount).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</td>
-              <td className="p-3">{e.month_name}</td>
-              <td className="p-3">{e.year_value}</td>
-              <td className="p-3">
-                <div className="inline-flex gap-1">
-                  <button className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600" onClick={() => handleEditClick(e)} title="Editar">
-                    <Wrench size={16} />
-                  </button>
-                  <button className="p-2 bg-red-500 text-white rounded hover:bg-red-600" onClick={() => handleDeleteIncome(e)} title="Eliminar">
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </td>
+        <table className="min-w-full bg-white shadow rounded-xl">
+          <thead className="bg-gray-50 text-left">
+            <tr>
+              <th className="p-3">Name</th>
+              <th className="p-3">Amount</th>
+              <th className="p-3">Month</th>
+              <th className="p-3">Year</th>
+              <th className="p-3 text-right">Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {filtered.map((e, i) => (
+              <tr key={i} className="border-t hover:bg-gray-50">
+                <td className="p-3">{e.name}</td>
+                <td className="p-3 text-green-600 font-medium">{parseFloat(e.amount).toFixed(2)} €</td>
+                <td className="p-3">{e.month_name}</td>
+                <td className="p-3">{e.year_value}</td>
+                <td className="p-3 text-right">
+                  <div className="inline-flex gap-1">
+                    <button className="p-2 bg-gray-400 text-white rounded hover:bg-gray-500" onClick={() => handleCopyClick(e)} title="Copy">
+                      <FilePlus size={16} />
+                    </button>
+                    <button className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600" onClick={() => handleEditClick(e)} title="Edit">
+                      <Wrench size={16} />
+                    </button>
+                    <button className="p-2 bg-red-500 text-white rounded hover:bg-red-600" onClick={() => setIncomeToDelete(e)} title="Delete">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-xl w-full max-w-xl shadow-lg space-y-4">
-            <h3 className="text-lg font-semibold">{newIncome.id ? "Edit Income" : "Add Income"}</h3>
+            <h3 className="text-lg font-semibold">{newIncome.id ? 'Edit Income' : 'Add Income'}</h3>
             <div className="grid md:grid-cols-4 gap-4">
               <input name="name" value={newIncome.name} onChange={handleInputChange} placeholder="Name" className="border rounded px-3 py-2" />
               <input name="amount" value={newIncome.amount} onChange={handleInputChange} placeholder="Amount" type="number" className="border rounded px-3 py-2" />
@@ -209,13 +225,13 @@ export default function IncomesPage() {
             </div>
             <div className="flex justify-end gap-4">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 border rounded text-gray-600">Cancel</button>
-              <button onClick={() => newIncome.id ? handleUpdateIncome() : handleAddIncome()} className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">{newIncome.id ? "Update" : "Add"}</button>
+              <button onClick={() => newIncome.id ? handleUpdateIncome() : handleAddIncome()} className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">{newIncome.id ? 'Update' : 'Add'}</button>
             </div>
           </div>
         </div>
       )}
 
-      {showDeleteModal && (
+      {incomeToDelete && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md">
             <h3 className="text-xl font-semibold text-gray-800 mb-4">Confirm Delete</h3>
@@ -223,18 +239,12 @@ export default function IncomesPage() {
               Are you sure you want to delete <strong>{incomeToDelete?.name}</strong>?
             </p>
             <div className="flex justify-end gap-4">
-              <button className="px-4 py-2 rounded border text-gray-600 hover:bg-gray-100" onClick={() => { setShowDeleteModal(false); setIncomeToDelete(null); }}>Cancel</button>
-              <button className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700" onClick={confirmDeleteIncome}>Delete</button>
+              <button className="px-4 py-2 rounded border text-gray-600 hover:bg-gray-100" onClick={() => setIncomeToDelete(null)}>Cancel</button>
+              <button className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700" onClick={handleDeleteIncome}>Delete</button>
             </div>
           </div>
         </div>
       )}
-
-      <div className="flex justify-center items-center gap-2 mt-4">
-        <button onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1} className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50">Prev</button>
-        <span className="px-2">Page {currentPage} of {totalPages}</span>
-        <button onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages} className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50">Next</button>
-      </div>
     </div>
   );
 }
