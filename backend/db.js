@@ -125,7 +125,7 @@ async function initializeDatabase() {
 
   await client.query(`
     INSERT INTO years (value)
-      SELECT generate_series(2025, 2030)
+      SELECT generate_series(2025, 2026)
     ON CONFLICT DO NOTHING;
   `);
 

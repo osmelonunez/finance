@@ -1,12 +1,12 @@
-#version: '3.8'
-
 services:
   backend:
     build: ./backend
     image: finance-backend:${BACKEND_TAG}
     container_name: finance-backend
     env_file:
-      - ./backend/.env
+      - .env
+    depends_on:
+      - postgres
     networks:
       - public
 
@@ -16,9 +16,27 @@ services:
     container_name: finance-frontend
     ports:
       - "5173:5173"
+    depends_on:
+      - backend
+    networks:
+      - public
+
+  postgres:
+    image: postgres:14
+    container_name: postgres_finance
+    environment:
+      POSTGRES_USER: finance
+      POSTGRES_PASSWORD: XwvfD0v2HcypxcK
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    ports:
+      - "5439:5432"
     networks:
       - public
 
 networks:
   public:
     external: true
+
+volumes:
+  postgres:
