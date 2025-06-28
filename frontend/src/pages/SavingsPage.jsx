@@ -113,17 +113,17 @@ export default function SavingsPage() {
           <div className="flex gap-2 flex-wrap items-center">
             <select value={sort} onChange={e => setSort(e.target.value)} className="border rounded px-3 py-2">
               <option value="">Sort by</option>
+              <option value="name">Name</option>
               <option value="amount">Amount</option>
               <option value="month">Month</option>
               <option value="year">Year</option>
-              <option value="name">Name</option>
             </select>
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search by name..."
-              className="border rounded px-3 py-2"
+              className="border rounded px-3 py-2 w-44"
             />
             <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)} className="border rounded px-3 py-2">
               <option value="">All Months</option>
