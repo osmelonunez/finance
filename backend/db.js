@@ -38,12 +38,28 @@ async function initializeDatabase() {
   await client.connect();
 
   await client.query(`
+    CREATE TABLE IF NOT EXISTS months (
+      id INT PRIMARY KEY CHECK (id BETWEEN 1 AND 12),
+      name VARCHAR(20) NOT NULL
+    );
+  `);
+  console.log("✅ Tabla 'months' verificada/creada.");
+
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS years (
+      id SERIAL PRIMARY KEY,
+      value INT NOT NULL UNIQUE
+    );
+  `);
+  console.log("✅ Tabla 'years' verificada/creada.");
+
+  await client.query(`
     CREATE TABLE IF NOT EXISTS incomes (
       id SERIAL PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
       amount NUMERIC(10, 2) NOT NULL,
-      month INT NOT NULL,
-      year INT NOT NULL
+      month_id INT NOT NULL REFERENCES months(id),
+      year_id INT NOT NULL REFERENCES years(id)
     );
   `);
   console.log("✅ Tabla 'incomes' verificada/creada.");
@@ -53,8 +69,8 @@ async function initializeDatabase() {
       id SERIAL PRIMARY KEY,
       name VARCHAR(255),
       amount NUMERIC(10, 2) NOT NULL,
-      month INT NOT NULL,
-      year INT NOT NULL
+      month_id INT NOT NULL REFERENCES months(id),
+      year_id INT NOT NULL REFERENCES years(id)
     );
   `);
   console.log("✅ Tabla 'savings' verificada/creada.");
@@ -73,8 +89,8 @@ async function initializeDatabase() {
       id SERIAL PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
       cost NUMERIC(10, 2) NOT NULL,
-      month INT NOT NULL,
-      year INT NOT NULL,
+      month_id INT NOT NULL REFERENCES months(id),
+      year_id INT NOT NULL REFERENCES years(id),
       category_id INTEGER REFERENCES categories(id) ON DELETE RESTRICT
     );
   `);
@@ -82,7 +98,6 @@ async function initializeDatabase() {
 
   console.log("🏁 Inicialización de base de datos finalizada.");
 
-  // Suponiendo que 'client' es la conexión activa a la base de datos
   await client.query(`
     INSERT INTO categories (name, description)
     VALUES 
@@ -98,6 +113,22 @@ async function initializeDatabase() {
       ('Finanzas y deudas', 'Pagos aplazados, préstamos')
     ON CONFLICT DO NOTHING;
   `);
+
+  await client.query(`
+  INSERT INTO months (id, name)
+  VALUES
+    (1, 'January'), (2, 'February'), (3, 'March'), (4, 'April'),
+    (5, 'May'), (6, 'June'), (7, 'July'), (8, 'August'),
+    (9, 'September'), (10, 'October'), (11, 'November'), (12, 'December')
+  ON CONFLICT DO NOTHING;
+  `);
+
+  await client.query(`
+    INSERT INTO years (value)
+      SELECT generate_series(2025, 2030)
+    ON CONFLICT DO NOTHING;
+  `);
+
   console.log("✅ Categorías insertadas en la tabla 'categories'.");
 
   await client.end();

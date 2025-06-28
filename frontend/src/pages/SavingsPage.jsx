@@ -3,7 +3,9 @@ import { Trash2, Wrench } from 'lucide-react';
 
 export default function SavingsPage() {
   const [savings, setSavings] = useState([]);
-  const [newSaving, setNewSaving] = useState({ name: '', amount: '', month: '', year: '' });
+  const [months, setMonths] = useState([]);
+  const [years, setYears] = useState([]);
+  const [newSaving, setNewSaving] = useState({ name: '', amount: '', month_id: '', year_id: '' });
   const [showModal, setShowModal] = useState(false);
   const [savingToDelete, setSavingToDelete] = useState(null);
   const [search, setSearch] = useState(localStorage.getItem('savingsSearch') || '');
@@ -19,7 +21,11 @@ export default function SavingsPage() {
     }
   };
 
-  useEffect(() => { fetchSavings(); }, []);
+  useEffect(() => {
+    fetchSavings();
+    fetch('/api/months').then(res => res.json()).then(setMonths);
+    fetch('/api/years').then(res => res.json()).then(setYears);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('savingsSearch', search);
@@ -43,7 +49,7 @@ export default function SavingsPage() {
   };
 
   const handleAddSaving = async () => {
-    if (!newSaving.name || !newSaving.amount || !newSaving.month || !newSaving.year) return;
+    if (!newSaving.name || !newSaving.amount || !newSaving.month_id || !newSaving.year_id) return;
 
     const res = await fetch('/api/savings', {
       method: 'POST',
@@ -54,18 +60,24 @@ export default function SavingsPage() {
     if (res.ok) {
       const updated = await res.json();
       setSavings(updated);
-      setNewSaving({ name: '', amount: '', month: '', year: '' });
+      setNewSaving({ name: '', amount: '', month_id: '', year_id: '' });
       setShowModal(false);
     }
   };
 
   const handleEditClick = (saving) => {
-    setNewSaving({ ...saving });
+    setNewSaving({
+      id: saving.id,
+      name: saving.name,
+      amount: saving.amount,
+      month_id: saving.month_id,
+      year_id: saving.year_id
+    });
     setShowModal(true);
   };
 
   const handleUpdateSaving = async () => {
-    if (!newSaving.id || !newSaving.name || !newSaving.amount || !newSaving.month || !newSaving.year) return;
+    if (!newSaving.id || !newSaving.name || !newSaving.amount || !newSaving.month_id || !newSaving.year_id) return;
 
     const res = await fetch(`/api/savings/${newSaving.id}`, {
       method: 'PUT',
@@ -77,7 +89,7 @@ export default function SavingsPage() {
       const updated = await res.json();
       setSavings(updated);
       setShowModal(false);
-      setNewSaving({ name: '', amount: '', month: '', year: '' });
+      setNewSaving({ name: '', amount: '', month_id: '', year_id: '' });
     }
   };
 
@@ -93,13 +105,13 @@ export default function SavingsPage() {
   const filtered = savings
     .filter(s =>
       s.name.toLowerCase().includes(search.toLowerCase()) &&
-      (filterMonth === '' || s.month === parseInt(filterMonth)) &&
-      (filterYear === '' || s.year === parseInt(filterYear))
+      (filterMonth === '' || s.month_id === parseInt(filterMonth)) &&
+      (filterYear === '' || s.year_id === parseInt(filterYear))
     )
     .sort((a, b) => {
       if (sort === 'amount') return b.amount - a.amount;
-      if (sort === 'month') return a.month - b.month;
-      if (sort === 'year') return a.year - b.year;
+      if (sort === 'month') return a.month_id - b.month_id;
+      if (sort === 'year') return a.year_id - b.year_id;
       if (sort === 'name') return a.name.localeCompare(b.name);
       return 0;
     });
@@ -127,13 +139,15 @@ export default function SavingsPage() {
             />
             <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)} className="border rounded px-3 py-2">
               <option value="">All Months</option>
-              {[...Array(12)].map((_, i) => (
-                <option key={i + 1} value={i + 1}>{new Date(0, i).toLocaleString('en', { month: 'long' })}</option>
+              {months.map(m => (
+                <option key={m.id} value={m.id}>{m.name}</option>
               ))}
             </select>
             <select value={filterYear} onChange={e => setFilterYear(e.target.value)} className="border rounded px-3 py-2">
               <option value="">All Years</option>
-              {[2025, 2026, 2027, 2028, 2029, 2030].map(y => <option key={y}>{y}</option>)}
+              {years.map(y => (
+                <option key={y.id} value={y.id}>{y.value}</option>
+              ))}
             </select>
           </div>
           <button onClick={() => setShowModal(true)} className="bg-green-600 text-white px-5 py-2 rounded hover:bg-blue-700">
@@ -156,8 +170,8 @@ export default function SavingsPage() {
               <tr key={i} className="border-t hover:bg-gray-50">
                 <td className="p-3">{s.name}</td>
                 <td className="p-3 text-green-600 font-medium">{parseFloat(s.amount).toFixed(2)} €</td>
-                <td className="p-3">{new Date(0, s.month - 1).toLocaleString('en', { month: 'long' })}</td>
-                <td className="p-3">{s.year}</td>
+                <td className="p-3">{s.month_name}</td>
+                <td className="p-3">{s.year_value}</td>
                 <td className="p-3 text-right">
                   <div className="inline-flex gap-1">
                     <button className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600" onClick={() => handleEditClick(s)} title="Edit">
@@ -181,15 +195,17 @@ export default function SavingsPage() {
             <div className="grid md:grid-cols-4 gap-4">
               <input name="name" value={newSaving.name} onChange={handleInputChange} placeholder="Name" className="border rounded px-3 py-2" />
               <input name="amount" value={newSaving.amount} onChange={handleInputChange} placeholder="Amount" type="number" className="border rounded px-3 py-2" />
-              <select name="month" value={newSaving.month} onChange={handleInputChange} className="border rounded px-3 py-2">
+              <select name="month_id" value={newSaving.month_id} onChange={handleInputChange} className="border rounded px-3 py-2">
                 <option value="">Month</option>
-                {[...Array(12)].map((_, i) => (
-                  <option key={i + 1} value={i + 1}>{new Date(0, i).toLocaleString('en', { month: 'long' })}</option>
+                {months.map(m => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
                 ))}
               </select>
-              <select name="year" value={newSaving.year} onChange={handleInputChange} className="border rounded px-3 py-2">
+              <select name="year_id" value={newSaving.year_id} onChange={handleInputChange} className="border rounded px-3 py-2">
                 <option value="">Year</option>
-                {[2025, 2026, 2027, 2028, 2029, 2030].map(y => <option key={y}>{y}</option>)}
+                {years.map(y => (
+                  <option key={y.id} value={y.id}>{y.value}</option>
+                ))}
               </select>
             </div>
             <div className="flex justify-end gap-4">

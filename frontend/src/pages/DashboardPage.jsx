@@ -5,42 +5,54 @@ export default function DashboardPage() {
   const [incomes, setIncomes] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [savings, setSavings] = useState([]);
-  const [filters, setFilters] = useState({ month: '', year: '' });
+  const [months, setMonths] = useState([]);
+  const [years, setYears] = useState([]);
+  const [filters, setFilters] = useState({ month_id: '', year_id: '' });
 
   useEffect(() => {
     async function fetchData() {
-      const resIncomes = await fetch('/api/incomes');
-      const resExpenses = await fetch('/api/expenses');
-      const resSavings = await fetch('/api/savings');
-      const incomesData = await resIncomes.json();
-      const expensesData = await resExpenses.json();
-      const savingsData = await resSavings.json();
+      const [resIncomes, resExpenses, resSavings, resMonths, resYears] = await Promise.all([
+        fetch('/api/incomes'),
+        fetch('/api/expenses'),
+        fetch('/api/savings'),
+        fetch('/api/months'),
+        fetch('/api/years')
+      ]);
+      const [incomesData, expensesData, savingsData, monthsData, yearsData] = await Promise.all([
+        resIncomes.json(),
+        resExpenses.json(),
+        resSavings.json(),
+        resMonths.json(),
+        resYears.json()
+      ]);
       setIncomes(incomesData);
       setExpenses(expensesData);
       setSavings(savingsData);
+      setMonths(monthsData);
+      setYears(yearsData);
     }
     fetchData();
   }, []);
 
-  const filteredIncomes = incomes.filter(i => (!filters.month || parseInt(i.month) === parseInt(filters.month)) && (!filters.year || parseInt(i.year) === parseInt(filters.year)));
-  const filteredExpenses = expenses.filter(e => (!filters.month || parseInt(e.month) === parseInt(filters.month)) && (!filters.year || parseInt(e.year) === parseInt(filters.year)));
-  const filteredSavings = savings.filter(s => (!filters.month || parseInt(s.month) === parseInt(filters.month)) && (!filters.year || parseInt(s.year) === parseInt(filters.year)));
+  const filteredIncomes = incomes.filter(i => (!filters.month_id || i.month_id === parseInt(filters.month_id)) && (!filters.year_id || i.year_id === parseInt(filters.year_id)));
+  const filteredExpenses = expenses.filter(e => (!filters.month_id || e.month_id === parseInt(filters.month_id)) && (!filters.year_id || e.year_id === parseInt(filters.year_id)));
+  const filteredSavings = savings.filter(s => (!filters.month_id || s.month_id === parseInt(filters.month_id)) && (!filters.year_id || s.year_id === parseInt(filters.year_id)));
 
   const totalIncome = filteredIncomes.reduce((sum, i) => sum + parseFloat(i.amount), 0);
   const totalExpenses = filteredExpenses.reduce((sum, e) => sum + parseFloat(e.cost), 0);
   const totalSavings = filteredSavings.reduce((sum, s) => sum + parseFloat(s.amount), 0);
   const balance = totalIncome - totalExpenses - totalSavings;
 
-  const groupedData = Array.from({ length: 12 }, (_, month) => {
-    const incomeMonth = incomes.filter(i => parseInt(i.month) === month + 1 && (!filters.year || parseInt(i.year) === parseInt(filters.year))).reduce((sum, i) => sum + parseFloat(i.amount), 0);
-    const expenseMonth = expenses.filter(e => parseInt(e.month) === month + 1 && (!filters.year || parseInt(e.year) === parseInt(filters.year))).reduce((sum, e) => sum + parseFloat(e.cost), 0);
-    const savingMonth = savings.filter(s => parseInt(s.month) === month + 1 && (!filters.year || parseInt(s.year) === parseInt(filters.year))).reduce((sum, s) => sum + parseFloat(s.amount), 0);
+  const groupedData = months.map(m => {
+    const incomeMonth = incomes.filter(i => i.month_id === m.id && (!filters.year_id || i.year_id === parseInt(filters.year_id))).reduce((sum, i) => sum + parseFloat(i.amount), 0);
+    const expenseMonth = expenses.filter(e => e.month_id === m.id && (!filters.year_id || e.year_id === parseInt(filters.year_id))).reduce((sum, e) => sum + parseFloat(e.cost), 0);
+    const savingMonth = savings.filter(s => s.month_id === m.id && (!filters.year_id || s.year_id === parseInt(filters.year_id))).reduce((sum, s) => sum + parseFloat(s.amount), 0);
     return {
-      name: new Date(0, month).toLocaleString('en', { month: 'short' }),
+      name: m.name.substring(0, 3),
       income: parseFloat(incomeMonth.toFixed(2)),
       expense: parseFloat(expenseMonth.toFixed(2)),
       saving: parseFloat(savingMonth.toFixed(2)),
-      balance: parseFloat((incomeMonth - expenseMonth).toFixed(2))
+      balance: parseFloat((incomeMonth - expenseMonth - savingMonth).toFixed(2))
     };
   });
 
@@ -49,15 +61,17 @@ export default function DashboardPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-wrap gap-4 mb-4">
-        <select name="month" onChange={(e) => setFilters(prev => ({ ...prev, month: e.target.value }))} className="border px-4 py-2 rounded">
+        <select name="month_id" onChange={(e) => setFilters(prev => ({ ...prev, month_id: e.target.value }))} className="border px-4 py-2 rounded">
           <option value="">All Months</option>
-          {[...Array(12)].map((_, i) => (
-            <option key={i + 1} value={i + 1}>{new Date(0, i).toLocaleString('en', { month: 'long' })}</option>
+          {months.map(m => (
+            <option key={m.id} value={m.id}>{m.name}</option>
           ))}
         </select>
-        <select name="year" onChange={(e) => setFilters(prev => ({ ...prev, year: e.target.value }))} className="border px-4 py-2 rounded">
+        <select name="year_id" onChange={(e) => setFilters(prev => ({ ...prev, year_id: e.target.value }))} className="border px-4 py-2 rounded">
           <option value="">All Years</option>
-          {Array.from({ length: 6 }, (_, i) => 2025 + i).map(y => <option key={y}>{y}</option>)}
+          {years.map(y => (
+            <option key={y.id} value={y.id}>{y.value}</option>
+          ))}
         </select>
       </div>
 

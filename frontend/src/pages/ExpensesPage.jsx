@@ -6,12 +6,16 @@ export default function ExpensesPage() {
   const navigate = useNavigate();
   const [expenses, setExpenses] = useState([]);
   const [filtered, setFiltered] = useState([]);
-  const [filters, setFilters] = useState({ month: '', year: '', category_id: '' });
+  const [filters, setFilters] = useState({ month_id: '', year_id: '', category_id: '' });
   const [categories, setCategories] = useState([]);
-const [newExpense, setNewExpense] = useState({ name: '', cost: '', month: '', year: '', category_id: '' });
+  const [months, setMonths] = useState([]);
+  const [years, setYears] = useState([]);
+  const [newExpense, setNewExpense] = useState({ name: '', cost: '', month_id: '', year_id: '', category_id: '' });
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
+  const [search, setSearch] = useState('');
+  const [sort, setSort] = useState('');
 
   useEffect(() => {
     fetch('/api/expenses')
@@ -19,57 +23,58 @@ const [newExpense, setNewExpense] = useState({ name: '', cost: '', month: '', ye
       .then(data => {
         setExpenses(data);
         setFiltered(data);
-        data.sort((a, b) => {
-          if (a.year !== b.year) return a.year - b.year;
-          if (a.month !== b.month) return a.month - b.month;
-          return parseFloat(b.cost) - parseFloat(a.cost);
-        });
       });
-  }, []);
 
-  useEffect(() => {
     fetch('/api/categories')
       .then(res => res.json())
       .then(data => {
         const sorted = data.sort((a, b) => a.name.localeCompare(b.name));
         setCategories(sorted);
       });
+
+    fetch('/api/months')
+      .then(res => res.json())
+      .then(setMonths);
+
+    fetch('/api/years')
+      .then(res => res.json())
+      .then(setYears);
   }, []);
 
   useEffect(() => {
     let result = [...expenses];
-    if (filters.month) result = result.filter(e => parseInt(e.month) === parseInt(filters.month));
-    if (filters.year) result = result.filter(e => parseInt(e.year) === parseInt(filters.year));
-    if (filters.category_id) result = result.filter(e => e.category === filters.category_id);
+    if (filters.month_id) result = result.filter(e => parseInt(e.month_id) === parseInt(filters.month_id));
+    if (filters.year_id) result = result.filter(e => parseInt(e.year_id) === parseInt(filters.year_id));
+    if (filters.category_id) result = result.filter(e => e.category_id === parseInt(filters.category_id));
+    if (search) result = result.filter(e => e.name.toLowerCase().includes(search.toLowerCase()));
+    if (sort === 'name') result.sort((a, b) => a.name.localeCompare(b.name));
+    if (sort === 'cost') result.sort((a, b) => parseFloat(b.cost) - parseFloat(a.cost));
     setFiltered(result);
-  }, [filters, expenses]);
+  }, [filters, expenses, search, sort]);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({ ...prev, [name]: value }));
   };
 
-  
-const handleInputChange = (e) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewExpense(prev => ({ ...prev, [name]: value }));
   };
 
   const handleAddExpense = async () => {
-    if (!newExpense.name || !newExpense.cost || !newExpense.month || !newExpense.year || !newExpense.category_id) return;
+    if (!newExpense.name || !newExpense.cost || !newExpense.month_id || !newExpense.year_id || !newExpense.category_id) return;
 
     const res = await fetch('/api/expenses', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newExpense)
     });
 
     if (res.ok) {
       const updated = await res.json();
       setExpenses(updated);
-      setNewExpense({ id: '', name: '', cost: '', month: '', year: '', category_id: '' });
+      setNewExpense({ id: '', name: '', cost: '', month_id: '', year_id: '', category_id: '' });
       setShowModal(false);
     }
   };
@@ -80,7 +85,7 @@ const handleInputChange = (e) => {
   };
 
   const handleUpdateExpense = async () => {
-    if (!newExpense.id || !newExpense.name || !newExpense.cost || !newExpense.month || !newExpense.year) return;
+    if (!newExpense.id || !newExpense.name || !newExpense.cost || !newExpense.month_id || !newExpense.year_id || !newExpense.category_id) return;
 
     const res = await fetch(`/api/expenses/${newExpense.id}`, {
       method: 'PUT',
@@ -92,7 +97,7 @@ const handleInputChange = (e) => {
       const updated = await res.json();
       setExpenses(updated);
       setShowModal(false);
-      setNewExpense({ id: '', name: '', cost: '', month: '', year: '', category_id: '' });
+      setNewExpense({ id: '', name: '', cost: '', month_id: '', year_id: '', category_id: '' });
     }
   };
 
@@ -123,61 +128,32 @@ const handleInputChange = (e) => {
 
       <div className="bg-white p-6 rounded-xl shadow space-y-4">
         <div className="flex flex-wrap gap-4 items-center">
-          <select name="sort" className="border rounded px-3 py-2" onChange={(e) => {
-            const val = e.target.value;
-            const sorted = [...filtered];
-            if (val === "name") sorted.sort((a, b) => a.name.localeCompare(b.name));
-            if (val === "cost") sorted.sort((a, b) => parseFloat(b.cost) - parseFloat(a.cost));
-            if (val === "month") sorted.sort((a, b) => a.month - b.month);
-            if (val === "year") sorted.sort((a, b) => a.year - b.year);
-            if (val === "ymcost") {
-              sorted.sort((a, b) => {
-                if (a.year !== b.year) return a.year - b.year;
-                if (a.month !== b.month) return a.month - b.month;
-                return parseFloat(b.cost) - parseFloat(a.cost);
-              });
-            } else if (val === "ymname") {
-              sorted.sort((a, b) => {
-                if (a.year !== b.year) return a.year - b.year;
-                if (a.month !== b.month) return a.month - b.month;
-                return a.name.localeCompare(b.name);
-              });
-            }
-            setFiltered(sorted);
-          }}>
+          <select name="sort" value={sort} onChange={(e) => setSort(e.target.value)} className="border rounded px-3 py-2">
             <option value="">Sort by</option>
             <option value="name">Name</option>
             <option value="cost">Cost</option>
-            <option value="month">Month</option>
-            <option value="year">Year</option>
-            <option value="ymcost">Y-M-Cost</option>
-            <option value="ymname">Y-M-Name</option>
           </select>
 
-          <input type="text" name="search" placeholder="Search by name..." className="border rounded px-3 py-2 w-44" onChange={(e) => {
-            const term = e.target.value.toLowerCase();
-            const filteredList = expenses.filter(exp =>
-              exp.name.toLowerCase().includes(term)
-            );
-            setFiltered(filteredList);
-          }} />
+          <input type="text" name="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name..." className="border rounded px-3 py-2 w-44" />
 
-          <select name="month" value={filters.month} onChange={handleFilterChange} className="border rounded px-3 py-2">
+          <select name="month_id" value={filters.month_id} onChange={handleFilterChange} className="border rounded px-3 py-2">
             <option value="">All Months</option>
-            {[...Array(12)].map((_, i) => (
-              <option key={i + 1} value={i + 1}>{new Date(0, i).toLocaleString('en', { month: 'long' })}</option>
+            {months.map(m => (
+              <option key={m.id} value={m.id}>{m.name}</option>
             ))}
           </select>
-          
-          <select name="year" value={filters.year} onChange={handleFilterChange} className="border rounded px-3 py-2">
+
+          <select name="year_id" value={filters.year_id} onChange={handleFilterChange} className="border rounded px-3 py-2">
             <option value="">All Years</option>
-            {[2025, 2026, 2027, 2028, 2029, 2030].map(y => <option key={y}>{y}</option>)}
+            {years.map(y => (
+              <option key={y.id} value={y.id}>{y.value}</option>
+            ))}
           </select>
-          
+
           <select name="category_id" value={filters.category_id} onChange={handleFilterChange} className="border rounded px-3 py-2 w-[140px]">
             <option value="">All Categories</option>
             {categories.map(cat => (
-              <option key={cat.id} value={cat.name}>{cat.name}</option>
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
             ))}
           </select>
 
@@ -210,9 +186,9 @@ const handleInputChange = (e) => {
             <tr key={i} className="border-t hover:bg-gray-50">
               <td className="p-3">{e.name}</td>
               <td className="p-3 text-red-500 font-medium">{parseFloat(e.cost).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</td>
-              <td className="p-3">{new Date(0, e.month - 1).toLocaleString('en', { month: 'long' })}</td>
-              <td className="p-3">{e.year}</td>
-              <td className="p-3">{e.category}</td>
+              <td className="p-3">{e.month_name}</td>
+              <td className="p-3">{e.year_value}</td>
+              <td className="p-3">{e.category_name}</td>
               <td className="p-3">
                 <div className="inline-flex gap-1">
                   <button className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600" onClick={() => handleEditClick(e)} title="Editar">
@@ -234,29 +210,25 @@ const handleInputChange = (e) => {
             <h3 className="text-lg font-semibold">{newExpense.id ? "Edit Expense" : "Add Expense"}</h3>
             <div className="grid md:grid-cols-4 gap-4">
               <input name="name" value={newExpense.name} onChange={handleInputChange} placeholder="Name" className="border rounded px-3 py-2" />
-
               <input name="cost" value={newExpense.cost} onChange={handleInputChange} placeholder="Cost" type="number" className="border rounded px-3 py-2" />
-
-              <select name="month" value={newExpense.month} onChange={handleInputChange} className="border rounded px-3 py-2">
+              <select name="month_id" value={newExpense.month_id} onChange={handleInputChange} className="border rounded px-3 py-2">
                 <option value="">Month</option>
-                {[...Array(12)].map((_, i) => (
-                  <option key={i + 1} value={i + 1}>{new Date(0, i).toLocaleString('en', { month: 'long' })}</option>
+                {months.map(m => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
                 ))}
               </select>
-
-              <select name="year" value={newExpense.year} onChange={handleInputChange} className="border rounded px-3 py-2">
+              <select name="year_id" value={newExpense.year_id} onChange={handleInputChange} className="border rounded px-3 py-2">
                 <option value="">Year</option>
-                {[2025, 2026, 2027, 2028, 2029, 2030].map(y => <option key={y}>{y}</option>)}
+                {years.map(y => (
+                  <option key={y.id} value={y.id}>{y.value}</option>
+                ))}
               </select>
-
               <select name="category_id" value={newExpense.category_id} onChange={handleInputChange} className="border rounded px-3 py-2">
                 <option value="">Category</option>
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
               </select>
-              
-
             </div>
             <div className="flex justify-end gap-4">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 border rounded text-gray-600">Cancel</button>
@@ -271,8 +243,7 @@ const handleInputChange = (e) => {
           <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md">
             <h3 className="text-xl font-semibold text-gray-800 mb-4">Confirm Delete</h3>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to delete <strong>{expenseToDelete?.name}</strong> from{' '}
-              <strong>{new Date(0, expenseToDelete?.month - 1).toLocaleString('en', { month: 'long' })} {expenseToDelete?.year}</strong>?
+              Are you sure you want to delete <strong>{expenseToDelete?.name}</strong>?
             </p>
             <div className="flex justify-end gap-4">
               <button className="px-4 py-2 rounded border text-gray-600 hover:bg-gray-100" onClick={() => { setShowDeleteModal(false); setExpenseToDelete(null); }}>Cancel</button>
