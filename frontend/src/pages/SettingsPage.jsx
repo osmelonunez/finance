@@ -59,12 +59,14 @@ export default function SettingsPage() {
       <h2 className="text-2xl font-bold text-gray-800 mb-4">Settings</h2>
       <p className="text-gray-600 mb-6">Manage your application preferences and configuration options.</p>
 
-      <div className="bg-white rounded-lg shadow p-6 space-y-4">
-        <h3 className="text-lg font-semibold text-gray-700">Account Settings</h3>
-        <p className="text-sm text-gray-500">More options coming soon.</p>
+      <div className="bg-white rounded-lg shadow p-6 space-y-6">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-700 border-b pb-1 mb-3">Account Settings</h3>
+          <p className="text-sm text-gray-500">More options coming soon.</p>
+        </div>
 
-        <div className="pt-4 space-y-2">
-          <h3 className="text-md font-semibold text-gray-700">Categories</h3>
+        <div className="pt-4">
+          <h3 className="text-md font-semibold text-gray-700 mb-2">Categories</h3>
           <Link
             to="/categories"
             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
@@ -73,9 +75,8 @@ export default function SettingsPage() {
           </Link>
         </div>
 
-        <div className="pt-6 space-y-4">
-          <h3 className="text-md font-semibold text-gray-700">Year Management</h3>
-
+        <div className="pt-6">
+          <h3 className="text-md font-semibold text-gray-700 mb-2 border-t pt-4">Years</h3>
           <div className="flex gap-2">
             <button
               onClick={() => { setAction('add'); setShowYearModal(true); setErrorMessage(''); setSuccessMessage(''); }}
@@ -90,7 +91,7 @@ export default function SettingsPage() {
               Delete Year
             </button>
           </div>
-          {successMessage && <p className="text-sm text-green-600">{successMessage}</p>}
+          {successMessage && <p className="text-sm text-green-600 mt-2">{successMessage}</p>}
         </div>
       </div>
 
