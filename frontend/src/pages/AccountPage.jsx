@@ -275,17 +275,15 @@ export default function AccountPage() {
       
       <div className="mt-6 pt-4 border-t">
         <h3 className="text-md font-semibold text-gray-700 mb-2 flex items-center gap-2">
-          Agregar nuevo correo
           {!showAddInput && (
             <button
               onClick={() => setShowAddInput(true)}
               className="p-1 rounded-full hover:bg-gray-100"
               title="Agregar correo"
             >
-              <PlusCircle size={20} className="text-green-600" />
+              <PlusCircle size={20} title="Agregar nuevo correo" className="text-green-600" />
             </button>
-          )}
-        </h3>
+          )}</h3>
         {showAddInput && (
           <div className="flex gap-2 items-center animate-fade-in">
             <input
