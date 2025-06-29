@@ -203,7 +203,7 @@ export default function AccountPage() {
         <h3 className="text-md font-semibold text-gray-700 mb-2">Correos asociados</h3>
         <ul className="text-sm text-gray-700">
           {emails.map(email => (
-            <li key={email.id} className="py-3 flex justify-between items-center gap-4">
+            <li key={email.id} className="py-1.5 flex justify-between items-center gap-3">
               <div className="flex flex-col">
                 {editingEmailId === email.id ? (
                   <>
