@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Trash2, Wrench, Bell } from 'lucide-react';
 
 export default function AccountPage() {
@@ -16,6 +16,7 @@ export default function AccountPage() {
   const [emailToDelete, setEmailToDelete] = useState(null);
   const [editingEmailId, setEditingEmailId] = useState(null);
   const [editedEmail, setEditedEmail] = useState('');
+  const emailInputRef = useRef(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -139,6 +140,7 @@ export default function AccountPage() {
   const startEditingEmail = (email) => {
     setEditingEmailId(email.id);
     setEditedEmail(email.email);
+    setTimeout(() => emailInputRef.current?.focus(), 0);
   };
 
   const handleEditEmail = async () => {
@@ -199,7 +201,7 @@ export default function AccountPage() {
 
       <div className="mt-8">
         <h3 className="text-md font-semibold text-gray-700 mb-2">Correos asociados</h3>
-        <ul className="text-sm text-gray-700 divide-y">
+        <ul className="text-sm text-gray-700">
           {emails.map(email => (
             <li key={email.id} className="py-3 flex justify-between items-center gap-4">
               <div className="flex flex-col">
@@ -207,6 +209,7 @@ export default function AccountPage() {
                   <>
                     <input
                       type="email"
+                      ref={emailInputRef}
                       value={editedEmail}
                       onChange={e => setEditedEmail(e.target.value)}
                       className="border px-2 py-1 rounded"
@@ -223,7 +226,6 @@ export default function AccountPage() {
                     <span className="font-medium hover:underline hover:text-blue-600 cursor-pointer transition-colors duration-200">{email.email}</span>
                     <span className="text-xs text-gray-500">
                       {email.is_primary ? 'Principal' : ''}
-                      {!email.notifications_enabled ? ' - Sin notificaciones' : ''}
                     </span>
                   </>
                 )}
@@ -270,6 +272,7 @@ export default function AccountPage() {
         <h3 className="text-md font-semibold text-gray-700 mb-2">Agregar nuevo correo</h3>
         <input
           type="email"
+                      ref={emailInputRef}
           placeholder="Correo secundario"
           className="w-full border rounded px-3 py-2 mt-1 mb-2"
           value={newEmail}
