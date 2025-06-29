@@ -61,12 +61,71 @@ async function initializeDatabase() {
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       username VARCHAR(255) UNIQUE NOT NULL,
-      email VARCHAR(255) UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
   console.log("✅ Tabla 'users' verificada/creada.");
+
+  await client.query(`
+    CREATE OR REPLACE FUNCTION update_user_timestamp()
+    RETURNS TRIGGER AS $$
+    BEGIN
+      NEW.updated_at = CURRENT_TIMESTAMP;
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+  `);
+
+  await client.query(`DROP TRIGGER IF EXISTS set_user_timestamp ON users;`);
+
+  await client.query(`
+    CREATE TRIGGER set_user_timestamp
+    BEFORE UPDATE ON users
+    FOR EACH ROW
+    EXECUTE FUNCTION update_user_timestamp();
+  `);
+
+  console.log("✅ Trigger de actualización automática 'users.updated_at' creado/verificado.");
+
+
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS emails (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      email VARCHAR(255) UNIQUE NOT NULL,
+      is_primary BOOLEAN DEFAULT false,
+      notifications_enabled BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  console.log("✅ Tabla 'emails' verificada/creada.");
+
+  await client.query(`
+    CREATE OR REPLACE FUNCTION update_timestamp()
+    RETURNS TRIGGER AS $$
+    BEGIN
+      NEW.updated_at = CURRENT_TIMESTAMP;
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+  `);
+  
+  await client.query(`
+    DROP TRIGGER IF EXISTS set_timestamp ON emails;
+  `);
+  
+  await client.query(`
+    CREATE TRIGGER set_timestamp
+    BEFORE UPDATE ON emails
+    FOR EACH ROW
+    EXECUTE FUNCTION update_timestamp();
+  `);
+  
+  console.log("✅ Trigger 'set_timestamp' para 'emails.updated_at' creado/verificado.");
+
 
   await client.query(`
     CREATE TABLE IF NOT EXISTS months (
@@ -182,3 +241,5 @@ const pool = new Pool({
 });
 
 module.exports = pool;
+
+console.log("✅ Trigger 'set_user_timestamp' para 'users.updated_at' creado/verificado.");

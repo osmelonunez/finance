@@ -5,6 +5,17 @@ require('dotenv').config();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Token requerido' });
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) return res.status(403).json({ error: 'Token inválido o expirado' });
+    req.user = user;
+    next();
+  });
+}
 
 const app = express();
 app.use(cors());
@@ -416,9 +427,7 @@ app.listen(process.env.BACKEND_PORT, '0.0.0.0', () => {
   console.log(`Backend listening on port ${process.env.BACKEND_PORT}`);
 });
 
-
-
-// Registro de usuario mejorado con email
+// Registro de usuario que también agrega correo principal en la tabla emails
 app.post('/api/register', async (req, res) => {
   const { username, email, password } = req.body;
 
@@ -427,29 +436,40 @@ app.post('/api/register', async (req, res) => {
   }
 
   try {
-    const existingUser = await db.query(
-      'SELECT * FROM users WHERE username = $1 OR email = $2',
-      [username, email]
-    );
+    const userExists = await db.query('SELECT * FROM users WHERE username = $1', [username]);
+    const emailExists = await db.query('SELECT * FROM emails WHERE email = $1', [email]);
 
-    if (existingUser.rows.length > 0) {
+    if (userExists.rows.length > 0) {
+      return res.status(400).json({ error: 'Ya existe un usuario con ese nombre' });
+    }
+
+    if (emailExists.rows.length > 0) {
       return res.status(400).json({ error: 'Ya existe un usuario con ese correo' });
     }
 
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    await db.query(
-      'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3)',
-      [username, email, hashedPassword]
+    // Crear usuario
+    const newUser = await db.query(
+      'INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id',
+      [username, hashedPassword]
     );
 
-    res.status(201).json({ message: 'Usuario registrado con éxito' });
+    const userId = newUser.rows[0].id;
+
+    // Agregar email principal
+    await db.query(
+      'INSERT INTO emails (user_id, email, is_primary, notifications_enabled) VALUES ($1, $2, true, true)',
+      [userId, email]
+    );
+
+    res.status(201).json({ message: 'Usuario y correo registrados con éxito' });
   } catch (err) {
     console.error('Error en /register:', err);
     res.status(500).json({ error: 'Error en el registro' });
   }
 });
+
 
 
 app.post('/api/login', async (req, res) => {
@@ -475,5 +495,86 @@ app.post('/api/login', async (req, res) => {
   } catch (err) {
     console.error('Error en /login:', err);
     res.status(500).json({ error: 'Error en el login' });
+  }
+});
+
+// ENDPOINTS PARA GESTIÓN DE CORREOS
+
+// Obtener todos los correos del usuario autenticado
+app.get('/api/emails', authenticateToken, async (req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM emails WHERE user_id = $1 ORDER BY is_primary DESC, created_at ASC', [req.user.userId]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error al obtener correos:', err);
+    res.status(500).json({ error: 'Error al obtener correos' });
+  }
+});
+
+// Agregar un nuevo correo
+app.post('/api/emails', authenticateToken, async (req, res) => {
+  const { email, is_primary, notifications_enabled } = req.body;
+
+  if (!email) return res.status(400).json({ error: 'Email requerido' });
+
+  try {
+    const existing = await db.query('SELECT * FROM emails WHERE email = $1', [email]);
+    if (existing.rows.length > 0) return res.status(400).json({ error: 'Ese correo ya está registrado' });
+
+    await db.query(
+      'INSERT INTO emails (user_id, email, is_primary, notifications_enabled) VALUES ($1, $2, $3, $4)',
+      [req.user.userId, email, is_primary || false, notifications_enabled || true]
+    );
+
+    const result = await db.query('SELECT * FROM emails WHERE user_id = $1 ORDER BY created_at', [req.user.userId]);
+    res.status(201).json(result.rows);
+  } catch (err) {
+    console.error('Error al agregar correo:', err);
+    res.status(500).json({ error: 'Error al agregar correo' });
+  }
+});
+
+// Actualizar propiedades de un correo (is_primary, notifications_enabled)
+app.put('/api/emails/:id', authenticateToken, async (req, res) => {
+  const { is_primary, notifications_enabled } = req.body;
+  const emailId = req.params.id;
+
+  try {
+    // Solo permitir modificar correos del propio usuario
+    const match = await db.query('SELECT * FROM emails WHERE id = $1 AND user_id = $2', [emailId, req.user.userId]);
+    if (match.rows.length === 0) return res.status(404).json({ error: 'Correo no encontrado' });
+
+    if (is_primary) {
+      await db.query('UPDATE emails SET is_primary = false WHERE user_id = $1', [req.user.userId]);
+    }
+
+    await db.query(
+      'UPDATE emails SET is_primary = $1, notifications_enabled = $2 WHERE id = $3',
+      [!!is_primary, !!notifications_enabled, emailId]
+    );
+
+    const result = await db.query('SELECT * FROM emails WHERE user_id = $1 ORDER BY created_at', [req.user.userId]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error al actualizar correo:', err);
+    res.status(500).json({ error: 'Error al actualizar correo' });
+  }
+});
+
+// Eliminar un correo
+app.delete('/api/emails/:id', authenticateToken, async (req, res) => {
+  const emailId = req.params.id;
+
+  try {
+    const match = await db.query('SELECT * FROM emails WHERE id = $1 AND user_id = $2', [emailId, req.user.userId]);
+    if (match.rows.length === 0) return res.status(404).json({ error: 'Correo no encontrado' });
+
+    await db.query('DELETE FROM emails WHERE id = $1', [emailId]);
+
+    const result = await db.query('SELECT * FROM emails WHERE user_id = $1 ORDER BY created_at', [req.user.userId]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error al eliminar correo:', err);
+    res.status(500).json({ error: 'Error al eliminar correo' });
   }
 });
