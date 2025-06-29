@@ -41,9 +41,18 @@ export default function AccountPage() {
       });
   }, []);
 
+  const isPasswordComplex = (pwd) => {
+    const complexityRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?#&])[A-Za-z\d@$!%*?#&]{8,}$/;
+    return complexityRegex.test(pwd);
+  };
+
   const handleUpdate = async (field) => {
     setMessage('');
     setError('');
+    if (field === 'password' && !isPasswordComplex(password)) {
+      setError('La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un símbolo.');
+      return;
+    }
     const res = await fetch('/api/me', {
       method: 'PUT',
       headers: {
