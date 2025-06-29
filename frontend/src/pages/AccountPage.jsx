@@ -16,6 +16,8 @@ export default function AccountPage() {
   const [showAddInput, setShowAddInput] = useState(false);
   const [editingEmailId, setEditingEmailId] = useState(null);
   const [editedEmail, setEditedEmail] = useState('');
+  const [editingUsername, setEditingUsername] = useState(false);
+  const [editingPassword, setEditingPassword] = useState(false);
   const emailInputRef = useRef(null);
 
   useEffect(() => {
@@ -53,6 +55,7 @@ export default function AccountPage() {
 
     if (res.ok) {
       setMessage('Actualización exitosa');
+      setTimeout(() => setMessage(''), 2000);
       setPassword('');
     } else {
       const data = await res.json();
@@ -171,33 +174,91 @@ export default function AccountPage() {
   return (
     <div className="max-w-xl mx-auto p-6 space-y-6 bg-white rounded-xl shadow">
       <h2 className="text-xl font-bold text-gray-800">Mi cuenta</h2>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Usuario</label>
-        <input
-          type="text"
-          className="w-full border rounded px-3 py-2 mt-1"
-          value={username}
-          onChange={e => setUsername(e.target.value)}
-        />
+      {/* Sección: Actualizar Usuario */}
+      <div className="mt-4">
+        <h3 className="text-md font-semibold text-gray-700 mb-1 flex items-center gap-2">
+          <span>Usuario</span>
+          {!editingUsername && (
+            <button
+              onClick={() => setEditingUsername(true)}
+              className="p-1 rounded-full hover:bg-gray-100"
+              title="Editar usuario"
+            >
+              <Wrench size={18} className="text-yellow-600" />
+            </button>
+          )}
+        </h3>
+        {editingUsername && (
+          <div className="flex gap-2 items-center animate-fade-in">
+            <input
+              type="text"
+              className="flex-1 border rounded px-3 py-2"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+            />
+            <button
+              onClick={() => handleUpdate('username')}
+              className="p-1 rounded-full hover:bg-green-100"
+              title="Guardar"
+            >
+              <Check size={20} className="text-green-600" />
+            </button>
+            <button
+              onClick={() => setEditingUsername(false)}
+              className="p-1 rounded-full hover:bg-red-100"
+              title="Cancelar"
+            >
+              <X size={20} className="text-red-600" />
+            </button>
+          </div>
+        )}
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Nueva contraseña</label>
-        <input
-          type="password"
-          className="w-full border rounded px-3 py-2 mt-1"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-        />
+      {/* Sección: Actualizar Contraseña */}
+      <div className="mt-4">
+        <h3 className="text-md font-semibold text-gray-700 mb-1 flex items-center gap-2">
+          <span>Contraseña</span>
+          {!editingPassword && (
+            <button
+              onClick={() => setEditingPassword(true)}
+              className="p-1 rounded-full hover:bg-gray-100"
+              title="Editar contraseña"
+            >
+              <Wrench size={18} className="text-yellow-600" />
+            </button>
+          )}
+        </h3>
+        {editingPassword && (
+          <div className="flex gap-2 items-center animate-fade-in">
+            <input
+              type="password"
+              className="flex-1 border rounded px-3 py-2"
+              placeholder="Nueva contraseña"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+            />
+            <button
+              onClick={() => handleUpdate('password')}
+              className="p-1 rounded-full hover:bg-green-100"
+              title="Guardar"
+            >
+              <Check size={20} className="text-green-600" />
+            </button>
+            <button
+              onClick={() => setEditingPassword(false)}
+              className="p-1 rounded-full hover:bg-red-100"
+              title="Cancelar"
+            >
+              <X size={20} className="text-red-600" />
+            </button>
+          </div>
+        )}
       </div>
+      {message && <p className="text-sm text-green-600 mt-2">{message}</p>}
+      {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
+    
 
-      <button
-        onClick={handleUpdate}
-        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-      >
-        Guardar cambios
-      </button>
+      
 
       {message && <p className="text-sm text-green-600">{message}</p>}
       {error && <p className="text-sm text-red-600">{error}</p>}
