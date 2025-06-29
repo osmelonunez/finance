@@ -58,13 +58,12 @@ case "$ACTION" in
     printf "${RED}⚠️  Eliminando proyecto y limpiando Docker...${NC}\n"
     cd "$PROJECT_DIR" || exit 1
     docker-compose down
-    docker volume rm $(docker volume ls -q | grep -v '^postgres$') > /dev/null 2>&1
-    docker rmi -f $(docker images -q | grep -v 1e729d43a0d1) > /dev/null 2>&1
+    docker volume rm $(docker volume ls -q | grep -v '^finance_postgres$') > /dev/null 2>&1
+    docker rmi -f $(docker images -q | grep -v 1e729d43a0d1 | grep -v 815066284948) > /dev/null 2>&1
     docker builder prune -a --force
     cd "$WORKSPACE" || exit 1
     rm -rf "$PROJECT_DIR"
     clear
-    ls -lh
     printf "${GREEN}🗑️  Proyecto eliminado completamente.${NC}\n"
     ;;
   status)
