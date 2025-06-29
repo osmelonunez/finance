@@ -256,12 +256,6 @@ export default function AccountPage() {
       </div>
       {message && <p className="text-sm text-green-600 mt-2">{message}</p>}
       {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
-    
-
-      
-
-      {message && <p className="text-sm text-green-600">{message}</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
 
       <div className="mt-8">
         <h3 className="text-md font-semibold text-gray-700 mb-2">Correos asociados</h3>
