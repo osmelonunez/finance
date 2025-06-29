@@ -201,7 +201,7 @@ export default function AccountPage() {
         <h3 className="text-md font-semibold text-gray-700 mb-2">Correos asociados</h3>
         <ul className="text-sm text-gray-700 divide-y">
           {emails.map(email => (
-            <li key={email.id} className="py-3 flex justify-between items-center">
+            <li key={email.id} className="py-3 flex justify-between items-center gap-4">
               <div className="flex flex-col">
                 {editingEmailId === email.id ? (
                   <>
@@ -220,7 +220,7 @@ export default function AccountPage() {
                   </>
                 ) : (
                   <>
-                    <span className="font-medium">{email.email}</span>
+                    <span className="font-medium hover:underline hover:text-blue-600 cursor-pointer transition-colors duration-200">{email.email}</span>
                     <span className="text-xs text-gray-500">
                       {email.is_primary ? 'Principal' : ''}
                       {!email.notifications_enabled ? ' - Sin notificaciones' : ''}
@@ -229,7 +229,7 @@ export default function AccountPage() {
                 )}
               </div>
               {!email.is_primary && (
-                <div className="flex flex-col gap-1 text-xs text-white">
+                <div className="flex flex-row gap-2 items-center text-xs text-white">
                   
                   <button
                     onClick={() => handleToggleNotifications(email.id, !email.notifications_enabled)}
