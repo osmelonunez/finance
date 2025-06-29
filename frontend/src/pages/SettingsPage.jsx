@@ -70,6 +70,21 @@ export default function SettingsPage() {
           <p className="text-sm text-gray-500">More options coming soon.</p>
         </div>
 
+        
+        <div className="pt-4 border-t mt-6">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-purple-600 font-bold">👤</span>
+            <h3 className="text-md font-semibold text-gray-700">Account Info</h3>
+          </div>
+          <Link
+            to="/account"
+            className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition"
+          >
+            Edit Profile
+          </Link>
+        </div>
+
+
         <div className="pt-4">
           <div className="flex items-center gap-2 mb-2">
             <Layers size={18} className="text-blue-600" />

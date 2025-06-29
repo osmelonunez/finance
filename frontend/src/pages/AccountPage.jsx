@@ -1,0 +1,299 @@
+
+import { useEffect, useState } from 'react';
+import { Trash2, Wrench, Bell } from 'lucide-react';
+
+export default function AccountPage() {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [emails, setEmails] = useState([]);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [newEmail, setNewEmail] = useState('');
+  const [emailMessage, setEmailMessage] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [emailToDelete, setEmailToDelete] = useState(null);
+  const [editingEmailId, setEditingEmailId] = useState(null);
+  const [editedEmail, setEditedEmail] = useState('');
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    Promise.all([
+      fetch('/api/me', {
+        headers: { Authorization: `Bearer ${token}` }
+      }).then(res => res.json()),
+      fetch('/api/emails', {
+        headers: { Authorization: `Bearer ${token}` }
+      }).then(res => res.json())
+    ])
+      .then(([userData, emailList]) => {
+        setUsername(userData.username);
+        setEmails(emailList);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError('Error al cargar los datos');
+        setLoading(false);
+      });
+  }, []);
+
+  const handleUpdate = async () => {
+    setMessage('');
+    setError('');
+    const res = await fetch('/api/me', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ username, password })
+    });
+
+    if (res.ok) {
+      setMessage('Actualización exitosa');
+      setPassword('');
+    } else {
+      const data = await res.json();
+      setError(data.error || 'Error al actualizar');
+    }
+  };
+
+  const handleAddEmail = async () => {
+    setEmailMessage('');
+    setEmailError('');
+    if (!newEmail || !newEmail.includes('@')) {
+      setEmailError('Correo inválido');
+      return;
+    }
+
+    const res = await fetch('/api/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ email: newEmail })
+    });
+
+    if (res.ok) {
+      const updatedEmails = await res.json();
+      setEmails(updatedEmails);
+      setEmailMessage('Correo agregado');
+      setNewEmail('');
+    } else {
+      const data = await res.json();
+      setEmailError(data.error || 'No se pudo agregar el correo');
+    }
+  };
+
+  const handleMakePrimary = async (emailId) => {
+    const res = await fetch(`/api/emails/${emailId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ is_primary: true })
+    });
+
+    if (res.ok) {
+      const updated = await res.json();
+      setEmails(updated);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!emailToDelete) return;
+    const res = await fetch(`/api/emails/${emailToDelete.id}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    if (res.ok) {
+      const updated = await res.json();
+      setEmails(updated);
+      setShowDeleteModal(false);
+      setEmailToDelete(null);
+    }
+  };
+
+  const handleToggleNotifications = async (id, enabled) => {
+    const res = await fetch(`/api/emails/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ notifications_enabled: enabled })
+    });
+
+    if (res.ok) {
+      const updated = await res.json();
+      setEmails(updated);
+    }
+  };
+
+  const startEditingEmail = (email) => {
+    setEditingEmailId(email.id);
+    setEditedEmail(email.email);
+  };
+
+  const handleEditEmail = async () => {
+    const res = await fetch(`/api/emails/${editingEmailId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ email: editedEmail })
+    });
+
+    if (res.ok) {
+      const updated = await res.json();
+      setEmails(updated);
+      setEditingEmailId(null);
+      setEditedEmail('');
+    }
+  };
+
+  if (loading) {
+    return <div className="text-center py-10 text-gray-600">Cargando datos...</div>;
+  }
+
+  return (
+    <div className="max-w-xl mx-auto p-6 space-y-6 bg-white rounded-xl shadow">
+      <h2 className="text-xl font-bold text-gray-800">Mi cuenta</h2>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700">Usuario</label>
+        <input
+          type="text"
+          className="w-full border rounded px-3 py-2 mt-1"
+          value={username}
+          onChange={e => setUsername(e.target.value)}
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700">Nueva contraseña</label>
+        <input
+          type="password"
+          className="w-full border rounded px-3 py-2 mt-1"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+        />
+      </div>
+
+      <button
+        onClick={handleUpdate}
+        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+      >
+        Guardar cambios
+      </button>
+
+      {message && <p className="text-sm text-green-600">{message}</p>}
+      {error && <p className="text-sm text-red-600">{error}</p>}
+
+      <div className="mt-8">
+        <h3 className="text-md font-semibold text-gray-700 mb-2">Correos asociados</h3>
+        <ul className="text-sm text-gray-700 divide-y">
+          {emails.map(email => (
+            <li key={email.id} className="py-3 flex justify-between items-center">
+              <div className="flex flex-col">
+                {editingEmailId === email.id ? (
+                  <>
+                    <input
+                      type="email"
+                      value={editedEmail}
+                      onChange={e => setEditedEmail(e.target.value)}
+                      className="border px-2 py-1 rounded"
+                    />
+                    <button
+                      onClick={handleEditEmail}
+                      className="text-blue-600 text-xs mt-1 hover:underline"
+                    >
+                      Guardar
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-medium">{email.email}</span>
+                    <span className="text-xs text-gray-500">
+                      {email.is_primary ? 'Principal' : ''}
+                      {!email.notifications_enabled ? ' - Sin notificaciones' : ''}
+                    </span>
+                  </>
+                )}
+              </div>
+              {!email.is_primary && (
+                <div className="flex flex-col gap-1 text-xs text-white">
+                  
+                  <button
+                    onClick={() => handleToggleNotifications(email.id, !email.notifications_enabled)}
+                    className="p-1 rounded-full hover:bg-gray-100"
+                    title="Notificaciones"
+                  >
+                    <Bell size={18} className={email.notifications_enabled ? 'text-green-600' : 'text-gray-400'} />
+                  </button>
+                  <button
+                    onClick={() => startEditingEmail(email)}
+                    className="p-1 rounded-full hover:bg-yellow-100"
+                    title="Editar"
+                  >
+                    <Wrench size={18} className="text-yellow-600" />
+                  </button>
+                  <button
+                    onClick={() => { setEmailToDelete(email); setShowDeleteModal(true); }}
+                    className="p-1 rounded-full hover:bg-red-100"
+                    title="Eliminar"
+                  >
+                    <Trash2 size={18} className="text-red-600" />
+                  </button>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="mt-10 pt-6 border-t">
+        <h3 className="text-md font-semibold text-gray-700 mb-2">Agregar nuevo correo</h3>
+        <input
+          type="email"
+          placeholder="Correo secundario"
+          className="w-full border rounded px-3 py-2 mt-1 mb-2"
+          value={newEmail}
+          onChange={e => setNewEmail(e.target.value)}
+        />
+        <button
+          onClick={handleAddEmail}
+          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+        >
+          Añadir correo
+        </button>
+        {emailMessage && <p className="text-sm text-green-600 mt-2">{emailMessage}</p>}
+        {emailError && <p className="text-sm text-red-600 mt-2">{emailError}</p>}
+      </div>
+
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800">¿Eliminar correo?</h3>
+            <p className="text-gray-600">¿Estás seguro que deseas eliminar <strong>{emailToDelete?.email}</strong>?</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowDeleteModal(false)} className="px-4 py-2 border rounded text-gray-600 hover:bg-gray-100">
+                Cancelar
+              </button>
+              <button onClick={confirmDelete} className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
