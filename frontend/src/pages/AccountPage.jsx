@@ -1,6 +1,6 @@
 
 import { useEffect, useState, useRef } from 'react';
-import { Trash2, Wrench, Bell } from 'lucide-react';
+import { Trash2, Wrench, Bell, PlusCircle, Check, X } from 'lucide-react';
 
 export default function AccountPage() {
   const [username, setUsername] = useState('');
@@ -14,6 +14,7 @@ export default function AccountPage() {
   const [emailError, setEmailError] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [emailToDelete, setEmailToDelete] = useState(null);
+  const [showAddInput, setShowAddInput] = useState(false);
   const [editingEmailId, setEditingEmailId] = useState(null);
   const [editedEmail, setEditedEmail] = useState('');
   const emailInputRef = useRef(null);
@@ -65,6 +66,7 @@ export default function AccountPage() {
     setEmailError('');
     if (!newEmail || !newEmail.includes('@')) {
       setEmailError('Correo inválido');
+    setTimeout(() => setEmailError(''), 2000);
       return;
     }
 
@@ -84,7 +86,9 @@ export default function AccountPage() {
       setNewEmail('');
     } else {
       const data = await res.json();
-      setEmailError(data.error || 'No se pudo agregar el correo');
+      const msg = data.error || 'No se pudo agregar el correo';
+      setEmailError(msg);
+      setTimeout(() => setEmailError(''), 2000);
     }
   };
 
@@ -268,22 +272,45 @@ export default function AccountPage() {
         </ul>
       </div>
 
-      <div className="mt-10 pt-6 border-t">
-        <h3 className="text-md font-semibold text-gray-700 mb-2">Agregar nuevo correo</h3>
-        <input
-          type="email"
-                      ref={emailInputRef}
-          placeholder="Correo secundario"
-          className="w-full border rounded px-3 py-2 mt-1 mb-2"
-          value={newEmail}
-          onChange={e => setNewEmail(e.target.value)}
-        />
-        <button
-          onClick={handleAddEmail}
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-        >
-          Añadir correo
-        </button>
+      
+      <div className="mt-6 pt-4 border-t">
+        <h3 className="text-md font-semibold text-gray-700 mb-2 flex items-center gap-2">
+          Agregar nuevo correo
+          {!showAddInput && (
+            <button
+              onClick={() => setShowAddInput(true)}
+              className="p-1 rounded-full hover:bg-gray-100"
+              title="Agregar correo"
+            >
+              <PlusCircle size={20} className="text-green-600" />
+            </button>
+          )}
+        </h3>
+        {showAddInput && (
+          <div className="flex gap-2 items-center animate-fade-in">
+            <input
+              type="email"
+              placeholder="Correo secundario"
+              className={`flex-1 border rounded px-3 py-2 ${emailError ? "border-red-500" : "border-gray-300"}`}
+              value={newEmail}
+              onChange={e => setNewEmail(e.target.value)}
+            />
+            <button
+              onClick={handleAddEmail}
+              className="p-1 rounded-full hover:bg-green-100"
+              title="Guardar"
+            >
+              <Check size={20} className="text-green-600" />
+            </button>
+            <button
+              onClick={() => { setShowAddInput(false); setNewEmail(''); }}
+              className="p-1 rounded-full hover:bg-red-100"
+              title="Cancelar"
+            >
+              <X size={20} className="text-red-600" />
+            </button>
+          </div>
+        )}
         {emailMessage && <p className="text-sm text-green-600 mt-2">{emailMessage}</p>}
         {emailError && <p className="text-sm text-red-600 mt-2">{emailError}</p>}
       </div>
