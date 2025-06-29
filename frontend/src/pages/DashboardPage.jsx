@@ -12,11 +12,31 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchData() {
       const [resIncomes, resExpenses, resSavings, resMonths, resYears] = await Promise.all([
-        fetch('/api/incomes'),
-        fetch('/api/expenses'),
-        fetch('/api/savings'),
-        fetch('/api/months'),
-        fetch('/api/years')
+        fetch('/api/incomes', {
+  headers: {
+    Authorization: `Bearer ${localStorage.getItem('token')}`
+  }
+}),
+        fetch('/api/expenses', {
+  headers: {
+    Authorization: `Bearer ${localStorage.getItem('token')}`
+  }
+}),
+        fetch('/api/savings', {
+  headers: {
+    Authorization: `Bearer ${localStorage.getItem('token')}`
+  }
+}),
+        fetch('/api/months', {
+  headers: {
+    Authorization: `Bearer ${localStorage.getItem('token')}`
+  }
+}),
+        fetch('/api/years', {
+  headers: {
+    Authorization: `Bearer ${localStorage.getItem('token')}`
+  }
+})
       ]);
       const [incomesData, expensesData, savingsData, monthsData, yearsData] = await Promise.all([
         resIncomes.json(),

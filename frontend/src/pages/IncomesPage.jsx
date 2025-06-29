@@ -18,7 +18,11 @@ export default function IncomesPage() {
   const [copyTargetYear, setCopyTargetYear] = useState('');
 
   const fetchIncomes = async () => {
-    const res = await fetch('/api/incomes');
+    const res = await fetch('/api/incomes', {
+  headers: {
+    Authorization: `Bearer ${localStorage.getItem('token')}`
+  }
+});
     if (res.ok) {
       const data = await res.json();
       setIncomes(data);
@@ -27,8 +31,16 @@ export default function IncomesPage() {
 
   useEffect(() => {
     fetchIncomes();
-    fetch('/api/months').then(res => res.json()).then(setMonths);
-    fetch('/api/years').then(res => res.json()).then(setYears);
+    fetch('/api/months', {
+  headers: {
+    Authorization: `Bearer ${localStorage.getItem('token')}`
+  }
+}).then(res => res.json()).then(setMonths);
+    fetch('/api/years', {
+  headers: {
+    Authorization: `Bearer ${localStorage.getItem('token')}`
+  }
+}).then(res => res.json()).then(setYears);
   }, []);
 
   useEffect(() => localStorage.setItem('incomesSearch', search), [search]);

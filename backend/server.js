@@ -2,6 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const db = require('./db');
 require('dotenv').config();
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+
 
 const app = express();
 app.use(cors());
@@ -411,4 +414,66 @@ app.delete('/api/years/:id', async (req, res) => {
 
 app.listen(process.env.BACKEND_PORT, '0.0.0.0', () => {
   console.log(`Backend listening on port ${process.env.BACKEND_PORT}`);
+});
+
+
+
+// Registro de usuario mejorado con email
+app.post('/api/register', async (req, res) => {
+  const { username, email, password } = req.body;
+
+  if (!username || !email || !password) {
+    return res.status(400).json({ error: 'Todos los campos son obligatorios' });
+  }
+
+  try {
+    const existingUser = await db.query(
+      'SELECT * FROM users WHERE username = $1 OR email = $2',
+      [username, email]
+    );
+
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ error: 'Ya existe un usuario con ese correo' });
+    }
+
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    await db.query(
+      'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3)',
+      [username, email, hashedPassword]
+    );
+
+    res.status(201).json({ message: 'Usuario registrado con éxito' });
+  } catch (err) {
+    console.error('Error en /register:', err);
+    res.status(500).json({ error: 'Error en el registro' });
+  }
+});
+
+
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body;
+  try {
+    const result = await db.query('SELECT * FROM users WHERE username = $1', [username]);
+    const user = result.rows[0];
+
+    if (!user) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+
+    const match = await bcrypt.compare(password, user.password_hash);
+    if (!match) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+
+    const token = jwt.sign({ userId: user.id, username: user.username }, process.env.JWT_SECRET, {
+      expiresIn: '1h'
+    });
+
+    res.json({ token });
+  } catch (err) {
+    console.error('Error en /login:', err);
+    res.status(500).json({ error: 'Error en el login' });
+  }
 });

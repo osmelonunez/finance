@@ -18,25 +18,41 @@ export default function ExpensesPage() {
   const [sort, setSort] = useState('');
 
   useEffect(() => {
-    fetch('/api/expenses')
+    fetch('/api/expenses', {
+  headers: {
+    Authorization: `Bearer ${localStorage.getItem('token')}`
+  }
+})
       .then(res => res.json())
       .then(data => {
         setExpenses(data);
         setFiltered(data);
       });
 
-    fetch('/api/categories')
+    fetch('/api/categories', {
+  headers: {
+    Authorization: `Bearer ${localStorage.getItem('token')}`
+  }
+})
       .then(res => res.json())
       .then(data => {
         const sorted = data.sort((a, b) => a.name.localeCompare(b.name));
         setCategories(sorted);
       });
 
-    fetch('/api/months')
+    fetch('/api/months', {
+  headers: {
+    Authorization: `Bearer ${localStorage.getItem('token')}`
+  }
+})
       .then(res => res.json())
       .then(setMonths);
 
-    fetch('/api/years')
+    fetch('/api/years', {
+  headers: {
+    Authorization: `Bearer ${localStorage.getItem('token')}`
+  }
+})
       .then(res => res.json())
       .then(setYears);
   }, []);

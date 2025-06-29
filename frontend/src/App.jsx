@@ -1,3 +1,4 @@
+import RegisterPage from './pages/RegisterPage';
 import { Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
@@ -26,15 +27,16 @@ export default function App() {
         <Navbar links={navLinks} />
         <main className="max-w-6xl mx-auto px-4 py-6">
           <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
-            <Route path="/expenses" element={<PrivateRoute><ExpensesPage /></PrivateRoute>} />
-            <Route path="/incomes" element={<PrivateRoute><IncomesPage /></PrivateRoute>} />
-            <Route path="/categories" element={<PrivateRoute><CategoryManager /></PrivateRoute>} />
-            <Route path="/savings" element={<PrivateRoute><SavingsPage /></PrivateRoute>} />
-            <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
-          </Routes>
+  <Route path="/login" element={<LoginPage />} />
+  <Route path="/register" element={<RegisterPage />} />
+  <Route path="/" element={<HomePage />} />
+  <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
+  <Route path="/expenses" element={<PrivateRoute><ExpensesPage /></PrivateRoute>} />
+  <Route path="/incomes" element={<PrivateRoute><IncomesPage /></PrivateRoute>} />
+  <Route path="/savings" element={<PrivateRoute><SavingsPage /></PrivateRoute>} />
+  <Route path="/categories" element={<PrivateRoute><CategoryManager /></PrivateRoute>} />
+  <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
+</Routes>
         </main>
       </div>
     </AuthProvider>

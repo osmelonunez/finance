@@ -19,7 +19,11 @@ export default function SavingsPage() {
   const [copyTargetYear, setCopyTargetYear] = useState('');
 
   const fetchSavings = async () => {
-    const res = await fetch('/api/savings');
+    const res = await fetch('/api/savings', {
+  headers: {
+    Authorization: `Bearer ${localStorage.getItem('token')}`
+  }
+});
     if (res.ok) {
       const data = await res.json();
       setSavings(data);
@@ -28,8 +32,16 @@ export default function SavingsPage() {
 
   useEffect(() => {
     fetchSavings();
-    fetch('/api/months').then(res => res.json()).then(setMonths);
-    fetch('/api/years').then(res => res.json()).then(setYears);
+    fetch('/api/months', {
+  headers: {
+    Authorization: `Bearer ${localStorage.getItem('token')}`
+  }
+}).then(res => res.json()).then(setMonths);
+    fetch('/api/years', {
+  headers: {
+    Authorization: `Bearer ${localStorage.getItem('token')}`
+  }
+}).then(res => res.json()).then(setYears);
   }, []);
 
   useEffect(() => {

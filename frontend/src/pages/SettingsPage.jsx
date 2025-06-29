@@ -11,7 +11,11 @@ export default function SettingsPage() {
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
-    fetch('/api/years')
+    fetch('/api/years', {
+  headers: {
+    Authorization: `Bearer ${localStorage.getItem('token')}`
+  }
+})
       .then(res => res.json())
       .then(setYears);
   }, []);

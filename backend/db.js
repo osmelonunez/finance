@@ -58,6 +58,17 @@ async function initializeDatabase() {
   await client.connect();
 
   await client.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      username VARCHAR(255) UNIQUE NOT NULL,
+      email VARCHAR(255) UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  console.log("✅ Tabla 'users' verificada/creada.");
+
+  await client.query(`
     CREATE TABLE IF NOT EXISTS months (
       id INT PRIMARY KEY CHECK (id BETWEEN 1 AND 12),
       name VARCHAR(20) NOT NULL

@@ -15,7 +15,11 @@ export default function CategoryManager() {
   const [statusType, setStatusType] = useState(''); // 'success' or 'error'
 
   const fetchCategories = async () => {
-    const res = await fetch('/api/categories');
+    const res = await fetch('/api/categories', {
+  headers: {
+    Authorization: `Bearer ${localStorage.getItem('token')}`
+  }
+});
     if (res.ok) {
       const data = await res.json();
       const sorted = data.sort((a, b) => a.name.localeCompare(b.name));
