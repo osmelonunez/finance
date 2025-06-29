@@ -41,7 +41,7 @@ export default function AccountPage() {
       });
   }, []);
 
-  const handleUpdate = async () => {
+  const handleUpdate = async (field) => {
     setMessage('');
     setError('');
     const res = await fetch('/api/me', {
@@ -52,6 +52,22 @@ export default function AccountPage() {
       },
       body: JSON.stringify({ username, password })
     });
+  
+    if (res.ok) {
+      setMessage('Actualizado correctamente');
+      setTimeout(() => setMessage(''), 2000);
+      setPassword('');
+    
+      // Cerrar el modo de edición según el campo actualizado
+      if (field === 'username') {
+        setEditingUsername(false);
+      } else if (field === 'password') {
+        setEditingPassword(false);
+      }
+    } else {
+      const data = await res.json();
+      setError(data.error || 'Error al actualizar');
+    }
 
     if (res.ok) {
       setMessage('Actualización exitosa');
