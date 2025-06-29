@@ -3,9 +3,11 @@ services:
     image: haproxy:2.9
     container_name: finance-haproxy
     volumes:
-      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - ./haproxy/ssl/:/usr/local/etc/haproxy/ssl/
     ports:
       - "80:80"
+      - "443:443"
     depends_on:
       - backend
       - frontend
