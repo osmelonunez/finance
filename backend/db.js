@@ -1,20 +1,38 @@
 const { Pool, Client } = require('pg');
 require('dotenv').config();
 
+const RETRY_DELAY_MS = 10000; // 7 segundos
+
+async function waitAndRetry(fn, label = 'acción', retries = 20) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      console.error(`❌ Fallo en ${label} (intento ${attempt}/${retries}):`, err.message);
+      if (attempt === retries) throw err;
+      await new Promise(res => setTimeout(res, RETRY_DELAY_MS));
+    }
+  }
+}
+
 const dbName = process.env.DB_NAME;
 
 async function initializeDatabase() {
   console.log("🔍 Comprobando existencia de la base de datos...");
 
-  const adminClient = new Client({
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    database: 'postgres',
-  });
+  async function connectAdminClient() {
+    const client = new Client({
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      host: process.env.DB_HOST,
+      port: process.env.DB_PORT,
+      database: 'postgres',
+    });
+    await client.connect();
+    return client;
+  }
 
-  await adminClient.connect();
+  const adminClient = await waitAndRetry(connectAdminClient, 'conexión inicial');
 
   const res = await adminClient.query('SELECT 1 FROM pg_database WHERE datname = $1', [dbName]);
   if (res.rowCount === 0) {
