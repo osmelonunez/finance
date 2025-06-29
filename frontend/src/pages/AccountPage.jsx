@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from 'react';
 import { Trash2, Wrench, Bell, PlusCircle, Check, X } from 'lucide-react';
 
@@ -66,7 +65,7 @@ export default function AccountPage() {
     setEmailError('');
     if (!newEmail || !newEmail.includes('@')) {
       setEmailError('Correo inválido');
-    setTimeout(() => setEmailError(''), 2000);
+      setTimeout(() => setEmailError(''), 2000);
       return;
     }
 
@@ -236,7 +235,6 @@ export default function AccountPage() {
               </div>
               {!email.is_primary && (
                 <div className="flex flex-row gap-2 items-center text-xs text-white">
-                  
                   <button
                     onClick={() => handleToggleNotifications(email.id, !email.notifications_enabled)}
                     className="p-1 rounded-full hover:bg-gray-100"
@@ -272,8 +270,7 @@ export default function AccountPage() {
         </ul>
       </div>
 
-      
-      <div className="mt-6 pt-4 border-t">
+      <div className="mt-6">
         <h3 className="text-md font-semibold text-gray-700 mb-2 flex items-center gap-2">
           {!showAddInput && (
             <button
@@ -283,13 +280,14 @@ export default function AccountPage() {
             >
               <PlusCircle size={20} title="Agregar nuevo correo" className="text-green-600" />
             </button>
-          )}</h3>
+          )}
+        </h3>
         {showAddInput && (
           <div className="flex gap-2 items-center animate-fade-in">
             <input
               type="email"
               placeholder="Correo secundario"
-              className={`flex-1 border rounded px-3 py-2 ${emailError ? "border-red-500" : "border-gray-300"}`}
+              className={`flex-1 border rounded px-3 py-2 ${emailError ? 'border-red-500' : 'border-gray-300'}`}
               value={newEmail}
               onChange={e => setNewEmail(e.target.value)}
             />
