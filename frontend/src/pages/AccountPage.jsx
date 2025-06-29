@@ -239,7 +239,14 @@ export default function AccountPage() {
                     <Bell size={18} className={email.notifications_enabled ? 'text-green-600' : 'text-gray-400'} />
                   </button>
                   <button
-                    onClick={() => startEditingEmail(email)}
+                    onClick={() => {
+                      if (editingEmailId === email.id) {
+                        setEditingEmailId(null);
+                        setEditedEmail('');
+                      } else {
+                        startEditingEmail(email);
+                      }
+                    }}
                     className="p-1 rounded-full hover:bg-yellow-100"
                     title="Editar"
                   >
