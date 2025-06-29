@@ -6,7 +6,9 @@ const RETRY_DELAY_MS = 10000; // 7 segundos
 async function waitAndRetry(fn, label = 'acción', retries = 20) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      return await fn();
+            const result = await fn();
+      console.log(`✔️  ${label} exitosa en intento ${attempt}`);
+      return result;
     } catch (err) {
       console.error(`❌ Fallo en ${label} (intento ${attempt}/${retries}):`, err.message);
       if (attempt === retries) throw err;
