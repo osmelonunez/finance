@@ -260,7 +260,16 @@ export default function AccountPage() {
               <Check size={20} className="text-green-600" />
             </button>
             
-          </div>
+          
+<div className="text-sm text-gray-600 mt-2 space-y-1">
+  <p className={/.*[a-z].*/.test(password) ? 'text-green-600' : 'text-gray-400'}>• Una letra minúscula</p>
+  <p className={/.*[A-Z].*/.test(password) ? 'text-green-600' : 'text-gray-400'}>• Una letra mayúscula</p>
+  <p className={/.*\d.*/.test(password) ? 'text-green-600' : 'text-gray-400'}>• Un número</p>
+  <p className={/.*[@$!%*?#&].*/.test(password) ? 'text-green-600' : 'text-gray-400'}>• Un símbolo especial</p>
+  <p className={password.length >= 8 ? 'text-green-600' : 'text-gray-400'}>• Al menos 8 caracteres</p>
+</div>
+
+</div>
         )}
       </div>
       {message && <p className="text-sm text-green-600 mt-2">{message}</p>}
