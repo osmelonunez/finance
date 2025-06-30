@@ -203,15 +203,13 @@ export default function AccountPage() {
       <div className="mt-4">
         <h3 className="text-md font-semibold text-gray-700 mb-1 flex items-center gap-2">
           <span>Usuario</span>
-          {!editingUsername && (
-            <button
-              onClick={() => setEditingUsername(true)}
-              className="p-1 rounded-full hover:bg-gray-100"
-              title="Editar usuario"
-            >
-              <Wrench size={18} className="text-yellow-600" />
-            </button>
-          )}
+          <button
+            onClick={() => setEditingUsername(!editingUsername)}
+            className="p-1 rounded-full hover:bg-gray-100"
+            title={editingUsername ? "Cancelar edición" : "Editar usuario"}
+          >
+            <Wrench size={18} className="text-yellow-600" />
+          </button>
         </h3>
         {editingUsername && (
           <div className="flex gap-2 items-center animate-fade-in">
@@ -228,13 +226,7 @@ export default function AccountPage() {
             >
               <Check size={20} className="text-green-600" />
             </button>
-            <button
-              onClick={() => setEditingUsername(false)}
-              className="p-1 rounded-full hover:bg-red-100"
-              title="Cancelar"
-            >
-              <X size={20} className="text-red-600" />
-            </button>
+            
           </div>
         )}
       </div>
@@ -243,15 +235,13 @@ export default function AccountPage() {
       <div className="mt-4">
         <h3 className="text-md font-semibold text-gray-700 mb-1 flex items-center gap-2">
           <span>Contraseña</span>
-          {!editingPassword && (
-            <button
-              onClick={() => setEditingPassword(true)}
-              className="p-1 rounded-full hover:bg-gray-100"
-              title="Editar contraseña"
-            >
-              <Wrench size={18} className="text-yellow-600" />
-            </button>
-          )}
+          <button
+            onClick={() => setEditingPassword(!editingPassword)}
+            className="p-1 rounded-full hover:bg-gray-100"
+            title={editingPassword ? "Cancelar edición" : "Editar contraseña"}
+          >
+            <Wrench size={18} className="text-yellow-600" />
+          </button>
         </h3>
         {editingPassword && (
           <div className="flex gap-2 items-center animate-fade-in">
@@ -269,13 +259,7 @@ export default function AccountPage() {
             >
               <Check size={20} className="text-green-600" />
             </button>
-            <button
-              onClick={() => setEditingPassword(false)}
-              className="p-1 rounded-full hover:bg-red-100"
-              title="Cancelar"
-            >
-              <X size={20} className="text-red-600" />
-            </button>
+            
           </div>
         )}
       </div>
