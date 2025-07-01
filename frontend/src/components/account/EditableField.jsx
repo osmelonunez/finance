@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Modal from '../common/Modal';
+import { isPasswordComplex } from '../utils/validation';
 import { Wrench, Check } from 'lucide-react';
 
 export default function EditableField({
@@ -20,17 +21,22 @@ export default function EditableField({
   const handleSaveClick = () => {
     setError('');
 
-    if (type === 'password' && value !== confirmValue) {
-      setError('Las contraseñas no coinciden.');
-      return;
-    }
-
     if (type === 'password') {
+      if (value !== confirmValue) {
+        setError('Las contraseñas no coinciden.');
+        return;
+      }
+      // Aquí validar los requisitos con la función que tengas (por ejemplo isPasswordComplex)
+      if (!isPasswordComplex(value)) {
+        setError('La contraseña no cumple los requisitos mínimos.');
+        return;
+      }
       setShowConfirmModal(true);
     } else {
       onSave();
     }
   };
+
 
   const cancelEdit = () => {
     setIsEditing(false);
