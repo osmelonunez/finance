@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { TransitionGroup, CSSTransition } from 'react-transition-group';
 import EditableField from '../components/account/EditableField';
 import PasswordRequirements from '../components/account/PasswordRequirements';
 import EmailManager from '../components/account/EmailManager';
@@ -9,6 +8,7 @@ import ErrorMessage from '../components/common/ErrorMessage';
 import Modal from '../components/common/Modal';
 import useAuthToken from '../components/hooks/useAuthToken';
 import useTokenExpiration from '../components/hooks/useTokenExpiration';
+import TokenWarnings from '../components/common/TokenWarnings';
 import { isPasswordComplex } from '../components/utils/validation';
 
 export default function AccountPage() {
@@ -110,20 +110,7 @@ export default function AccountPage() {
     <div className="max-w-xl mx-auto p-6 space-y-6 bg-white rounded-xl shadow">
       <h2 className="text-xl font-bold text-gray-800">Mi cuenta</h2>
 
-      {/* Avisos de expiración */}
-      <TransitionGroup className="fixed bottom-4 right-4 flex flex-col space-y-2 z-50">
-        {warnings.map((msg) => (
-          <CSSTransition key={msg} timeout={300} classNames="toast">
-            <div
-              className="bg-yellow-300 text-yellow-900 p-4 rounded shadow-lg cursor-pointer"
-              onClick={() => removeWarning(msg)}
-              role="alert"
-            >
-              {msg}
-            </div>
-          </CSSTransition>
-        ))}
-      </TransitionGroup>
+      <TokenWarnings warnings={warnings} onRemove={removeWarning} />
 
       <Notification
         type="success"
@@ -170,28 +157,6 @@ export default function AccountPage() {
       >
         <p>¿Estás seguro que deseas actualizar {pendingField}?</p>
       </Modal>
-
-      {/* Agrega estos estilos CSS para animar los avisos */}
-      <style>{`
-        .toast-enter {
-          opacity: 0;
-          transform: translateY(100%);
-        }
-        .toast-enter-active {
-          opacity: 1;
-          transform: translateY(0);
-          transition: opacity 300ms, transform 300ms;
-        }
-        .toast-exit {
-          opacity: 1;
-          transform: translateY(0);
-        }
-        .toast-exit-active {
-          opacity: 0;
-          transform: translateY(-100%);
-          transition: opacity 300ms, transform 300ms;
-        }
-      `}</style>
     </div>
   );
 }
