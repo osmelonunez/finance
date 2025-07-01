@@ -209,7 +209,7 @@ export default function EmailManager() {
             >
               <PlusCircle
                 size={20}
-                className={showAddInput ? 'text-red-500' : 'text-green-600'}
+                className={showAddInput ? 'text-yellow-600' : 'text-green-600'}
               />
             </button>
             
