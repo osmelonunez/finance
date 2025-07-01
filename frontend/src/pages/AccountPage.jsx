@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Trash2, Wrench, Bell, PlusCircle, Check, X } from 'lucide-react';
+import PasswordRequirements from '../components/PasswordRequirements';
 
 export default function AccountPage() {
   const [username, setUsername] = useState('');
@@ -42,7 +43,7 @@ export default function AccountPage() {
   }, []);
 
   const isPasswordComplex = (pwd) => {
-    const complexityRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?#&])[A-Za-z\d@$!%*?#&]{8,}$/;
+    const complexityRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{13,}$/;
     return complexityRegex.test(pwd);
   };
 
@@ -244,33 +245,27 @@ export default function AccountPage() {
           </button>
         </h3>
         {editingPassword && (
-          <div className="flex gap-2 items-center animate-fade-in">
-            <input
-              type="password"
-              className="flex-1 border rounded px-3 py-2"
-              placeholder="Nueva contraseña"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-            />
-            <button
-              onClick={() => handleUpdate('password')}
-              className="p-1 rounded-full hover:bg-green-100"
-              title="Guardar"
-            >
-              <Check size={20} className="text-green-600" />
-            </button>
-            
-          
-<div className="text-sm text-gray-600 mt-2 space-y-1">
-  <p className={/.*[a-z].*/.test(password) ? 'text-green-600' : 'text-gray-400'}>• Una letra minúscula</p>
-  <p className={/.*[A-Z].*/.test(password) ? 'text-green-600' : 'text-gray-400'}>• Una letra mayúscula</p>
-  <p className={/.*\d.*/.test(password) ? 'text-green-600' : 'text-gray-400'}>• Un número</p>
-  <p className={/.*[@$!%*?#&].*/.test(password) ? 'text-green-600' : 'text-gray-400'}>• Un símbolo especial</p>
-  <p className={password.length >= 8 ? 'text-green-600' : 'text-gray-400'}>• Al menos 8 caracteres</p>
-</div>
-
-</div>
+          <div className="animate-fade-in">
+            <div className="flex gap-2 items-center mb-2">
+              <input
+                type="password"
+                className="flex-1 border rounded px-3 py-2"
+                placeholder="Nueva contraseña"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+              />
+              <button
+                onClick={() => handleUpdate('password')}
+                className="p-1 rounded-full hover:bg-green-100"
+                title="Guardar"
+              >
+                <Check size={20} className="text-green-600" />
+              </button>
+            </div>
+            <PasswordRequirements password={password} />
+          </div>
         )}
+
       </div>
       {message && <p className="text-sm text-green-600 mt-2">{message}</p>}
       {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
