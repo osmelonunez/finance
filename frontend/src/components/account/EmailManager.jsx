@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Trash2, Wrench, Bell, PlusCircle, Check } from 'lucide-react';
-import Notification from '../common/Notification'; // Ajusta ruta según tu estructura
-import { isEmailValid } from '../utils/validation';  // Importar validación
+import Notification from '../common/Notification'; // Ajusta la ruta si es necesario
+import Modal from '../common/Modal'; // Nuevo modal genérico
+import { isEmailValid } from '../utils/validation';
 
 export default function EmailManager() {
   const [emails, setEmails] = useState([]);
@@ -31,21 +32,19 @@ export default function EmailManager() {
   const handleAddEmail = async () => {
     setEmailMessage('');
     setEmailError('');
-  
     if (!newEmail || !isEmailValid(newEmail)) {
       setEmailError('Correo inválido');
       setTimeout(() => setEmailError(''), 2000);
       return;
     }
-  
-    // Validar que el correo no exista ya (ignorando mayúsculas/minúsculas)
+
     const exists = emails.some(email => email.email.toLowerCase() === newEmail.toLowerCase());
     if (exists) {
       setEmailError('Este correo ya está agregado.');
       setTimeout(() => setEmailError(''), 2000);
       return;
     }
-  
+
     const res = await fetch('/api/emails', {
       method: 'POST',
       headers: {
@@ -54,7 +53,7 @@ export default function EmailManager() {
       },
       body: JSON.stringify({ email: newEmail })
     });
-  
+
     if (res.ok) {
       const updated = await res.json();
       setEmails(updated);
@@ -67,17 +66,16 @@ export default function EmailManager() {
       setTimeout(() => setEmailError(''), 2000);
     }
   };
-  
+
   const handleEditEmail = async () => {
     if (!editingEmailId || !editedEmail) return;
-  
+
     if (!isEmailValid(editedEmail)) {
       setEmailError('Correo inválido');
       setTimeout(() => setEmailError(''), 2000);
       return;
     }
-  
-    // Validar que el correo no exista ya en otro registro distinto
+
     const exists = emails.some(email =>
       email.email.toLowerCase() === editedEmail.toLowerCase() && email.id !== editingEmailId
     );
@@ -86,7 +84,7 @@ export default function EmailManager() {
       setTimeout(() => setEmailError(''), 2000);
       return;
     }
-  
+
     const res = await fetch(`/api/emails/${editingEmailId}`, {
       method: 'PUT',
       headers: {
@@ -95,7 +93,7 @@ export default function EmailManager() {
       },
       body: JSON.stringify({ email: editedEmail })
     });
-  
+
     if (res.ok) {
       const updated = await res.json();
       setEmails(updated);
@@ -109,7 +107,6 @@ export default function EmailManager() {
       setTimeout(() => setEmailError(''), 2000);
     }
   };
-
 
   const handleToggleNotifications = async (id, enabled) => {
     const res = await fetch(`/api/emails/${id}`, {
@@ -282,22 +279,14 @@ export default function EmailManager() {
 
       </div>
 
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md space-y-4">
-            <h3 className="text-lg font-semibold text-gray-800">¿Eliminar correo?</h3>
-            <p className="text-gray-600">¿Estás seguro que deseas eliminar <strong>{emailToDelete?.email}</strong>?</p>
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setShowDeleteModal(false)} className="px-4 py-2 border rounded text-gray-600 hover:bg-gray-100">
-                Cancelar
-              </button>
-              <button onClick={confirmDelete} className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
-                Eliminar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        title="¿Eliminar correo?"
+        isOpen={showDeleteModal}
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteModal(false)}
+      >
+        <p>¿Estás seguro que deseas eliminar <strong>{emailToDelete?.email}</strong>?</p>
+      </Modal>
     </div>
   );
 }
