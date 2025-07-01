@@ -1,41 +1,26 @@
-import { useEffect, useState, useRef } from 'react';
-import { Trash2, Wrench, Bell, PlusCircle, Check, X } from 'lucide-react';
-import PasswordRequirements from '../components/account/PasswordRequirements';
+import { useEffect, useState } from 'react';
+import { Wrench } from 'lucide-react';
 import EditableField from '../components/account/EditableField';
-
+import PasswordRequirements from '../components/account/PasswordRequirements';
+import EmailManager from '../components/account/EmailManager';
 
 export default function AccountPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [emails, setEmails] = useState([]);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [newEmail, setNewEmail] = useState('');
-  const [emailMessage, setEmailMessage] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [emailToDelete, setEmailToDelete] = useState(null);
-  const [showAddInput, setShowAddInput] = useState(false);
-  const [editingEmailId, setEditingEmailId] = useState(null);
-  const [editedEmail, setEditedEmail] = useState('');
   const [editingUsername, setEditingUsername] = useState(false);
   const [editingPassword, setEditingPassword] = useState(false);
-  const emailInputRef = useRef(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    Promise.all([
-      fetch('/api/me', {
-        headers: { Authorization: `Bearer ${token}` }
-      }).then(res => res.json()),
-      fetch('/api/emails', {
-        headers: { Authorization: `Bearer ${token}` }
-      }).then(res => res.json())
-    ])
-      .then(([userData, emailList]) => {
+    fetch('/api/me', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(userData => {
         setUsername(userData.username);
-        setEmails(emailList);
         setLoading(false);
       })
       .catch(() => {
@@ -52,10 +37,12 @@ export default function AccountPage() {
   const handleUpdate = async (field) => {
     setMessage('');
     setError('');
+
     if (field === 'password' && !isPasswordComplex(password)) {
-      setError('La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un símbolo.');
+      setError('La contraseña no cumple con los requisitos mínimos.');
       return;
     }
+
     const res = await fetch('/api/me', {
       method: 'PUT',
       headers: {
@@ -64,118 +51,16 @@ export default function AccountPage() {
       },
       body: JSON.stringify({ username, password })
     });
-  
+
     if (res.ok) {
       setMessage('Actualizado correctamente');
       setTimeout(() => setMessage(''), 2000);
       setPassword('');
-    
-      // Cerrar el modo de edición según el campo actualizado
-      if (field === 'username') {
-        setEditingUsername(false);
-      } else if (field === 'password') {
-        setEditingPassword(false);
-      }
+      if (field === 'username') setEditingUsername(false);
+      if (field === 'password') setEditingPassword(false);
     } else {
       const data = await res.json();
       setError(data.error || 'Error al actualizar');
-    }
-
-    if (res.ok) {
-      setMessage('Actualización exitosa');
-      setTimeout(() => setMessage(''), 2000);
-      setPassword('');
-    } else {
-      const data = await res.json();
-      setError(data.error || 'Error al actualizar');
-    }
-  };
-
-  const handleAddEmail = async () => {
-    setEmailMessage('');
-    setEmailError('');
-    if (!newEmail || !newEmail.includes('@')) {
-      setEmailError('Correo inválido');
-      setTimeout(() => setEmailError(''), 2000);
-      return;
-    }
-
-    const res = await fetch('/api/emails', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      },
-      body: JSON.stringify({ email: newEmail })
-    });
-
-    if (res.ok) {
-      const updatedEmails = await res.json();
-      setEmails(updatedEmails);
-      setEmailMessage('Correo agregado');
-      setNewEmail('');
-    } else {
-      const data = await res.json();
-      const msg = data.error || 'No se pudo agregar el correo';
-      setEmailError(msg);
-      setTimeout(() => setEmailError(''), 2000);
-    }
-  };
-
-  const confirmDelete = async () => {
-    if (!emailToDelete) return;
-    const res = await fetch(`/api/emails/${emailToDelete.id}`, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
-    });
-
-    if (res.ok) {
-      const updated = await res.json();
-      setEmails(updated);
-      setShowDeleteModal(false);
-      setEmailToDelete(null);
-    }
-  };
-
-  const handleToggleNotifications = async (id, enabled) => {
-    const res = await fetch(`/api/emails/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      },
-      body: JSON.stringify({ notifications_enabled: enabled })
-    });
-
-    if (res.ok) {
-      const updated = await res.json();
-      setEmails(updated);
-    }
-  };
-
-  const startEditingEmail = (email) => {
-    setEditingEmailId(email.id);
-    setEditedEmail(email.email);
-    setTimeout(() => emailInputRef.current?.focus(), 0);
-  };
-
-  const handleEditEmail = async () => {
-    const res = await fetch(`/api/emails/${editingEmailId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      },
-      body: JSON.stringify({ email: editedEmail })
-    });
-
-    if (res.ok) {
-      const updated = await res.json();
-      setEmails(updated);
-      setEditingEmailId(null);
-      setEditedEmail('');
     }
   };
 
@@ -186,158 +71,33 @@ export default function AccountPage() {
   return (
     <div className="max-w-xl mx-auto p-6 space-y-6 bg-white rounded-xl shadow">
       <h2 className="text-xl font-bold text-gray-800">Mi cuenta</h2>
-      {/* Sección: Actualizar Usuario */}
-        <EditableField
-          label="Usuario"
-          value={username}
-          onChange={e => setUsername(e.target.value)}
-          onSave={() => handleUpdate('username')}
-          isEditing={editingUsername}
-          setIsEditing={setEditingUsername}
-        />
 
-      {/* Sección: Actualizar Contraseña */}
-        <EditableField
-          label="Contraseña"
-          type="password"
-          placeholder="Nueva contraseña"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          onSave={() => handleUpdate('password')}
-          isEditing={editingPassword}
-          setIsEditing={setEditingPassword}
-        >
-          <PasswordRequirements password={password} />
-        </EditableField>
+      <EditableField
+        label="Usuario"
+        value={username}
+        onChange={e => setUsername(e.target.value)}
+        onSave={() => handleUpdate('username')}
+        isEditing={editingUsername}
+        setIsEditing={setEditingUsername}
+      />
+
+      <EditableField
+        label="Contraseña"
+        type="password"
+        placeholder="Nueva contraseña"
+        value={password}
+        onChange={e => setPassword(e.target.value)}
+        onSave={() => handleUpdate('password')}
+        isEditing={editingPassword}
+        setIsEditing={setEditingPassword}
+      >
+        <PasswordRequirements password={password} />
+      </EditableField>
 
       {message && <p className="text-sm text-green-600 mt-2">{message}</p>}
       {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
 
-      <div className="mt-8">
-        <h3 className="text-md font-semibold text-gray-700 mb-2">Correos asociados</h3>
-        <ul className="text-sm text-gray-700">
-          {emails.map(email => (
-            <li key={email.id} className="py-1.5 flex justify-between items-center gap-3">
-              <div className="flex flex-col">
-                {editingEmailId === email.id ? (
-                  <>
-                    <input
-                      type="email"
-                      ref={emailInputRef}
-                      value={editedEmail}
-                      onChange={e => setEditedEmail(e.target.value)}
-                      className="border px-2 py-1 rounded"
-                    />
-                    <button
-                      onClick={handleEditEmail}
-                      className="text-blue-600 text-xs mt-1 hover:underline"
-                    >
-                      Guardar
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <span className="font-medium hover:underline hover:text-blue-600 cursor-pointer transition-colors duration-200">{email.email}</span>
-                    <span className="text-xs text-gray-500">
-                      {email.is_primary ? 'Principal' : ''}
-                    </span>
-                  </>
-                )}
-              </div>
-              {!email.is_primary && (
-                <div className="flex flex-row gap-2 items-center text-xs text-white">
-                  <button
-                    onClick={() => handleToggleNotifications(email.id, !email.notifications_enabled)}
-                    className="p-1 rounded-full hover:bg-gray-100"
-                    title="Notificaciones"
-                  >
-                    <Bell size={18} className={email.notifications_enabled ? 'text-green-600' : 'text-gray-400'} />
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (editingEmailId === email.id) {
-                        setEditingEmailId(null);
-                        setEditedEmail('');
-                      } else {
-                        startEditingEmail(email);
-                      }
-                    }}
-                    className="p-1 rounded-full hover:bg-yellow-100"
-                    title="Editar"
-                  >
-                    <Wrench size={18} className="text-yellow-600" />
-                  </button>
-                  <button
-                    onClick={() => { setEmailToDelete(email); setShowDeleteModal(true); }}
-                    className="p-1 rounded-full hover:bg-red-100"
-                    title="Eliminar"
-                  >
-                    <Trash2 size={18} className="text-red-600" />
-                  </button>
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="mt-6">
-        <h3 className="text-md font-semibold text-gray-700 mb-2 flex items-center gap-2">
-          {!showAddInput && (
-            <button
-              onClick={() => setShowAddInput(true)}
-              className="p-1 rounded-full hover:bg-gray-100"
-              title="Agregar correo"
-            >
-              <PlusCircle size={20} title="Agregar nuevo correo" className="text-green-600" />
-            </button>
-          )}
-        </h3>
-        {showAddInput && (
-          <div className="flex gap-2 items-center animate-fade-in">
-            <input
-              type="email"
-              placeholder="Correo secundario"
-              className={`flex-1 border rounded px-3 py-2 ${emailError ? 'border-red-500' : 'border-gray-300'}`}
-              value={newEmail}
-              onChange={e => setNewEmail(e.target.value)}
-            />
-            <button
-              onClick={handleAddEmail}
-              className="p-1 rounded-full hover:bg-green-100"
-              title="Guardar"
-            >
-              <Check size={20} className="text-green-600" />
-            </button>
-            <button
-              onClick={() => { setShowAddInput(false); setNewEmail(''); }}
-              className="p-1 rounded-full hover:bg-red-100"
-              title="Cancelar"
-            >
-              <X size={20} className="text-red-600" />
-            </button>
-          </div>
-        )}
-        {emailMessage && <p className="text-sm text-green-600 mt-2">{emailMessage}</p>}
-        {emailError && <p className="text-sm text-red-600 mt-2">{emailError}</p>}
-      </div>
-
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md space-y-4">
-            <h3 className="text-lg font-semibold text-gray-800">¿Eliminar correo?</h3>
-            <p className="text-gray-600">¿Estás seguro que deseas eliminar <strong>{emailToDelete?.email}</strong>?</p>
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setShowDeleteModal(false)} className="px-4 py-2 border rounded text-gray-600 hover:bg-gray-100">
-                Cancelar
-              </button>
-              <button onClick={confirmDelete} className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
-                Eliminar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <EmailManager />
     </div>
   );
 }

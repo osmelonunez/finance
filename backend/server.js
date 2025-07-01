@@ -536,24 +536,35 @@ app.post('/api/emails', authenticateToken, async (req, res) => {
 
 // Actualizar propiedades de un correo (is_primary, notifications_enabled)
 app.put('/api/emails/:id', authenticateToken, async (req, res) => {
-  const { is_primary, notifications_enabled } = req.body;
+  const { email, is_primary, notifications_enabled } = req.body;
   const emailId = req.params.id;
 
   try {
-    // Solo permitir modificar correos del propio usuario
-    const match = await db.query('SELECT * FROM emails WHERE id = $1 AND user_id = $2', [emailId, req.user.userId]);
-    if (match.rows.length === 0) return res.status(404).json({ error: 'Correo no encontrado' });
+    const match = await db.query(
+      'SELECT * FROM emails WHERE id = $1 AND user_id = $2',
+      [emailId, req.user.userId]
+    );
+    if (match.rows.length === 0)
+      return res.status(404).json({ error: 'Correo no encontrado' });
 
     if (is_primary) {
       await db.query('UPDATE emails SET is_primary = false WHERE user_id = $1', [req.user.userId]);
     }
 
+    // Actualizar campos según lo recibido
     await db.query(
       'UPDATE emails SET is_primary = $1, notifications_enabled = $2 WHERE id = $3',
       [!!is_primary, !!notifications_enabled, emailId]
     );
 
-    const result = await db.query('SELECT * FROM emails WHERE user_id = $1 ORDER BY created_at', [req.user.userId]);
+    if (email) {
+      await db.query('UPDATE emails SET email = $1 WHERE id = $2', [email, emailId]);
+    }
+
+    const result = await db.query(
+      'SELECT * FROM emails WHERE user_id = $1 ORDER BY created_at',
+      [req.user.userId]
+    );
     res.json(result.rows);
   } catch (err) {
     console.error('Error al actualizar correo:', err);
