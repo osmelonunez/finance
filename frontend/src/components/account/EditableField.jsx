@@ -43,6 +43,7 @@ export default function EditableField({
     <div className="mt-4">
       <h3 className="text-md font-semibold text-gray-700 mb-1 flex items-center gap-2">
         <span>{label}</span>
+
         <button
           onClick={() => {
             if (isEditing) cancelEdit();
@@ -53,26 +54,27 @@ export default function EditableField({
         >
           <Wrench size={18} className="text-yellow-600" />
         </button>
+
+        {isEditing && (
+          <button
+            onClick={handleSaveClick}
+            className="p-1 rounded-full hover:bg-green-100"
+            title="Guardar"
+          >
+            <Check size={20} className="text-green-600" />
+          </button>
+        )}
       </h3>
 
       {isEditing && (
         <>
-          <div className="flex gap-2 items-center mb-2">
-            <input
-              type={type}
-              value={value}
-              placeholder={placeholder}
-              onChange={onChange}
-              className="flex-1 border rounded px-3 py-2"
-            />
-            <button
-              onClick={handleSaveClick}
-              className="p-1 rounded-full hover:bg-green-100"
-              title="Guardar"
-            >
-              <Check size={20} className="text-green-600" />
-            </button>
-          </div>
+          <input
+            type={type}
+            value={value}
+            placeholder={placeholder}
+            onChange={onChange}
+            className="w-full border rounded px-3 py-2"
+          />
 
           {type === 'password' && (
             <input
@@ -80,7 +82,7 @@ export default function EditableField({
               value={confirmValue}
               placeholder="Confirmar contraseña"
               onChange={e => setConfirmValue(e.target.value)}
-              className="border rounded px-3 py-2 w-full"
+              className="border rounded px-3 py-2 w-full mt-2"
             />
           )}
 
