@@ -230,7 +230,7 @@ export default function EmailManager() {
             <input
               type="email"
               placeholder="Correo secundario"
-              className={`flex-1 border rounded px-3 py-2 ${emailError ? 'border-red-500' : 'border-gray-300'}`}
+              className={`border rounded px-3 py-2 ${emailError ? 'border-red-500' : 'border-gray-300'} max-w-xs w-full`}
               value={newEmail}
               onChange={e => setNewEmail(e.target.value)}
             />
