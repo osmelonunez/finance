@@ -126,15 +126,23 @@ export default function EmailManager() {
           <li key={email.id} className="py-1.5 flex justify-between items-center gap-3">
             <div className="flex flex-col">
               {editingEmailId === email.id ? (
-                <>
+                <div className="flex items-center gap-2">
                   <input
                     type="email"
                     ref={emailInputRef}
                     value={editedEmail}
                     onChange={e => setEditedEmail(e.target.value)}
-                    className="border px-2 py-1 rounded"
+                    className="border px-2 py-1 rounded w-full"
                   />
-                </>
+                  <button
+                    onClick={handleEditEmail}
+                    className="p-1 rounded-full hover:bg-green-100"
+                    title="Guardar cambios"
+                  >
+                    <Check size={18} className="text-green-600" />
+                  </button>
+                </div>
+
               ) : (
                 <>
                   <span className="font-medium hover:underline hover:text-blue-600 cursor-pointer transition-colors duration-200">{email.email}</span>
@@ -166,15 +174,6 @@ export default function EmailManager() {
                   title="Editar"
                 >
                   <Wrench size={18} className="text-yellow-600" />
-                  {editingEmailId === email.id && (
-                    <button
-                      onClick={handleEditEmail}
-                      className="p-1 rounded-full hover:bg-green-100"
-                      title="Guardar cambios"
-                    >
-                      <Check size={18} className="text-green-600" />
-                    </button>
-                  )}
 
                 </button>
                 <button
