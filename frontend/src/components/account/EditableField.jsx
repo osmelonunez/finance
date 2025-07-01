@@ -1,4 +1,5 @@
 import { Wrench, Check } from 'lucide-react';
+import { useState } from 'react';
 
 export default function EditableField({
   label,
@@ -11,10 +12,20 @@ export default function EditableField({
   placeholder = '',
   children = null
 }) {
+  const [confirmValue, setConfirmValue] = useState('');
+  const [error, setError] = useState('');
+
   const handleSave = async () => {
+    setError('');
+
+    if (type === 'password' && value !== confirmValue) {
+      setError('Las contraseñas no coinciden.');
+      return;
+    }
+
     await onSave();
-    // Opcional: cerrar edición tras guardar
-    // setIsEditing(false);
+    // setIsEditing(false); // Si quieres cerrar automáticamente
+    setConfirmValue('');
   };
 
   return (
@@ -23,7 +34,11 @@ export default function EditableField({
         <span>{label}</span>
         <div className="flex items-center gap-1">
           <button
-            onClick={() => setIsEditing(!isEditing)}
+            onClick={() => {
+              setIsEditing(!isEditing);
+              setError('');
+              setConfirmValue('');
+            }}
             className="p-1 rounded-full hover:bg-gray-100"
             title={isEditing ? `Cancelar edición` : `Editar ${label.toLowerCase()}`}
           >
@@ -43,7 +58,7 @@ export default function EditableField({
 
       {isEditing && (
         <div className="animate-fade-in">
-          <div className="mb-2">
+          <div className="mb-2 space-y-2">
             <input
               type={type}
               className="w-full border rounded px-3 py-2"
@@ -51,7 +66,17 @@ export default function EditableField({
               placeholder={placeholder}
               onChange={onChange}
             />
+            {type === 'password' && (
+              <input
+                type="password"
+                className="w-full border rounded px-3 py-2"
+                value={confirmValue}
+                placeholder="Confirmar contraseña"
+                onChange={e => setConfirmValue(e.target.value)}
+              />
+            )}
           </div>
+          {error && <p className="text-sm text-red-600 mt-1">{error}</p>}
           {children}
         </div>
       )}
