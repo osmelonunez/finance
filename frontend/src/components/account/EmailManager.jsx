@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Trash2, Wrench, Bell, PlusCircle, Check, X } from 'lucide-react';
+import { Trash2, Wrench, Bell, PlusCircle, Check } from 'lucide-react';
+import Notification from '../common/Notification'; // Ajusta la ruta si es necesario
 
 export default function EmailManager() {
   const [emails, setEmails] = useState([]);
@@ -49,6 +50,7 @@ export default function EmailManager() {
       setEmails(updated);
       setEmailMessage('Correo agregado');
       setNewEmail('');
+      setShowAddInput(false);
     } else {
       const data = await res.json();
       setEmailError(data.error || 'Error al agregar');
@@ -56,28 +58,31 @@ export default function EmailManager() {
     }
   };
 
-    const handleEditEmail = async () => {
-      console.log('editando email con ID:', editingEmailId); // 👈 AQUÍ
-    
-      if (!editingEmailId || !editedEmail) return;
-    
-      const res = await fetch(`/api/emails/${editingEmailId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ email: editedEmail })
-      });
-  
-      if (res.ok) {
-        const updated = await res.json();
-        setEmails(updated);
-        setEditingEmailId(null);
-        setEditedEmail('');
-      }
-    };
+  const handleEditEmail = async () => {
+    if (!editingEmailId || !editedEmail) return;
 
+    const res = await fetch(`/api/emails/${editingEmailId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ email: editedEmail })
+    });
+
+    if (res.ok) {
+      const updated = await res.json();
+      setEmails(updated);
+      setEditingEmailId(null);
+      setEditedEmail('');
+      setEmailMessage('Correo actualizado');
+      setTimeout(() => setEmailMessage(''), 2000);
+    } else {
+      const data = await res.json();
+      setEmailError(data.error || 'Error al actualizar el correo');
+      setTimeout(() => setEmailError(''), 2000);
+    }
+  };
 
   const handleToggleNotifications = async (id, enabled) => {
     const res = await fetch(`/api/emails/${id}`, {
@@ -109,6 +114,8 @@ export default function EmailManager() {
       setEmails(updated);
       setShowDeleteModal(false);
       setEmailToDelete(null);
+      setEmailMessage('Correo eliminado');
+      setTimeout(() => setEmailMessage(''), 2000);
     }
   };
 
@@ -120,8 +127,21 @@ export default function EmailManager() {
 
   return (
     <div className="mt-8">
+      <div className="mb-6">
+        <Notification
+          type="success"
+          message={emailMessage}
+          onClose={() => setEmailMessage('')}
+        />
+        <Notification
+          type="error"
+          message={emailError}
+          onClose={() => setEmailError('')}
+        />
+      </div>
+
       <h3 className="text-md font-semibold text-gray-700 mb-2">Correos asociados</h3>
-      <ul className="text-sm text-gray-700">
+      <ul className="text-sm text-gray-700 mt-4">
         {emails.map(email => (
           <li key={email.id} className="py-1.5 flex justify-between items-center gap-3">
             <div className="flex flex-col">
@@ -142,7 +162,6 @@ export default function EmailManager() {
                     <Check size={18} className="text-green-600" />
                   </button>
                 </div>
-
               ) : (
                 <>
                   <span className="font-medium hover:underline hover:text-blue-600 cursor-pointer transition-colors duration-200">{email.email}</span>
@@ -174,7 +193,6 @@ export default function EmailManager() {
                   title="Editar"
                 >
                   <Wrench size={18} className="text-yellow-600" />
-
                 </button>
                 <button
                   onClick={() => {
@@ -212,7 +230,7 @@ export default function EmailManager() {
                 className={showAddInput ? 'text-yellow-600' : 'text-green-600'}
               />
             </button>
-            
+
             {showAddInput && (
               <button
                 onClick={handleAddEmail}
@@ -237,8 +255,6 @@ export default function EmailManager() {
           </div>
         )}
 
-        {emailMessage && <p className="text-sm text-green-600 mt-2">{emailMessage}</p>}
-        {emailError && <p className="text-sm text-red-600 mt-2">{emailError}</p>}
       </div>
 
       {showDeleteModal && (

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import EditableField from '../components/account/EditableField';
 import PasswordRequirements from '../components/account/PasswordRequirements';
 import EmailManager from '../components/account/EmailManager';
+import Notification from '../components/common/Notification';
 
 export default function AccountPage() {
   const [username, setUsername] = useState('');
@@ -71,6 +72,17 @@ export default function AccountPage() {
     <div className="max-w-xl mx-auto p-6 space-y-6 bg-white rounded-xl shadow">
       <h2 className="text-xl font-bold text-gray-800">Mi cuenta</h2>
 
+      <Notification
+        type="success"
+        message={message}
+        onClose={() => setMessage('')}
+      />
+      <Notification
+        type="error"
+        message={error}
+        onClose={() => setError('')}
+      />
+
       <EditableField
         label="Usuario"
         value={username}
@@ -92,9 +104,6 @@ export default function AccountPage() {
       >
         <PasswordRequirements password={password} />
       </EditableField>
-
-      {message && <p className="text-sm text-green-600 mt-2">{message}</p>}
-      {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
 
       <EmailManager />
     </div>
