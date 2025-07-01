@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { Trash2, Wrench, Bell, PlusCircle, Check, X } from 'lucide-react';
 import PasswordRequirements from '../components/PasswordRequirements';
+import EditableField from '../components/account/EditableField';
+
 
 export default function AccountPage() {
   const [username, setUsername] = useState('');
@@ -201,72 +203,29 @@ export default function AccountPage() {
     <div className="max-w-xl mx-auto p-6 space-y-6 bg-white rounded-xl shadow">
       <h2 className="text-xl font-bold text-gray-800">Mi cuenta</h2>
       {/* Sección: Actualizar Usuario */}
-      <div className="mt-4">
-        <h3 className="text-md font-semibold text-gray-700 mb-1 flex items-center gap-2">
-          <span>Usuario</span>
-          <button
-            onClick={() => setEditingUsername(!editingUsername)}
-            className="p-1 rounded-full hover:bg-gray-100"
-            title={editingUsername ? "Cancelar edición" : "Editar usuario"}
-          >
-            <Wrench size={18} className="text-yellow-600" />
-          </button>
-        </h3>
-        {editingUsername && (
-          <div className="flex gap-2 items-center animate-fade-in">
-            <input
-              type="text"
-              className="flex-1 border rounded px-3 py-2"
-              value={username}
-              onChange={e => setUsername(e.target.value)}
-            />
-            <button
-              onClick={() => handleUpdate('username')}
-              className="p-1 rounded-full hover:bg-green-100"
-              title="Guardar"
-            >
-              <Check size={20} className="text-green-600" />
-            </button>
-            
-          </div>
-        )}
-      </div>
-
+        <EditableField
+          label="Usuario"
+          value={username}
+          onChange={e => setUsername(e.target.value)}
+          onSave={() => handleUpdate('username')}
+          isEditing={editingUsername}
+          setIsEditing={setEditingUsername}
+        />
+        
       {/* Sección: Actualizar Contraseña */}
-      <div className="mt-4">
-        <h3 className="text-md font-semibold text-gray-700 mb-1 flex items-center gap-2">
-          <span>Contraseña</span>
-          <button
-            onClick={() => setEditingPassword(!editingPassword)}
-            className="p-1 rounded-full hover:bg-gray-100"
-            title={editingPassword ? "Cancelar edición" : "Editar contraseña"}
-          >
-            <Wrench size={18} className="text-yellow-600" />
-          </button>
-        </h3>
-        {editingPassword && (
-          <div className="animate-fade-in">
-            <div className="flex gap-2 items-center mb-2">
-              <input
-                type="password"
-                className="flex-1 border rounded px-3 py-2"
-                placeholder="Nueva contraseña"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-              />
-              <button
-                onClick={() => handleUpdate('password')}
-                className="p-1 rounded-full hover:bg-green-100"
-                title="Guardar"
-              >
-                <Check size={20} className="text-green-600" />
-              </button>
-            </div>
-            <PasswordRequirements password={password} />
-          </div>
-        )}
+        <EditableField
+          label="Contraseña"
+          type="password"
+          placeholder="Nueva contraseña"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          onSave={() => handleUpdate('password')}
+          isEditing={editingPassword}
+          setIsEditing={setEditingPassword}
+        >
+          <PasswordRequirements password={password} />
+        </EditableField>
 
-      </div>
       {message && <p className="text-sm text-green-600 mt-2">{message}</p>}
       {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
 
