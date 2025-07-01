@@ -134,12 +134,6 @@ export default function EmailManager() {
                     onChange={e => setEditedEmail(e.target.value)}
                     className="border px-2 py-1 rounded"
                   />
-                  <button
-                    onClick={handleEditEmail}
-                    className="text-blue-600 text-xs mt-1 hover:underline"
-                  >
-                    Guardar
-                  </button>
                 </>
               ) : (
                 <>
@@ -172,6 +166,16 @@ export default function EmailManager() {
                   title="Editar"
                 >
                   <Wrench size={18} className="text-yellow-600" />
+                  {editingEmailId === email.id && (
+                    <button
+                      onClick={handleEditEmail}
+                      className="p-1 rounded-full hover:bg-green-100"
+                      title="Guardar cambios"
+                    >
+                      <Check size={18} className="text-green-600" />
+                    </button>
+                  )}
+
                 </button>
                 <button
                   onClick={() => {

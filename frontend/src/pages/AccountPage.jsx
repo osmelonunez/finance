@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Wrench } from 'lucide-react';
 import EditableField from '../components/account/EditableField';
 import PasswordRequirements from '../components/account/PasswordRequirements';
 import EmailManager from '../components/account/EmailManager';
