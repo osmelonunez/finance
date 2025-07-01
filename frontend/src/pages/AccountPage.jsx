@@ -3,7 +3,8 @@ import EditableField from '../components/account/EditableField';
 import PasswordRequirements from '../components/account/PasswordRequirements';
 import EmailManager from '../components/account/EmailManager';
 import Notification from '../components/common/Notification';
-import { isPasswordComplex } from '../components/utils/validation';  // Importar validación
+import Loader from '../components/common/Loader';
+import ErrorMessage from '../components/common/ErrorMessage';
 
 export default function AccountPage() {
   const [username, setUsername] = useState('');
@@ -29,6 +30,11 @@ export default function AccountPage() {
         setLoading(false);
       });
   }, []);
+
+  const isPasswordComplex = (pwd) => {
+    const complexityRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{13,}$/;
+    return complexityRegex.test(pwd);
+  };
 
   const handleUpdate = async (field) => {
     setMessage('');
@@ -61,7 +67,7 @@ export default function AccountPage() {
   };
 
   if (loading) {
-    return <div className="text-center py-10 text-gray-600">Cargando datos...</div>;
+    return <Loader />;
   }
 
   return (
@@ -73,11 +79,7 @@ export default function AccountPage() {
         message={message}
         onClose={() => setMessage('')}
       />
-      <Notification
-        type="error"
-        message={error}
-        onClose={() => setError('')}
-      />
+      <ErrorMessage message={error} />
 
       <EditableField
         label="Usuario"
