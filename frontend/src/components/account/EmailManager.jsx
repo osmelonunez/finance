@@ -194,18 +194,39 @@ export default function EmailManager() {
 
       <div className="mt-6">
         <h3 className="text-md font-semibold text-gray-700 mb-2 flex items-center gap-2">
-          {!showAddInput && (
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowAddInput(true)}
+              onClick={() => {
+                if (showAddInput) {
+                  setShowAddInput(false);
+                  setNewEmail('');
+                } else {
+                  setShowAddInput(true);
+                }
+              }}
               className="p-1 rounded-full hover:bg-gray-100"
-              title="Agregar correo"
+              title={showAddInput ? 'Cancelar' : 'Agregar correo'}
             >
-              <PlusCircle size={20} className="text-green-600" />
+              <PlusCircle
+                size={20}
+                className={showAddInput ? 'text-red-500' : 'text-green-600'}
+              />
             </button>
-          )}
+            
+            {showAddInput && (
+              <button
+                onClick={handleAddEmail}
+                className="p-1 rounded-full hover:bg-green-100"
+                title="Guardar nuevo correo"
+              >
+                <Check size={20} className="text-green-600" />
+              </button>
+            )}
+          </div>
         </h3>
+
         {showAddInput && (
-          <div className="flex gap-2 items-center animate-fade-in">
+          <div className="flex items-center animate-fade-in">
             <input
               type="email"
               placeholder="Correo secundario"
@@ -213,25 +234,9 @@ export default function EmailManager() {
               value={newEmail}
               onChange={e => setNewEmail(e.target.value)}
             />
-            <button
-              onClick={handleAddEmail}
-              className="p-1 rounded-full hover:bg-green-100"
-              title="Guardar"
-            >
-              <Check size={20} className="text-green-600" />
-            </button>
-            <button
-              onClick={() => {
-                setShowAddInput(false);
-                setNewEmail('');
-              }}
-              className="p-1 rounded-full hover:bg-red-100"
-              title="Cancelar"
-            >
-              <X size={20} className="text-red-600" />
-            </button>
           </div>
         )}
+
         {emailMessage && <p className="text-sm text-green-600 mt-2">{emailMessage}</p>}
         {emailError && <p className="text-sm text-red-600 mt-2">{emailError}</p>}
       </div>
