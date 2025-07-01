@@ -14,8 +14,16 @@ export default function EditableField({
 }) {
   const [confirmValue, setConfirmValue] = useState('');
   const [error, setError] = useState('');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  const handleSave = async () => {
+  const reset = () => {
+    setIsEditing(false);
+    setConfirmValue('');
+    setError('');
+    setShowConfirmModal(false);
+  };
+
+  const handleSaveClick = () => {
     setError('');
 
     if (type === 'password' && value !== confirmValue) {
@@ -23,9 +31,17 @@ export default function EditableField({
       return;
     }
 
+    if (type === 'password') {
+      setShowConfirmModal(true);
+    } else {
+      onSave();
+      reset();
+    }
+  };
+
+  const confirmPasswordSave = async () => {
     await onSave();
-    // setIsEditing(false); // Si quieres cerrar automáticamente
-    setConfirmValue('');
+    reset();
   };
 
   return (
@@ -35,9 +51,8 @@ export default function EditableField({
         <div className="flex items-center gap-1">
           <button
             onClick={() => {
-              setIsEditing(!isEditing);
-              setError('');
-              setConfirmValue('');
+              if (isEditing) reset();
+              else setIsEditing(true);
             }}
             className="p-1 rounded-full hover:bg-gray-100"
             title={isEditing ? `Cancelar edición` : `Editar ${label.toLowerCase()}`}
@@ -46,7 +61,7 @@ export default function EditableField({
           </button>
           {isEditing && (
             <button
-              onClick={handleSave}
+              onClick={handleSaveClick}
               className="p-1 rounded-full hover:bg-green-100"
               title="Guardar"
             >
@@ -78,6 +93,29 @@ export default function EditableField({
           </div>
           {error && <p className="text-sm text-red-600 mt-1">{error}</p>}
           {children}
+        </div>
+      )}
+
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800">¿Actualizar contraseña?</h3>
+            <p className="text-gray-600">¿Estás seguro que deseas actualizar la contraseña?</p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={reset}
+                className="px-4 py-2 border rounded text-gray-600 hover:bg-gray-100"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmPasswordSave}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
