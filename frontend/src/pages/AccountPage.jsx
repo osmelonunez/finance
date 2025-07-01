@@ -122,22 +122,6 @@ export default function AccountPage() {
     }
   };
 
-  const handleMakePrimary = async (emailId) => {
-    const res = await fetch(`/api/emails/${emailId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      },
-      body: JSON.stringify({ is_primary: true })
-    });
-
-    if (res.ok) {
-      const updated = await res.json();
-      setEmails(updated);
-    }
-  };
-
   const confirmDelete = async () => {
     if (!emailToDelete) return;
     const res = await fetch(`/api/emails/${emailToDelete.id}`, {
