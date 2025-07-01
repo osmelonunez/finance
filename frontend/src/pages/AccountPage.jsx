@@ -1,12 +1,20 @@
 import { useEffect, useState } from 'react';
+import { TransitionGroup, CSSTransition } from 'react-transition-group';
 import EditableField from '../components/account/EditableField';
 import PasswordRequirements from '../components/account/PasswordRequirements';
 import EmailManager from '../components/account/EmailManager';
 import Notification from '../components/common/Notification';
 import Loader from '../components/common/Loader';
 import ErrorMessage from '../components/common/ErrorMessage';
+import Modal from '../components/common/Modal';
+import useAuthToken from '../components/hooks/useAuthToken';
+import useTokenExpiration from '../components/hooks/useTokenExpiration';
+import { isPasswordComplex } from '../components/utils/validation';
 
 export default function AccountPage() {
+  const token = useAuthToken();
+  const { warnings, removeWarning } = useTokenExpiration(token);
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
@@ -15,8 +23,13 @@ export default function AccountPage() {
   const [editingUsername, setEditingUsername] = useState(false);
   const [editingPassword, setEditingPassword] = useState(false);
 
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [pendingField, setPendingField] = useState(null);
+
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    if (!token) return;
+
     fetch('/api/me', {
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -29,14 +42,14 @@ export default function AccountPage() {
         setError('Error al cargar los datos');
         setLoading(false);
       });
-  }, []);
-
-  const isPasswordComplex = (pwd) => {
-    const complexityRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{13,}$/;
-    return complexityRegex.test(pwd);
-  };
+  }, [token]);
 
   const handleUpdate = async (field) => {
+    if (!token) {
+      setError('Token no disponible');
+      return;
+    }
+
     setMessage('');
     setError('');
 
@@ -45,24 +58,47 @@ export default function AccountPage() {
       return;
     }
 
-    const res = await fetch('/api/me', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      },
-      body: JSON.stringify({ username, password })
-    });
+    if (field === 'password') {
+      setPendingField(field);
+      setConfirmAction(() => async () => {
+        const res = await fetch('/api/me', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ username, password })
+        });
 
-    if (res.ok) {
-      setMessage('Actualizado correctamente');
-      setTimeout(() => setMessage(''), 2000);
-      setPassword('');
-      if (field === 'username') setEditingUsername(false);
-      if (field === 'password') setEditingPassword(false);
+        if (res.ok) {
+          setMessage('Actualizado correctamente');
+          setTimeout(() => setMessage(''), 2000);
+          setPassword('');
+          setEditingPassword(false);
+        } else {
+          const data = await res.json();
+          setError(data.error || 'Error al actualizar');
+        }
+      });
+      setShowConfirmModal(true);
     } else {
-      const data = await res.json();
-      setError(data.error || 'Error al actualizar');
+      const res = await fetch('/api/me', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ username, password })
+      });
+
+      if (res.ok) {
+        setMessage('Actualizado correctamente');
+        setTimeout(() => setMessage(''), 2000);
+        if (field === 'username') setEditingUsername(false);
+      } else {
+        const data = await res.json();
+        setError(data.error || 'Error al actualizar');
+      }
     }
   };
 
@@ -73,6 +109,21 @@ export default function AccountPage() {
   return (
     <div className="max-w-xl mx-auto p-6 space-y-6 bg-white rounded-xl shadow">
       <h2 className="text-xl font-bold text-gray-800">Mi cuenta</h2>
+
+      {/* Avisos de expiración */}
+      <TransitionGroup className="fixed bottom-4 right-4 flex flex-col space-y-2 z-50">
+        {warnings.map((msg) => (
+          <CSSTransition key={msg} timeout={300} classNames="toast">
+            <div
+              className="bg-yellow-300 text-yellow-900 p-4 rounded shadow-lg cursor-pointer"
+              onClick={() => removeWarning(msg)}
+              role="alert"
+            >
+              {msg}
+            </div>
+          </CSSTransition>
+        ))}
+      </TransitionGroup>
 
       <Notification
         type="success"
@@ -103,7 +154,44 @@ export default function AccountPage() {
         <PasswordRequirements password={password} />
       </EditableField>
 
-      <EmailManager />
+      <EmailManager token={token} />
+
+      <Modal
+        title="Confirmar actualización"
+        isOpen={showConfirmModal}
+        onConfirm={() => {
+          confirmAction();
+          setShowConfirmModal(false);
+        }}
+        onCancel={() => {
+          setShowConfirmModal(false);
+          setPendingField(null);
+        }}
+      >
+        <p>¿Estás seguro que deseas actualizar {pendingField}?</p>
+      </Modal>
+
+      {/* Agrega estos estilos CSS para animar los avisos */}
+      <style>{`
+        .toast-enter {
+          opacity: 0;
+          transform: translateY(100%);
+        }
+        .toast-enter-active {
+          opacity: 1;
+          transform: translateY(0);
+          transition: opacity 300ms, transform 300ms;
+        }
+        .toast-exit {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        .toast-exit-active {
+          opacity: 0;
+          transform: translateY(-100%);
+          transition: opacity 300ms, transform 300ms;
+        }
+      `}</style>
     </div>
   );
 }

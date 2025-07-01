@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { Trash2, Wrench, Bell, PlusCircle, Check } from 'lucide-react';
 import Notification from '../common/Notification'; // Ajusta la ruta si es necesario
-import Modal from '../common/Modal'; // Nuevo modal genérico
+import Modal from '../common/Modal'; // Modal genérico reutilizable
 import { isEmailValid } from '../utils/validation';
+import useAuthToken from '../hooks/useAuthToken'; // Importar hook
 
 export default function EmailManager() {
+  const token = useAuthToken(); // Usar hook para obtener token
+
   const [emails, setEmails] = useState([]);
   const [emailError, setEmailError] = useState('');
   const [emailMessage, setEmailMessage] = useState('');
@@ -17,7 +20,8 @@ export default function EmailManager() {
   const emailInputRef = useRef(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    if (!token) return; // Esperar token
+
     fetch('/api/emails', {
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -27,11 +31,12 @@ export default function EmailManager() {
         setEmailError('Error al cargar los correos');
         setTimeout(() => setEmailError(''), 2000);
       });
-  }, []);
+  }, [token]);
 
   const handleAddEmail = async () => {
     setEmailMessage('');
     setEmailError('');
+
     if (!newEmail || !isEmailValid(newEmail)) {
       setEmailError('Correo inválido');
       setTimeout(() => setEmailError(''), 2000);
@@ -45,11 +50,16 @@ export default function EmailManager() {
       return;
     }
 
+    if (!token) {
+      setEmailError('Token no disponible');
+      return;
+    }
+
     const res = await fetch('/api/emails', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`
+        Authorization: `Bearer ${token}`
       },
       body: JSON.stringify({ email: newEmail })
     });
@@ -85,11 +95,16 @@ export default function EmailManager() {
       return;
     }
 
+    if (!token) {
+      setEmailError('Token no disponible');
+      return;
+    }
+
     const res = await fetch(`/api/emails/${editingEmailId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`
+        Authorization: `Bearer ${token}`
       },
       body: JSON.stringify({ email: editedEmail })
     });
@@ -109,11 +124,16 @@ export default function EmailManager() {
   };
 
   const handleToggleNotifications = async (id, enabled) => {
+    if (!token) {
+      setEmailError('Token no disponible');
+      return;
+    }
+
     const res = await fetch(`/api/emails/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`
+        Authorization: `Bearer ${token}`
       },
       body: JSON.stringify({ notifications_enabled: enabled })
     });
@@ -126,10 +146,15 @@ export default function EmailManager() {
 
   const confirmDelete = async () => {
     if (!emailToDelete) return;
+    if (!token) {
+      setEmailError('Token no disponible');
+      return;
+    }
+
     const res = await fetch(`/api/emails/${emailToDelete.id}`, {
       method: 'DELETE',
       headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
+        Authorization: `Bearer ${token}`
       }
     });
 
