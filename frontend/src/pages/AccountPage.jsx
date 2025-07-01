@@ -3,6 +3,7 @@ import EditableField from '../components/account/EditableField';
 import PasswordRequirements from '../components/account/PasswordRequirements';
 import EmailManager from '../components/account/EmailManager';
 import Notification from '../components/common/Notification';
+import { isPasswordComplex } from '../components/utils/validation';  // Importar validación
 
 export default function AccountPage() {
   const [username, setUsername] = useState('');
@@ -28,11 +29,6 @@ export default function AccountPage() {
         setLoading(false);
       });
   }, []);
-
-  const isPasswordComplex = (pwd) => {
-    const complexityRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{13,}$/;
-    return complexityRegex.test(pwd);
-  };
 
   const handleUpdate = async (field) => {
     setMessage('');

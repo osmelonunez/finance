@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Trash2, Wrench, Bell, PlusCircle, Check } from 'lucide-react';
-import Notification from '../common/Notification'; // Ajusta la ruta si es necesario
+import Notification from '../common/Notification'; // Ajusta ruta según tu estructura
+import { isEmailValid } from '../utils/validation';  // Importar validación
 
 export default function EmailManager() {
   const [emails, setEmails] = useState([]);
@@ -30,12 +31,21 @@ export default function EmailManager() {
   const handleAddEmail = async () => {
     setEmailMessage('');
     setEmailError('');
-    if (!newEmail || !newEmail.includes('@')) {
+  
+    if (!newEmail || !isEmailValid(newEmail)) {
       setEmailError('Correo inválido');
       setTimeout(() => setEmailError(''), 2000);
       return;
     }
-
+  
+    // Validar que el correo no exista ya (ignorando mayúsculas/minúsculas)
+    const exists = emails.some(email => email.email.toLowerCase() === newEmail.toLowerCase());
+    if (exists) {
+      setEmailError('Este correo ya está agregado.');
+      setTimeout(() => setEmailError(''), 2000);
+      return;
+    }
+  
     const res = await fetch('/api/emails', {
       method: 'POST',
       headers: {
@@ -44,7 +54,7 @@ export default function EmailManager() {
       },
       body: JSON.stringify({ email: newEmail })
     });
-
+  
     if (res.ok) {
       const updated = await res.json();
       setEmails(updated);
@@ -57,10 +67,26 @@ export default function EmailManager() {
       setTimeout(() => setEmailError(''), 2000);
     }
   };
-
+  
   const handleEditEmail = async () => {
     if (!editingEmailId || !editedEmail) return;
-
+  
+    if (!isEmailValid(editedEmail)) {
+      setEmailError('Correo inválido');
+      setTimeout(() => setEmailError(''), 2000);
+      return;
+    }
+  
+    // Validar que el correo no exista ya en otro registro distinto
+    const exists = emails.some(email =>
+      email.email.toLowerCase() === editedEmail.toLowerCase() && email.id !== editingEmailId
+    );
+    if (exists) {
+      setEmailError('Este correo ya está agregado.');
+      setTimeout(() => setEmailError(''), 2000);
+      return;
+    }
+  
     const res = await fetch(`/api/emails/${editingEmailId}`, {
       method: 'PUT',
       headers: {
@@ -69,7 +95,7 @@ export default function EmailManager() {
       },
       body: JSON.stringify({ email: editedEmail })
     });
-
+  
     if (res.ok) {
       const updated = await res.json();
       setEmails(updated);
@@ -83,6 +109,7 @@ export default function EmailManager() {
       setTimeout(() => setEmailError(''), 2000);
     }
   };
+
 
   const handleToggleNotifications = async (id, enabled) => {
     const res = await fetch(`/api/emails/${id}`, {
@@ -127,21 +154,19 @@ export default function EmailManager() {
 
   return (
     <div className="mt-8">
-      <div className="mb-6">
-        <Notification
-          type="success"
-          message={emailMessage}
-          onClose={() => setEmailMessage('')}
-        />
-        <Notification
-          type="error"
-          message={emailError}
-          onClose={() => setEmailError('')}
-        />
-      </div>
+      <Notification
+        type="success"
+        message={emailMessage}
+        onClose={() => setEmailMessage('')}
+      />
+      <Notification
+        type="error"
+        message={emailError}
+        onClose={() => setEmailError('')}
+      />
 
       <h3 className="text-md font-semibold text-gray-700 mb-2">Correos asociados</h3>
-      <ul className="text-sm text-gray-700 mt-4">
+      <ul className="text-sm text-gray-700">
         {emails.map(email => (
           <li key={email.id} className="py-1.5 flex justify-between items-center gap-3">
             <div className="flex flex-col">
