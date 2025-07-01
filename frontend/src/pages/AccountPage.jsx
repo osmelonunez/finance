@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Trash2, Wrench, Bell, PlusCircle, Check, X } from 'lucide-react';
-import PasswordRequirements from '../components/PasswordRequirements';
+import PasswordRequirements from '../components/account/PasswordRequirements';
 import EditableField from '../components/account/EditableField';
 
 
@@ -211,7 +211,7 @@ export default function AccountPage() {
           isEditing={editingUsername}
           setIsEditing={setEditingUsername}
         />
-        
+
       {/* Sección: Actualizar Contraseña */}
         <EditableField
           label="Contraseña"
