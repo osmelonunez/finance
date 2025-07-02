@@ -12,10 +12,10 @@ import TotalDisplay from '../components/common/TotalDisplay';
 import Pagination from '../components/common/Pagination';
 import useExpensesData from '../hooks/useExpensesData';
 import { addExpense, updateExpense, deleteExpense } from '../components/utils/expenses/index';
+import useFilteredExpenses from '../hooks/useFilteredExpenses';
 
 export default function ExpensesPage() {
   const navigate = useNavigate();
-  const [filtered, setFiltered] = useState([]);
   const [filters, setFilters] = useState({ month_id: '', year_id: '', category_id: '' });
   const [newExpense, setNewExpense] = useState({ name: '', cost: '', month_id: '', year_id: '', category_id: '' });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -40,16 +40,7 @@ export default function ExpensesPage() {
   }
 }, [notification]);
 
-  useEffect(() => {
-    let result = [...expenses];
-    if (filters.month_id) result = result.filter(e => parseInt(e.month_id) === parseInt(filters.month_id));
-    if (filters.year_id) result = result.filter(e => parseInt(e.year_id) === parseInt(filters.year_id));
-    if (filters.category_id) result = result.filter(e => e.category_id === parseInt(filters.category_id));
-    if (search) result = result.filter(e => e.name.toLowerCase().includes(search.toLowerCase()));
-    if (sort === 'name') result.sort((a, b) => a.name.localeCompare(b.name));
-    if (sort === 'cost') result.sort((a, b) => parseFloat(b.cost) - parseFloat(a.cost));
-    setFiltered(result);
-  }, [filters, expenses, search, sort]);
+  const filtered = useFilteredExpenses(expenses, filters, search, sort);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
