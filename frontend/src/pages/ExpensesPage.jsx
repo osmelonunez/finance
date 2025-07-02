@@ -12,7 +12,7 @@ import Pagination from '../components/common/Pagination';
 import useExpensesData from '../hooks/useExpensesData';
 import { addExpense, updateExpense, deleteExpense } from '../components/utils/expenses/index';
 import useFilteredExpenses from '../hooks/useFilteredExpenses';
-import { isValidExpense } from '../utils/validation';
+import { isValidExpense } from '../components/utils/validation';
 
 export default function ExpensesPage() {
   const navigate = useNavigate();

@@ -1,4 +1,5 @@
 import Modal from '../common/Modal';
+import ErrorMessage from '../common/ErrorMessage';
 
 export default function AddExpenseModal({
   isOpen,
@@ -19,6 +20,7 @@ export default function AddExpenseModal({
       onConfirm={onConfirm}
     >
       {error && <ErrorMessage message={error} />}
+
       <div className="grid md:grid-cols-4 gap-4 mt-2">
         <input
           name="name"
@@ -43,9 +45,7 @@ export default function AddExpenseModal({
         >
           <option value="">Month</option>
           {months.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name}
-            </option>
+            <option key={m.id} value={m.id}>{m.name}</option>
           ))}
         </select>
         <select
@@ -56,9 +56,7 @@ export default function AddExpenseModal({
         >
           <option value="">Year</option>
           {years.map((y) => (
-            <option key={y.id} value={y.id}>
-              {y.value}
-            </option>
+            <option key={y.id} value={y.id}>{y.value}</option>
           ))}
         </select>
         <select
@@ -69,9 +67,7 @@ export default function AddExpenseModal({
         >
           <option value="">Category</option>
           {categories.map((cat) => (
-            <option key={cat.id} value={cat.id}>
-              {cat.name}
-            </option>
+            <option key={cat.id} value={cat.id}>{cat.name}</option>
           ))}
         </select>
       </div>
