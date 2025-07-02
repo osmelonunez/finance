@@ -7,12 +7,12 @@ import CopyModal from '../components/expenses/CopyModal';
 import AddExpenseModal from '../components/expenses/AddExpenseModal';
 import EditExpenseModal from '../components/expenses/EditExpenseModal';
 import Notification from '../components/common/Notification';
-import ErrorMessage from '../components/common/ErrorMessage';
 import TotalDisplay from '../components/common/TotalDisplay';
 import Pagination from '../components/common/Pagination';
 import useExpensesData from '../hooks/useExpensesData';
 import { addExpense, updateExpense, deleteExpense } from '../components/utils/expenses/index';
 import useFilteredExpenses from '../hooks/useFilteredExpenses';
+import { isValidExpense } from '../utils/validation';
 
 export default function ExpensesPage() {
   const navigate = useNavigate();
@@ -53,17 +53,11 @@ export default function ExpensesPage() {
   };
 
     const handleAddExpense = async () => {
-      if (
-        !newExpense.name ||
-        !newExpense.cost ||
-        !newExpense.month_id ||
-        !newExpense.year_id ||
-        !newExpense.category_id
-      ) {
+      if (!isValidExpense(newExpense)) {
         setError('Please fill out all fields');
         return;
       }
-    
+
       const success = await addExpense(newExpense, setExpenses, setNotification);
     
       if (success) {
@@ -78,17 +72,9 @@ export default function ExpensesPage() {
       setShowEditModal(true);
     };
 
-
     const handleUpdateExpense = async () => {
-      if (
-        !editingExpense.id ||
-        !editingExpense.name ||
-        !editingExpense.cost ||
-        !editingExpense.month_id ||
-        !editingExpense.year_id ||
-        !editingExpense.category_id
-      ) return;
-    
+      if (!isValidExpense(editingExpense)) return;
+
       const success = await updateExpense(editingExpense, setExpenses, setNotification);
     
       if (success) {
