@@ -30,6 +30,15 @@ export default function ExpensesPage() {
   const [notification, setNotification] = useState({ type: '', message: '' });
   const [error, setError] = useState('');
 
+  useEffect(() => {
+  if (notification.message) {
+    const timer = setTimeout(() => {
+      setNotification({ type: '', message: '' });
+    }, 2000);
+
+    return () => clearTimeout(timer); // Limpia si el componente cambia antes de tiempo
+  }
+}, [notification]);
 
   useEffect(() => {
     fetch('/api/expenses', {
@@ -99,22 +108,28 @@ export default function ExpensesPage() {
       !newExpense.month_id ||
       !newExpense.year_id ||
       !newExpense.category_id
-    ) return;
-  
+    ) {
+      setError('Please fill out all fields');
+      return;
+    }
+
     const res = await fetch('/api/expenses', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newExpense),
     });
-  
+
     if (res.ok) {
       const updated = await res.json();
       setExpenses(updated);
       setNewExpense({ name: '', cost: '', month_id: '', year_id: '', category_id: '' });
       setShowAddModal(false);
+      setError('');
+      setNotification({ type: 'success', message: 'Expense added successfully!' }); // ✅ AÑADE ESTO
+    } else {
+      setNotification({ type: 'error', message: 'Failed to add expense.' }); // ❌ En caso de error
     }
   };
-
 
     const handleEditClick = (expense) => {
       setEditingExpense({ ...expense });
@@ -142,6 +157,7 @@ export default function ExpensesPage() {
       setExpenses(updated);
       setShowEditModal(false);
       setEditingExpense(null);
+      setNotification({ type: 'success', message: 'Expense updated successfully!' }); // ✅
     }
   };
 
@@ -152,13 +168,25 @@ export default function ExpensesPage() {
 
   const confirmDeleteExpense = async () => {
     if (!expenseToDelete) return;
-    const res = await fetch(`/api/expenses/${expenseToDelete.id}`, { method: 'DELETE' });
-    if (res.ok) {
-      const updated = await res.json();
-      setExpenses(updated);
+
+    try {
+      const res = await fetch(`/api/expenses/${expenseToDelete.id}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setExpenses(updated);
+        setNotification({ type: 'success', message: 'Expense deleted successfully.' });
+      } else {
+        setNotification({ type: 'error', message: 'Failed to delete expense.' });
+      }
+    } catch (error) {
+      setNotification({ type: 'error', message: 'An error occurred while deleting the expense.' });
+    } finally {
+      setShowDeleteModal(false);
+      setExpenseToDelete(null);
     }
-    setShowDeleteModal(false);
-    setExpenseToDelete(null);
   };
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -278,6 +306,7 @@ return (
             .then(data => {
               setExpenses(data);
               setShowCopyModal(false);
+              setNotification({ type: 'success', message: 'Expense copied successfully!' });
             });
         }}
         expense={copyExpenseData}
