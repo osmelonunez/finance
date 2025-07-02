@@ -11,6 +11,8 @@ import ErrorMessage from '../components/common/ErrorMessage';
 import TotalDisplay from '../components/common/TotalDisplay';
 import Pagination from '../components/common/Pagination';
 import useExpensesData from '../hooks/useExpensesData';
+import { addExpense } from '../components/utils/expenses/addExpense';
+
 
 export default function ExpensesPage() {
   const navigate = useNavigate();
@@ -60,35 +62,26 @@ export default function ExpensesPage() {
     setNewExpense(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleAddExpense = async () => {
-    if (
-      !newExpense.name ||
-      !newExpense.cost ||
-      !newExpense.month_id ||
-      !newExpense.year_id ||
-      !newExpense.category_id
-    ) {
-      setError('Please fill out all fields');
-      return;
-    }
-
-    const res = await fetch('/api/expenses', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newExpense),
-    });
-
-    if (res.ok) {
-      const updated = await res.json();
-      setExpenses(updated);
-      setNewExpense({ name: '', cost: '', month_id: '', year_id: '', category_id: '' });
-      setShowAddModal(false);
-      setError('');
-      setNotification({ type: 'success', message: 'Expense added successfully!' }); // ✅ AÑADE ESTO
-    } else {
-      setNotification({ type: 'error', message: 'Failed to add expense.' }); // ❌ En caso de error
-    }
-  };
+    const handleAddExpense = async () => {
+      if (
+        !newExpense.name ||
+        !newExpense.cost ||
+        !newExpense.month_id ||
+        !newExpense.year_id ||
+        !newExpense.category_id
+      ) {
+        setError('Please fill out all fields');
+        return;
+      }
+    
+      const success = await addExpense(newExpense, setExpenses, setNotification);
+    
+      if (success) {
+        setNewExpense({ name: '', cost: '', month_id: '', year_id: '', category_id: '' });
+        setShowAddModal(false);
+        setError('');
+      }
+    };
 
     const handleEditClick = (expense) => {
       setEditingExpense({ ...expense });
@@ -149,11 +142,11 @@ export default function ExpensesPage() {
   };
 
   const [currentPage, setCurrentPage] = useState(1);
-const [showCopyModal, setShowCopyModal] = useState(false);
+  const [showCopyModal, setShowCopyModal] = useState(false);
   const [copyExpenseData, setCopyExpenseData] = useState(null);
 
-const [copyTargetMonth, setCopyTargetMonth] = useState('');
-const [copyTargetYear, setCopyTargetYear] = useState('');
+  const [copyTargetMonth, setCopyTargetMonth] = useState('');
+  const [copyTargetYear, setCopyTargetYear] = useState('');
   const itemsPerPage = 10;
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -256,6 +249,19 @@ const [copyTargetYear, setCopyTargetYear] = useState('');
         onCancel={() => setShowCopyModal(false)}
         onConfirm={() => {
           if (!copyTargetMonth || !copyTargetYear) return;
+        
+          // Validación para evitar copiar al mismo mes/año
+          if (
+            parseInt(copyExpenseData.month_id) === parseInt(copyTargetMonth) &&
+            parseInt(copyExpenseData.year_id) === parseInt(copyTargetYear)
+          ) {
+            setNotification({
+              type: 'error',
+              message: 'Cannot copy to the same month and year.'
+            });
+            return;
+          }
+        
           const newEntry = {
             name: copyExpenseData.name,
             cost: copyExpenseData.cost,
@@ -263,16 +269,12 @@ const [copyTargetYear, setCopyTargetYear] = useState('');
             year_id: copyTargetYear,
             category_id: copyExpenseData.category_id
           };
-          fetch('/api/expenses', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newEntry)
-          })
-            .then(res => res.json())
-            .then(data => {
-              setExpenses(data);
-              setShowCopyModal(false);
-              setNotification({ type: 'success', message: 'Expense copied successfully!' });
+        
+          addExpense(newEntry, setExpenses, setNotification, 'Expense copied successfully!')
+            .then(success => {
+              if (success) {
+                setShowCopyModal(false);
+              }
             });
         }}
         expense={copyExpenseData}
