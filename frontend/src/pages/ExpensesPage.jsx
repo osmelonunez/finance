@@ -10,15 +10,12 @@ import Notification from '../components/common/Notification';
 import ErrorMessage from '../components/common/ErrorMessage';
 import TotalDisplay from '../components/common/TotalDisplay';
 import Pagination from '../components/common/Pagination';
+import useExpensesData from '../hooks/useExpensesData';
 
 export default function ExpensesPage() {
   const navigate = useNavigate();
-  const [expenses, setExpenses] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [filters, setFilters] = useState({ month_id: '', year_id: '', category_id: '' });
-  const [categories, setCategories] = useState([]);
-  const [months, setMonths] = useState([]);
-  const [years, setYears] = useState([]);
   const [newExpense, setNewExpense] = useState({ name: '', cost: '', month_id: '', year_id: '', category_id: '' });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
@@ -29,6 +26,8 @@ export default function ExpensesPage() {
   const [editingExpense, setEditingExpense] = useState(null);
   const [notification, setNotification] = useState({ type: '', message: '' });
   const [error, setError] = useState('');
+  const {expenses, setExpenses, categories, months, years, loading} = useExpensesData();
+
 
   useEffect(() => {
   if (notification.message) {
@@ -39,46 +38,6 @@ export default function ExpensesPage() {
     return () => clearTimeout(timer); // Limpia si el componente cambia antes de tiempo
   }
 }, [notification]);
-
-  useEffect(() => {
-    fetch('/api/expenses', {
-  headers: {
-    Authorization: `Bearer ${localStorage.getItem('token')}`
-  }
-})
-      .then(res => res.json())
-      .then(data => {
-        setExpenses(data);
-        setFiltered(data);
-      });
-
-    fetch('/api/categories', {
-  headers: {
-    Authorization: `Bearer ${localStorage.getItem('token')}`
-  }
-})
-      .then(res => res.json())
-      .then(data => {
-        const sorted = data.sort((a, b) => a.name.localeCompare(b.name));
-        setCategories(sorted);
-      });
-
-    fetch('/api/months', {
-  headers: {
-    Authorization: `Bearer ${localStorage.getItem('token')}`
-  }
-})
-      .then(res => res.json())
-      .then(setMonths);
-
-    fetch('/api/years', {
-  headers: {
-    Authorization: `Bearer ${localStorage.getItem('token')}`
-  }
-})
-      .then(res => res.json())
-      .then(setYears);
-  }, []);
 
   useEffect(() => {
     let result = [...expenses];
@@ -207,7 +166,11 @@ const [copyTargetYear, setCopyTargetYear] = useState('');
     setShowCopyModal(true);
   };
 
-return (
+  if (loading) {
+    return <p className="text-center text-gray-500 py-8">Loading data...</p>;
+  }
+
+  return (
     <div className="space-y-8">
 
       {notification.message && (

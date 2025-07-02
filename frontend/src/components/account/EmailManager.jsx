@@ -3,7 +3,7 @@ import { Trash2, Wrench, Bell, PlusCircle, Check } from 'lucide-react';
 import Notification from '../common/Notification'; // Ajusta la ruta si es necesario
 import Modal from '../common/Modal'; // Modal genérico reutilizable
 import { isEmailValid } from '../utils/validation';
-import useAuthToken from '../hooks/useAuthToken'; // Importar hook
+import useAuthToken from '../../hooks/useAuthToken'; 
 
 export default function EmailManager() {
   const token = useAuthToken(); // Usar hook para obtener token

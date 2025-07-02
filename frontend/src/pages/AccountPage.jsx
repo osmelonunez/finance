@@ -6,8 +6,8 @@ import Notification from '../components/common/Notification';
 import Loader from '../components/common/Loader';
 import ErrorMessage from '../components/common/ErrorMessage';
 import Modal from '../components/common/Modal';
-import useAuthToken from '../components/hooks/useAuthToken';
-import useTokenExpiration from '../components/hooks/useTokenExpiration';
+import useAuthToken from '../hooks/useAuthToken';
+import useTokenExpiration from '../hooks/useTokenExpiration';
 import TokenWarnings from '../components/common/TokenWarnings';
 import { isPasswordComplex } from '../components/utils/validation';
 
