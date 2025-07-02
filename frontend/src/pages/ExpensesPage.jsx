@@ -73,10 +73,11 @@ export default function ExpensesPage() {
       }
     };
 
-    const handleEditClick = (expense) => {
+    const startEditingExpense = (expense) => {
       setEditingExpense({ ...expense });
       setShowEditModal(true);
     };
+
 
     const handleUpdateExpense = async () => {
       if (
@@ -101,23 +102,26 @@ export default function ExpensesPage() {
     setShowDeleteModal(true);
   };
 
-    const confirmDeleteExpense = async () => {
-      if (!expenseToDelete) return;
-    
-      const success = await deleteExpense(expenseToDelete.id, setExpenses, setNotification);
-    
-      if (success) {
-        setShowDeleteModal(false);
-        setExpenseToDelete(null);
-      }
-    };
+  const handleDeleteConfirm = async () => {
+    if (!expenseToDelete) return;
+
+    const success = await deleteExpense(expenseToDelete.id, setExpenses, setNotification);
+
+    if (success) {
+      setShowDeleteModal(false);
+      setExpenseToDelete(null);
+    }
+  };
 
   const [currentPage, setCurrentPage] = useState(1);
   const [copyState, setCopyState] = useState({show: false, expense: null, targetMonth: '',targetYear: ''});
   const itemsPerPage = 10;
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const handleCopyClick = (expense) => {setCopyState({show: true,expense,targetMonth: '',targetYear: ''});};
+  const startCopyingExpense = (expense) => {
+    setCopyState({ show: true, expense, targetMonth: '', targetYear: '' });
+  };
+
 
 
   if (loading) {
@@ -161,9 +165,9 @@ export default function ExpensesPage() {
 
       <ExpensesTable
         expenses={paginated}
-        onEdit={handleEditClick}
+        onEdit={startEditingExpense}
         onDelete={handleDeleteExpense}
-        onCopy={handleCopyClick}
+        onCopy={startCopyingExpense}
       />
 
       <EditExpenseModal
@@ -201,7 +205,7 @@ export default function ExpensesPage() {
           setShowDeleteModal(false);
           setExpenseToDelete(null);
         }}
-        onConfirm={confirmDeleteExpense}
+        onConfirm={handleDeleteConfirm}
         expense={expenseToDelete}
       />
 
