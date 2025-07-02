@@ -4,9 +4,9 @@ import { Trash2, Wrench, CopyPlus  } from 'lucide-react';
 import FiltersBar from '../components/expenses/FiltersBar';
 import ExpensesTable from '../components/expenses/ExpensesTable';
 import DeleteModal from '../components/expenses/DeleteModal';
-
-
-
+import CopyModal from '../components/expenses/CopyModal';
+import AddExpenseModal from '../components/expenses/AddExpenseModal';
+import EditExpenseModal from '../components/expenses/EditExpenseModal';
 
 export default function ExpensesPage() {
   const navigate = useNavigate();
@@ -22,6 +22,9 @@ export default function ExpensesPage() {
   const [expenseToDelete, setExpenseToDelete] = useState(null);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingExpense, setEditingExpense] = useState(null);
 
   useEffect(() => {
     fetch('/api/expenses', {
@@ -85,41 +88,55 @@ export default function ExpensesPage() {
   };
 
   const handleAddExpense = async () => {
-    if (!newExpense.name || !newExpense.cost || !newExpense.month_id || !newExpense.year_id || !newExpense.category_id) return;
-
+    if (
+      !newExpense.name ||
+      !newExpense.cost ||
+      !newExpense.month_id ||
+      !newExpense.year_id ||
+      !newExpense.category_id
+    ) return;
+  
     const res = await fetch('/api/expenses', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newExpense)
+      body: JSON.stringify(newExpense),
     });
-
+  
     if (res.ok) {
       const updated = await res.json();
       setExpenses(updated);
-      setNewExpense({ id: '', name: '', cost: '', month_id: '', year_id: '', category_id: '' });
-      setShowModal(false);
+      setNewExpense({ name: '', cost: '', month_id: '', year_id: '', category_id: '' });
+      setShowAddModal(false);
     }
   };
 
-  const handleEditClick = (expense) => {
-    setNewExpense({ ...expense });
-    setShowModal(true);
-  };
+
+    const handleEditClick = (expense) => {
+      setEditingExpense({ ...expense });
+      setShowEditModal(true);
+    };
 
   const handleUpdateExpense = async () => {
-    if (!newExpense.id || !newExpense.name || !newExpense.cost || !newExpense.month_id || !newExpense.year_id || !newExpense.category_id) return;
+    if (
+      !editingExpense.id ||
+      !editingExpense.name ||
+      !editingExpense.cost ||
+      !editingExpense.month_id ||
+      !editingExpense.year_id ||
+      !editingExpense.category_id
+    ) return;
 
-    const res = await fetch(`/api/expenses/${newExpense.id}`, {
+    const res = await fetch(`/api/expenses/${editingExpense.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newExpense)
+      body: JSON.stringify(editingExpense)
     });
 
     if (res.ok) {
       const updated = await res.json();
       setExpenses(updated);
-      setShowModal(false);
-      setNewExpense({ id: '', name: '', cost: '', month_id: '', year_id: '', category_id: '' });
+      setShowEditModal(false);
+      setEditingExpense(null);
     }
   };
 
@@ -172,6 +189,7 @@ return (
         years={years}
         categories={categories}
         setShowModal={setShowModal}
+        setShowAddModal={setShowAddModal}
       />
 
 
@@ -186,39 +204,33 @@ return (
         onCopy={handleCopyClick}
       />
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-xl w-full max-w-xl shadow-lg space-y-4">
-            <h3 className="text-lg font-semibold">{newExpense.id ? "Edit Expense" : "Add Expense"}</h3>
-            <div className="grid md:grid-cols-4 gap-4">
-              <input name="name" value={newExpense.name} onChange={handleInputChange} placeholder="Name" className="border rounded px-3 py-2" />
-              <input name="cost" value={newExpense.cost} onChange={handleInputChange} placeholder="Cost" type="number" className="border rounded px-3 py-2" />
-              <select name="month_id" value={newExpense.month_id} onChange={handleInputChange} className="border rounded px-3 py-2">
-                <option value="">Month</option>
-                {months.map(m => (
-                  <option key={m.id} value={m.id}>{m.name}</option>
-                ))}
-              </select>
-              <select name="year_id" value={newExpense.year_id} onChange={handleInputChange} className="border rounded px-3 py-2">
-                <option value="">Year</option>
-                {years.map(y => (
-                  <option key={y.id} value={y.id}>{y.value}</option>
-                ))}
-              </select>
-              <select name="category_id" value={newExpense.category_id} onChange={handleInputChange} className="border rounded px-3 py-2">
-                <option value="">Category</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex justify-end gap-4">
-              <button onClick={() => setShowModal(false)} className="px-4 py-2 border rounded text-gray-600">Cancel</button>
-              <button onClick={() => newExpense.id ? handleUpdateExpense() : handleAddExpense()} className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">{newExpense.id ? "Update" : "Add"}</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <EditExpenseModal
+        isOpen={showEditModal}
+        onCancel={() => {
+          setShowEditModal(false);
+          setEditingExpense(null);
+        }}
+        onConfirm={handleUpdateExpense}
+        expense={editingExpense}
+        onChange={(e) => {
+          const { name, value } = e.target;
+          setEditingExpense(prev => ({ ...prev, [name]: value }));
+        }}
+        months={months}
+        years={years}
+        categories={categories}
+      />
+
+      <AddExpenseModal
+        isOpen={showAddModal}
+        onCancel={() => setShowAddModal(false)}
+        onConfirm={handleAddExpense}
+        expense={newExpense}
+        onChange={handleInputChange}
+        months={months}
+        years={years}
+        categories={categories}
+      />
 
       <DeleteModal
         isOpen={showDeleteModal}
@@ -230,58 +242,38 @@ return (
         expense={expenseToDelete}
       />
 
-{showCopyModal && (
-  <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
-    <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md space-y-4">
-      <h3 className="text-lg font-semibold">Copy Expense</h3>
-      <p className="text-gray-700">
-        You're copying: <strong>{copyExpenseData?.name}</strong>
-      </p>
-      <div className="grid grid-cols-2 gap-4">
-        <select value={copyTargetMonth} onChange={e => setCopyTargetMonth(e.target.value)} className="border rounded px-3 py-2">
-          <option value="">Select Month</option>
-          {months.map(m => (
-            <option key={m.id} value={m.id}>{m.name}</option>
-          ))}
-        </select>
-        <select value={copyTargetYear} onChange={e => setCopyTargetYear(e.target.value)} className="border rounded px-3 py-2">
-          <option value="">Select Year</option>
-          {years.map(y => (
-            <option key={y.id} value={y.id}>{y.value}</option>
-          ))}
-        </select>
-      </div>
-      <div className="flex justify-end gap-4">
-        <button onClick={() => setShowCopyModal(false)} className="px-4 py-2 border rounded text-gray-600">Cancel</button>
-        <button
-          onClick={() => {
-            if (!copyTargetMonth || !copyTargetYear) return;
-            const newEntry = {
-              name: copyExpenseData.name,
-              cost: copyExpenseData.cost,
-              month_id: copyTargetMonth,
-              year_id: copyTargetYear,
-              category_id: copyExpenseData.category_id
-            };
-            fetch('/api/expenses', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(newEntry)
-            })
-              .then(res => res.json())
-              .then(data => {
-                setExpenses(data);
-                setShowCopyModal(false);
-              });
-          }}
-          className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
-        >
-          Copy
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+      <CopyModal
+        isOpen={showCopyModal}
+        onCancel={() => setShowCopyModal(false)}
+        onConfirm={() => {
+          if (!copyTargetMonth || !copyTargetYear) return;
+          const newEntry = {
+            name: copyExpenseData.name,
+            cost: copyExpenseData.cost,
+            month_id: copyTargetMonth,
+            year_id: copyTargetYear,
+            category_id: copyExpenseData.category_id
+          };
+          fetch('/api/expenses', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newEntry)
+          })
+            .then(res => res.json())
+            .then(data => {
+              setExpenses(data);
+              setShowCopyModal(false);
+            });
+        }}
+        expense={copyExpenseData}
+        months={months}
+        years={years}
+        targetMonth={copyTargetMonth}
+        setTargetMonth={setCopyTargetMonth}
+        targetYear={copyTargetYear}
+        setTargetYear={setCopyTargetYear}
+      />
+
 <div className="flex justify-center items-center gap-2 mt-4">
         <button onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1} className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50">Prev</button>
         <span className="px-2">Page {currentPage} of {totalPages}</span>

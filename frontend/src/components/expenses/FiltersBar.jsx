@@ -10,7 +10,8 @@ export default function FiltersBar({
   months,
   years,
   categories,
-  setShowModal
+  setShowModal,
+  setShowAddModal,
 }) {
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -77,11 +78,12 @@ export default function FiltersBar({
         </select>
 
         <button
-          onClick={() => setShowModal(true)}
+          onClick={() => setShowAddModal(true)}
           className="bg-green-600 text-white px-4 py-2 rounded hover:bg-blue-700 ml-auto"
         >
           Add Expense
         </button>
+
       </div>
     </div>
   );
