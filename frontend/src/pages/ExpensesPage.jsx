@@ -142,22 +142,12 @@ export default function ExpensesPage() {
   };
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [showCopyModal, setShowCopyModal] = useState(false);
-  const [copyExpenseData, setCopyExpenseData] = useState(null);
-
-  const [copyTargetMonth, setCopyTargetMonth] = useState('');
-  const [copyTargetYear, setCopyTargetYear] = useState('');
+  const [copyState, setCopyState] = useState({show: false, expense: null, targetMonth: '',targetYear: ''});
   const itemsPerPage = 10;
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const handleCopyClick = (expense) => {setCopyState({show: true,expense,targetMonth: '',targetYear: ''});};
 
-  
-  const handleCopyClick = (expense) => {
-    setCopyExpenseData(expense);
-    setCopyTargetMonth('');
-    setCopyTargetYear('');
-    setShowCopyModal(true);
-  };
 
   if (loading) {
     return <p className="text-center text-gray-500 py-8">Loading data...</p>;
@@ -245,15 +235,16 @@ export default function ExpensesPage() {
       />
 
       <CopyModal
-        isOpen={showCopyModal}
-        onCancel={() => setShowCopyModal(false)}
+        isOpen={copyState.show}
+        onCancel={() => setCopyState(prev => ({ ...prev, show: false }))}
         onConfirm={() => {
-          if (!copyTargetMonth || !copyTargetYear) return;
+          const { targetMonth, targetYear, expense } = copyState;
         
-          // Validación para evitar copiar al mismo mes/año
+          if (!targetMonth || !targetYear) return;
+        
           if (
-            parseInt(copyExpenseData.month_id) === parseInt(copyTargetMonth) &&
-            parseInt(copyExpenseData.year_id) === parseInt(copyTargetYear)
+            parseInt(expense.month_id) === parseInt(targetMonth) &&
+            parseInt(expense.year_id) === parseInt(targetYear)
           ) {
             setNotification({
               type: 'error',
@@ -263,27 +254,27 @@ export default function ExpensesPage() {
           }
         
           const newEntry = {
-            name: copyExpenseData.name,
-            cost: copyExpenseData.cost,
-            month_id: copyTargetMonth,
-            year_id: copyTargetYear,
-            category_id: copyExpenseData.category_id
+            name: expense.name,
+            cost: expense.cost,
+            month_id: targetMonth,
+            year_id: targetYear,
+            category_id: expense.category_id
           };
         
           addExpense(newEntry, setExpenses, setNotification, 'Expense copied successfully!')
             .then(success => {
               if (success) {
-                setShowCopyModal(false);
+                setCopyState({ show: false, expense: null, targetMonth: '', targetYear: '' });
               }
             });
         }}
-        expense={copyExpenseData}
+        expense={copyState.expense}
         months={months}
         years={years}
-        targetMonth={copyTargetMonth}
-        setTargetMonth={setCopyTargetMonth}
-        targetYear={copyTargetYear}
-        setTargetYear={setCopyTargetYear}
+        targetMonth={copyState.targetMonth}
+        setTargetMonth={(value) => setCopyState(prev => ({ ...prev, targetMonth: value }))}
+        setTargetYear={(value) => setCopyState(prev => ({ ...prev, targetYear: value }))}
+        targetYear={copyState.targetYear}
       />
 
       <Pagination
