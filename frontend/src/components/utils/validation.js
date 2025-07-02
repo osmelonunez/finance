@@ -22,3 +22,12 @@ export function isValidExpense(expense) {
     expense.category_id
   );
 }
+
+export function isValidRecord(record, field) {
+  return (
+    record.name &&
+    record[field] &&
+    record.month_id &&
+    record.year_id
+  );
+}
