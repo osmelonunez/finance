@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trash2, Wrench, CopyPlus  } from 'lucide-react';
+import FiltersBar from '../components/expenses/FiltersBar';
+import ExpensesTable from '../components/expenses/ExpensesTable';
+import DeleteModal from '../components/expenses/DeleteModal';
+
+
+
 
 export default function ExpensesPage() {
   const navigate = useNavigate();
@@ -155,83 +161,30 @@ return (
     <div className="space-y-8">
       <h2 className="text-2xl font-bold text-gray-800">Expenses</h2>
 
-      <div className="bg-white p-6 rounded-xl shadow space-y-4">
-        <div className="flex flex-wrap gap-4 items-center">
-          <select name="sort" value={sort} onChange={(e) => setSort(e.target.value)} className="border rounded px-3 py-2">
-            <option value="">Sort by</option>
-            <option value="name">Name</option>
-            <option value="cost">Cost</option>
-          </select>
+      <FiltersBar
+        filters={filters}
+        setFilters={setFilters}
+        sort={sort}
+        setSort={setSort}
+        search={search}
+        setSearch={setSearch}
+        months={months}
+        years={years}
+        categories={categories}
+        setShowModal={setShowModal}
+      />
 
-          <input type="text" name="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name..." className="border rounded px-3 py-2 w-44" />
-
-          <select name="month_id" value={filters.month_id} onChange={handleFilterChange} className="border rounded px-3 py-2">
-            <option value="">All Months</option>
-            {months.map(m => (
-              <option key={m.id} value={m.id}>{m.name}</option>
-            ))}
-          </select>
-
-          <select name="year_id" value={filters.year_id} onChange={handleFilterChange} className="border rounded px-3 py-2">
-            <option value="">All Years</option>
-            {years.map(y => (
-              <option key={y.id} value={y.id}>{y.value}</option>
-            ))}
-          </select>
-
-          <select name="category_id" value={filters.category_id} onChange={handleFilterChange} className="border rounded px-3 py-2 w-[140px]">
-            <option value="">All Categories</option>
-            {categories.map(cat => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
-            ))}
-          </select>
-
-          <button onClick={() => setShowModal(true)} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-blue-700 ml-auto">
-            Add Expense
-          </button>
-        </div>
-      </div>
 
       <div className="bg-green-100 border border-green-300 rounded-lg p-4 text-right text-green-800 font-semibold">
         Total: {filtered.reduce((acc, e) => acc + parseFloat(e.cost), 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
       </div>
 
-      <table className="min-w-full bg-white shadow rounded-xl">
-        <thead className="bg-gray-50 text-left">
-          <tr>
-            <th className="p-3">Name</th>
-            <th className="p-3">Cost</th>
-            <th className="p-3">Month</th>
-            <th className="p-3">Year</th>
-            <th className="p-3">Category</th>
-            <th className="p-3">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {paginated.map((e, i) => (
-            <tr key={i} className="border-t hover:bg-gray-50">
-              <td className="p-3">{e.name}</td>
-              <td className="p-3 text-red-500 font-medium">{parseFloat(e.cost).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</td>
-              <td className="p-3">{e.month_name}</td>
-              <td className="p-3">{e.year_value}</td>
-              <td className="p-3">{e.category_name}</td>
-              <td className="p-3">
-                <div className="inline-flex gap-1">
-                  <button className="p-2 bg-cyan-500 text-white rounded hover:bg-cyan-600" onClick={() => handleCopyClick(e)} title="Copy">
-                    <CopyPlus size={16} />
-                  </button>
-                  <button className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600" onClick={() => handleEditClick(e)} title="Editar">
-                    <Wrench size={16} />
-                  </button>
-                  <button className="p-2 bg-red-500 text-white rounded hover:bg-red-600" onClick={() => handleDeleteExpense(e)} title="Eliminar">
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <ExpensesTable
+        expenses={paginated}
+        onEdit={handleEditClick}
+        onDelete={handleDeleteExpense}
+        onCopy={handleCopyClick}
+      />
 
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
@@ -267,23 +220,15 @@ return (
         </div>
       )}
 
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">Confirm Delete</h3>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to delete <strong>{expenseToDelete?.name}</strong>?
-            </p>
-            <div className="flex justify-end gap-4">
-              <button className="px-4 py-2 rounded border text-gray-600 hover:bg-gray-100" onClick={() => { setShowDeleteModal(false); setExpenseToDelete(null); }}>Cancel</button>
-              <button className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700" onClick={confirmDeleteExpense}>Delete</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      
-
+      <DeleteModal
+        isOpen={showDeleteModal}
+        onCancel={() => {
+          setShowDeleteModal(false);
+          setExpenseToDelete(null);
+        }}
+        onConfirm={confirmDeleteExpense}
+        expense={expenseToDelete}
+      />
 
 {showCopyModal && (
   <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
