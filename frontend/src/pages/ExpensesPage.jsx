@@ -81,7 +81,7 @@ export default function ExpensesPage() {
       }
     };
 
-  const handleDeleteExpense = (expense) => {
+  const startDeletingExpense = (expense) => {
     setExpenseToDelete(expense);
     setShowDeleteModal(true);
   };
@@ -150,7 +150,7 @@ export default function ExpensesPage() {
       <ExpensesTable
         expenses={paginated}
         onEdit={startEditingExpense}
-        onDelete={handleDeleteExpense}
+        onDelete={startDeletingExpense}
         onCopy={startCopyingExpense}
       />
 
