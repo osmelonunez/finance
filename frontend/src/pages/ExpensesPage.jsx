@@ -97,6 +97,34 @@ export default function ExpensesPage() {
     }
   };
 
+  const handleCopyConfirm = async () => {
+    const { targetMonth, targetYear, expense } = copyState;
+
+    if (!targetMonth || !targetYear) return;
+
+    if (
+      parseInt(expense.month_id) === parseInt(targetMonth) &&
+      parseInt(expense.year_id) === parseInt(targetYear)
+    ) {
+      setNotification({ type: 'error', message: 'Cannot copy to the same month and year.' });
+      return;
+    }
+
+    const newEntry = {
+      name: expense.name,
+      cost: expense.cost,
+      month_id: targetMonth,
+      year_id: targetYear,
+      category_id: expense.category_id
+    };
+
+    const success = await addExpense(newEntry, setExpenses, setNotification, 'Expense copied successfully!');
+    if (success) {
+      setCopyState({ show: false, expense: null, targetMonth: '', targetYear: '' });
+    }
+  };
+
+
   const [currentPage, setCurrentPage] = useState(1);
   useEffect(() => {
     setCurrentPage(1);
@@ -200,37 +228,7 @@ export default function ExpensesPage() {
       <CopyModal
         isOpen={copyState.show}
         onCancel={() => setCopyState(prev => ({ ...prev, show: false }))}
-        onConfirm={() => {
-          const { targetMonth, targetYear, expense } = copyState;
-        
-          if (!targetMonth || !targetYear) return;
-        
-          if (
-            parseInt(expense.month_id) === parseInt(targetMonth) &&
-            parseInt(expense.year_id) === parseInt(targetYear)
-          ) {
-            setNotification({
-              type: 'error',
-              message: 'Cannot copy to the same month and year.'
-            });
-            return;
-          }
-        
-          const newEntry = {
-            name: expense.name,
-            cost: expense.cost,
-            month_id: targetMonth,
-            year_id: targetYear,
-            category_id: expense.category_id
-          };
-        
-          addExpense(newEntry, setExpenses, setNotification, 'Expense copied successfully!')
-            .then(success => {
-              if (success) {
-                setCopyState({ show: false, expense: null, targetMonth: '', targetYear: '' });
-              }
-            });
-        }}
+        onConfirm={handleCopyConfirm}
         expense={copyState.expense}
         months={months}
         years={years}
