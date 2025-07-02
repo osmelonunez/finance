@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import useRecordsData from '../../hooks/useRecordsData';
 import useFilteredRecords from '../../hooks/useFilteredRecords';
-import FiltersBar from '../records/FiltersBarRecords';
+import FiltersBar from './FiltersBarRecords';
 import RecordTable from './RecordTable';
-import CopyModal from '../expenses/CopyModal';
+import CopyRecordModal from './CopyRecordModal';
 import TotalDisplay from '../common/TotalDisplay';
 import Pagination from '../common/Pagination';
 import Notification from '../common/Notification';
-import AddRecordModal from '../records/AddRecordModal';
-import EditRecordModal from '../records/EditRecordModal';
+import AddRecordModal from './AddRecordModal';
+import EditRecordModal from './EditRecordModal';
 import DeleteModal from '../expenses/DeleteModal';
 import { addRecord, updateRecord, deleteRecord } from '../utils/records';
 import { isValidRecord } from '../utils/validation';
@@ -47,6 +47,37 @@ export default function RecordsPageTemplate({
   const filtered = useFilteredRecords(records, filters, search, sort, field);
   const itemsPerPage = 10;
   const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const handleCopyConfirm = async () => {
+    const { record, targetMonth, targetYear } = copyState;
+
+    if (!record || !targetMonth || !targetYear) {
+      setNotification({ type: 'error', message: 'Please select month and year.' });
+      return;
+    }
+
+    const newEntry = {
+      name: record.name,
+      [field]: record[field],
+      month_id: targetMonth,
+      year_id: targetYear
+    };
+
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newEntry),
+    });
+
+    if (res.ok) {
+      const updated = await res.json();
+      setRecords(updated);
+      setNotification({ type: 'success', message: `${title.replace(/s$/, '')} copied successfully!` });
+      setCopyState({ show: false, expense: null, targetMonth: '', targetYear: '' });
+    } else {
+      setNotification({ type: 'error', message: `Failed to copy ${title.toLowerCase()}.` });
+    }
+  };
 
   const handleAdd = async () => {
     if (!isValidRecord(newRecord, field)) {
@@ -179,18 +210,20 @@ export default function RecordsPageTemplate({
       )}
 
       {copyState.show && (
-        <CopyModal
-          isOpen={copyState.show}
-          onCancel={() => setCopyState(prev => ({ ...prev, show: false }))}
-          onConfirm={handleCopy}
-          expense={copyState.record}
-          months={months}
-          years={years}
-          targetMonth={copyState.targetMonth}
-          setTargetMonth={(value) => setCopyState(prev => ({ ...prev, targetMonth: value }))}
-          targetYear={copyState.targetYear}
-          setTargetYear={(value) => setCopyState(prev => ({ ...prev, targetYear: value }))}
-        />
+      <CopyRecordModal
+        isOpen={copyState.show}
+        onCancel={() => setCopyState(prev => ({ ...prev, show: false }))}
+        onConfirm={handleCopyConfirm}
+        record={copyState.record}
+        months={months}
+        years={years}
+        targetMonth={copyState.targetMonth}
+        setTargetMonth={(value) => setCopyState(prev => ({ ...prev, targetMonth: value }))}
+        targetYear={copyState.targetYear}
+        setTargetYear={(value) => setCopyState(prev => ({ ...prev, targetYear: value }))}
+        label={title.replace(/s$/, '')}
+      />
+
       )}
 
       {notification && <Notification {...notification} />}
