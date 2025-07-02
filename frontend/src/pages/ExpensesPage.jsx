@@ -9,6 +9,7 @@ import EditExpenseModal from '../components/expenses/EditExpenseModal';
 import Notification from '../components/common/Notification';
 import ErrorMessage from '../components/common/ErrorMessage';
 import TotalDisplay from '../components/common/TotalDisplay';
+import Pagination from '../components/common/Pagination';
 
 export default function ExpensesPage() {
   const navigate = useNavigate();
@@ -320,11 +321,11 @@ return (
         setTargetYear={setCopyTargetYear}
       />
 
-<div className="flex justify-center items-center gap-2 mt-4">
-        <button onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1} className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50">Prev</button>
-        <span className="px-2">Page {currentPage} of {totalPages}</span>
-        <button onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages} className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50">Next</button>
-      </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
     </div>
   );
 }
