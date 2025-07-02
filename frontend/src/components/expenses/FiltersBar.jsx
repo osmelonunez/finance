@@ -10,7 +10,6 @@ export default function FiltersBar({
   months,
   years,
   categories,
-  setShowModal,
   setShowAddModal,
 }) {
   const handleFilterChange = (e) => {

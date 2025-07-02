@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Wrench, CopyPlus  } from 'lucide-react';
 import FiltersBar from '../components/expenses/FiltersBar';
 import ExpensesTable from '../components/expenses/ExpensesTable';
 import DeleteModal from '../components/expenses/DeleteModal';
@@ -9,6 +8,7 @@ import AddExpenseModal from '../components/expenses/AddExpenseModal';
 import EditExpenseModal from '../components/expenses/EditExpenseModal';
 import Notification from '../components/common/Notification';
 import ErrorMessage from '../components/common/ErrorMessage';
+import TotalDisplay from '../components/common/TotalDisplay';
 
 export default function ExpensesPage() {
   const navigate = useNavigate();
@@ -19,7 +19,6 @@ export default function ExpensesPage() {
   const [months, setMonths] = useState([]);
   const [years, setYears] = useState([]);
   const [newExpense, setNewExpense] = useState({ name: '', cost: '', month_id: '', year_id: '', category_id: '' });
-  const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
   const [search, setSearch] = useState('');
@@ -230,14 +229,17 @@ return (
         months={months}
         years={years}
         categories={categories}
-        setShowModal={setShowModal}
         setShowAddModal={setShowAddModal}
       />
 
-
-      <div className="bg-green-100 border border-green-300 rounded-lg p-4 text-right text-green-800 font-semibold">
-        Total: {filtered.reduce((acc, e) => acc + parseFloat(e.cost), 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
-      </div>
+      <TotalDisplay
+        items={filtered}
+        label="Total gastos"
+        field="cost"
+        bgColor="bg-green-100"
+        borderColor="border-green-300"
+        textColor="text-green-800"
+      />
 
       <ExpensesTable
         expenses={paginated}
