@@ -7,6 +7,8 @@ import DeleteModal from '../components/expenses/DeleteModal';
 import CopyModal from '../components/expenses/CopyModal';
 import AddExpenseModal from '../components/expenses/AddExpenseModal';
 import EditExpenseModal from '../components/expenses/EditExpenseModal';
+import Notification from '../components/common/Notification';
+import ErrorMessage from '../components/common/ErrorMessage';
 
 export default function ExpensesPage() {
   const navigate = useNavigate();
@@ -25,6 +27,9 @@ export default function ExpensesPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
+  const [notification, setNotification] = useState({ type: '', message: '' });
+  const [error, setError] = useState('');
+
 
   useEffect(() => {
     fetch('/api/expenses', {
@@ -176,6 +181,15 @@ const [copyTargetYear, setCopyTargetYear] = useState('');
 
 return (
     <div className="space-y-8">
+
+      {notification.message && (
+        <Notification
+          type={notification.type}
+          message={notification.message}
+          onClose={() => setNotification({ type: '', message: '' })}
+        />
+      )}
+
       <h2 className="text-2xl font-bold text-gray-800">Expenses</h2>
 
       <FiltersBar
@@ -230,6 +244,7 @@ return (
         months={months}
         years={years}
         categories={categories}
+        error={error}
       />
 
       <DeleteModal

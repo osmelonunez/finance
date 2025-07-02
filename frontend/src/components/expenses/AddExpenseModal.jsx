@@ -9,6 +9,7 @@ export default function AddExpenseModal({
   months,
   years,
   categories,
+  error,
 }) {
   return (
     <Modal
@@ -17,6 +18,7 @@ export default function AddExpenseModal({
       onCancel={onCancel}
       onConfirm={onConfirm}
     >
+      {error && <ErrorMessage message={error} />}
       <div className="grid md:grid-cols-4 gap-4 mt-2">
         <input
           name="name"
