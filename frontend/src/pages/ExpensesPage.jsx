@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import FiltersBar from '../components/expenses/FiltersBar';
 import ExpensesTable from '../components/expenses/ExpensesTable';
 import DeleteModal from '../components/expenses/DeleteModal';
@@ -15,7 +14,6 @@ import useFilteredExpenses from '../hooks/useFilteredExpenses';
 import { isValidExpense } from '../components/utils/validation';
 
 export default function ExpensesPage() {
-  const navigate = useNavigate();
   const [filters, setFilters] = useState({ month_id: '', year_id: '', category_id: '' });
   const [newExpense, setNewExpense] = useState({ name: '', cost: '', month_id: '', year_id: '', category_id: '' });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
