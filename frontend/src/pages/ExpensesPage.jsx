@@ -11,8 +11,7 @@ import ErrorMessage from '../components/common/ErrorMessage';
 import TotalDisplay from '../components/common/TotalDisplay';
 import Pagination from '../components/common/Pagination';
 import useExpensesData from '../hooks/useExpensesData';
-import { addExpense } from '../components/utils/expenses/addExpense';
-
+import { addExpense, updateExpense, deleteExpense } from '../components/utils/expenses/index';
 
 export default function ExpensesPage() {
   const navigate = useNavigate();
@@ -88,58 +87,39 @@ export default function ExpensesPage() {
       setShowEditModal(true);
     };
 
-  const handleUpdateExpense = async () => {
-    if (
-      !editingExpense.id ||
-      !editingExpense.name ||
-      !editingExpense.cost ||
-      !editingExpense.month_id ||
-      !editingExpense.year_id ||
-      !editingExpense.category_id
-    ) return;
-
-    const res = await fetch(`/api/expenses/${editingExpense.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(editingExpense)
-    });
-
-    if (res.ok) {
-      const updated = await res.json();
-      setExpenses(updated);
-      setShowEditModal(false);
-      setEditingExpense(null);
-      setNotification({ type: 'success', message: 'Expense updated successfully!' }); // ✅
-    }
-  };
+    const handleUpdateExpense = async () => {
+      if (
+        !editingExpense.id ||
+        !editingExpense.name ||
+        !editingExpense.cost ||
+        !editingExpense.month_id ||
+        !editingExpense.year_id ||
+        !editingExpense.category_id
+      ) return;
+    
+      const success = await updateExpense(editingExpense, setExpenses, setNotification);
+    
+      if (success) {
+        setShowEditModal(false);
+        setEditingExpense(null);
+      }
+    };
 
   const handleDeleteExpense = (expense) => {
     setExpenseToDelete(expense);
     setShowDeleteModal(true);
   };
 
-  const confirmDeleteExpense = async () => {
-    if (!expenseToDelete) return;
-
-    try {
-      const res = await fetch(`/api/expenses/${expenseToDelete.id}`, {
-        method: 'DELETE',
-      });
-
-      if (res.ok) {
-        const updated = await res.json();
-        setExpenses(updated);
-        setNotification({ type: 'success', message: 'Expense deleted successfully.' });
-      } else {
-        setNotification({ type: 'error', message: 'Failed to delete expense.' });
+    const confirmDeleteExpense = async () => {
+      if (!expenseToDelete) return;
+    
+      const success = await deleteExpense(expenseToDelete.id, setExpenses, setNotification);
+    
+      if (success) {
+        setShowDeleteModal(false);
+        setExpenseToDelete(null);
       }
-    } catch (error) {
-      setNotification({ type: 'error', message: 'An error occurred while deleting the expense.' });
-    } finally {
-      setShowDeleteModal(false);
-      setExpenseToDelete(null);
-    }
-  };
+    };
 
   const [currentPage, setCurrentPage] = useState(1);
   const [copyState, setCopyState] = useState({show: false, expense: null, targetMonth: '',targetYear: ''});
