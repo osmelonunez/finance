@@ -26,6 +26,7 @@ export default function ExpensesPage() {
   const [notification, setNotification] = useState({ type: '', message: '' });
   const [error, setError] = useState('');
   const {expenses, setExpenses, categories, months, years, loading} = useExpensesData();
+  const itemsPerPage = 10;
 
 
   useEffect(() => {
@@ -78,6 +79,7 @@ export default function ExpensesPage() {
       if (success) {
         setShowEditModal(false);
         setEditingExpense(null);
+        setError('');
       }
     };
 
@@ -131,7 +133,6 @@ export default function ExpensesPage() {
   }, [filters, search, sort]);
 
   const [copyState, setCopyState] = useState({show: false, expense: null, targetMonth: '',targetYear: ''});
-  const itemsPerPage = 10;
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const startCopyingExpense = (expense) => {
