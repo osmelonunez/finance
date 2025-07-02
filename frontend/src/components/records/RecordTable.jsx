@@ -27,7 +27,7 @@ export default function RecordTable({ records, field, onEdit, onDelete, onCopy }
           {sortedRecords.map((record) => (
             <tr key={record.id} className="text-base">
               <td className="px-4 py-2 text-gray-800">{record.name}</td>
-              <td className="px-4 py-2 text-gray-800">{record[field]}</td>
+              <td className="px-4 py-2 text-green-700 font-semibold">{parseFloat(record[field]).toLocaleString('es-ES', { minimumFractionDigits: 2 })} €</td>
               <td className="px-4 py-2 text-gray-800">{record.month_name}</td>
               <td className="px-4 py-2 text-gray-800">{record.year_value}</td>
               <td className="px-4 py-2 text-gray-800 text-right space-x-2">
