@@ -98,6 +98,10 @@ export default function ExpensesPage() {
   };
 
   const [currentPage, setCurrentPage] = useState(1);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters, search, sort]);
+
   const [copyState, setCopyState] = useState({show: false, expense: null, targetMonth: '',targetYear: ''});
   const itemsPerPage = 10;
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
