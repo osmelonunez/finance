@@ -1,59 +1,56 @@
-import { Trash2, Wrench, CopyPlus } from 'lucide-react';
+import { Copy, Wrench, Trash2 } from 'lucide-react';
 
 export default function ExpensesTable({ expenses, onEdit, onDelete, onCopy }) {
   return (
-    <table className="min-w-full bg-white shadow rounded-xl">
-      <thead className="bg-gray-50 text-left">
-        <tr>
-          <th className="p-3">Name</th>
-          <th className="p-3">Cost</th>
-          <th className="p-3">Month</th>
-          <th className="p-3">Year</th>
-          <th className="p-3">Category</th>
-          <th className="p-3">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {expenses.map((e, i) => (
-          <tr key={i} className="border-t hover:bg-gray-50">
-            <td className="p-3">{e.name}</td>
-            <td className="p-3 text-red-500 font-medium">
-              {parseFloat(e.cost).toLocaleString('es-ES', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })} €
-            </td>
-            <td className="p-3">{e.month_name}</td>
-            <td className="p-3">{e.year_value}</td>
-            <td className="p-3">{e.category_name}</td>
-            <td className="p-3">
-              <div className="inline-flex gap-1">
+    <div className="overflow-x-auto border rounded-lg">
+      <table className="min-w-full divide-y divide-gray-200 text-lg">
+        <thead className="bg-gray-100">
+          <tr>
+            <th className="px-4 py-2 text-left font-semibold text-gray-700">Name</th>
+            <th className="px-4 py-2 text-left font-semibold text-gray-700">Cost</th>
+            <th className="px-4 py-2 text-left font-semibold text-gray-700">Category</th>
+            <th className="px-4 py-2 text-left font-semibold text-gray-700">Month</th>
+            <th className="px-4 py-2 text-left font-semibold text-gray-700">Year</th>
+            <th className="px-4 py-2 text-right font-semibold text-gray-700">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-100 text-base">
+          {expenses.map((expense) => (
+            <tr key={expense.id}>
+              <td className="px-4 py-2 text-gray-800">{expense.name}</td>
+              <td className="px-4 py-2 text-red-700 font-semibold">
+                {parseFloat(expense.cost).toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+              </td>
+              <td className="px-4 py-2 text-gray-800">{expense.category_name}</td>
+              <td className="px-4 py-2 text-gray-800">{expense.month_name}</td>
+              <td className="px-4 py-2 text-gray-800">{expense.year_value}</td>
+              <td className="px-4 py-2 text-right space-x-2">
                 <button
-                  className="p-2 bg-cyan-500 text-white rounded hover:bg-cyan-600"
-                  onClick={() => onCopy(e)}
+                  onClick={() => onCopy(expense)}
+                  className="bg-cyan-500 hover:bg-cyan-600 text-white px-2 py-1 rounded"
                   title="Copy"
                 >
-                  <CopyPlus size={16} />
+                  <Copy size={16} />
                 </button>
                 <button
-                  className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                  onClick={() => onEdit(e)}
+                  onClick={() => onEdit(expense)}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded"
                   title="Edit"
                 >
                   <Wrench size={16} />
                 </button>
                 <button
-                  className="p-2 bg-red-500 text-white rounded hover:bg-red-600"
-                  onClick={() => onDelete(e)}
+                  onClick={() => onDelete(expense)}
+                  className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded"
                   title="Delete"
                 >
                   <Trash2 size={16} />
                 </button>
-              </div>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
