@@ -148,16 +148,22 @@ export default function ExpensesPageTemplate() {
         categories={categories}
       />
 
-      <EditExpenseModal
-        isOpen={showEditModal}
-        onCancel={() => setShowEditModal(false)}
-        onConfirm={handleUpdate}
-        expense={editingExpense}
-        setExpense={setEditingExpense}
-        months={months}
-        years={years}
-        categories={categories}
-      />
+    <EditExpenseModal
+      isOpen={showEditModal}
+      onCancel={() => setShowEditModal(false)}
+      onConfirm={handleUpdate}
+      expense={editingExpense}
+      onChange={(e) =>
+        setEditingExpense({
+          ...editingExpense,
+          [e.target.name]: e.target.value,
+        })
+      }
+      months={months}
+      years={years}
+      categories={categories}
+    />
+
 
       <DeleteModal
         isOpen={showDeleteModal}
