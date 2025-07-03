@@ -26,6 +26,7 @@ export default function AccountPage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [pendingField, setPendingField] = useState(null);
+  const [notification, setNotification] = useState(null);
 
   useEffect(() => {
     if (!token) return;
@@ -112,11 +113,14 @@ export default function AccountPage() {
 
       <TokenWarnings warnings={warnings} onRemove={removeWarning} />
 
-      <Notification
-        type="success"
-        message={message}
-        onClose={() => setMessage('')}
-      />
+      {notification && (
+        <Notification
+          type={notification.type}
+          message={notification.message}
+          onClose={() => setNotification(null)}
+        />
+      )}
+
       <ErrorMessage message={error} />
 
       <EditableField

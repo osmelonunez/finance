@@ -12,6 +12,7 @@ import useExpensesData from '../../hooks/useExpensesData';
 import useFilteredExpenses from '../../hooks/useFilteredExpenses';
 import { isValidExpense } from '../utils/validation';
 import { addExpense, updateExpense, deleteExpense } from '../utils/expenses';
+import { showNotification } from '../utils/showNotification';
 
 export default function ExpensesPageTemplate() {
   const {
@@ -46,7 +47,9 @@ export default function ExpensesPageTemplate() {
 
   const handleAdd = async () => {
     if (!isValidExpense(newExpense)) {
-      setNotification({ type: 'error', message: 'Please fill out all fields.' });
+      //setNotification({ type: 'error', message: 'Please fill out all fields.' });
+      showNotification(setNotification, { type: 'error', message: 'Please fill out all fields.' });
+
       return;
     }
     await addExpense(newExpense, setExpenses, setNotification);
@@ -56,7 +59,8 @@ export default function ExpensesPageTemplate() {
 
   const handleUpdate = async () => {
     if (!isValidExpense(editingExpense)) {
-      setNotification({ type: 'error', message: 'Please fill out all fields.' });
+      //setNotification({ type: 'error', message: 'Please fill out all fields.' });
+      showNotification(setNotification, { type: 'error', message: 'Please fill out all fields.' });
       return;
     }
     await updateExpense(editingExpense, setExpenses, setNotification);
@@ -135,7 +139,13 @@ export default function ExpensesPageTemplate() {
         totalPages={totalPages}
       />
 
-      {notification && <Notification {...notification} onClose={() => setNotification(null)} />}
+      {notification && (
+        <Notification
+          type={notification.type}
+          message={notification.message}
+          onClose={() => setNotification(null)}
+        />
+      )}
 
       <AddExpenseModal
         isOpen={showAddModal}

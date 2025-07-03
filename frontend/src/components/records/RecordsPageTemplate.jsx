@@ -12,6 +12,7 @@ import EditRecordModal from './EditRecordModal';
 import DeleteModal from '../expenses/DeleteModal';
 import { addRecord, updateRecord, deleteRecord } from '../utils/records';
 import { isValidRecord } from '../utils/validation';
+import { showNotification } from '../utils/showNotification';
 
 export default function RecordsPageTemplate({
   title,
@@ -52,7 +53,8 @@ export default function RecordsPageTemplate({
     const { record, targetMonth, targetYear } = copyState;
 
     if (!record || !targetMonth || !targetYear) {
-      setNotification({ type: 'error', message: 'Please select month and year.' });
+      //setNotification({ type: 'error', message: 'Please select month and year.' });
+      showNotification(setNotification, { type: 'error', message: 'Please select month and year.' });
       return;
     }
 
@@ -226,7 +228,14 @@ export default function RecordsPageTemplate({
 
       )}
 
-      {notification && <Notification {...notification} />}
+      {notification && (
+        <Notification
+          type={notification.type}
+          message={notification.message}
+          onClose={() => setNotification(null)}
+        />
+      )}
+
     </div>
   );
 }

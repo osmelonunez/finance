@@ -1,3 +1,5 @@
+import { showNotification } from './showNotification';
+
 export async function addRecord(endpoint, data, setRecords, setNotification, successMsg = 'Record added successfully!') {
   try {
     const res = await fetch(endpoint, {
@@ -9,10 +11,12 @@ export async function addRecord(endpoint, data, setRecords, setNotification, suc
     if (res.ok) {
       const updated = await res.json();
       setRecords(updated);
-      setNotification({ type: 'success', message: successMsg });
+      //setNotification({ type: 'success', message: successMsg });
+      showNotification(setNotification, { type: 'success', message: successMsg });
       return true;
     } else {
-      setNotification({ type: 'error', message: 'Failed to add record.' });
+      //setNotification({ type: 'error', message: 'Failed to add record.' });
+      showNotification(setNotification, { type: 'error', message: 'Failed to add record.' });
       return false;
     }
   } catch (err) {
