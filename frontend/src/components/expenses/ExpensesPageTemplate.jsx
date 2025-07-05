@@ -47,7 +47,7 @@ export default function ExpensesPageTemplate() {
 
   const handleAdd = async () => {
     if (!isValidExpense(newExpense)) {
-      //setNotification({ type: 'error', message: 'Please fill out all fields.' });
+      //showNotification(setNotification, { type: 'error', message: 'Please fill out all fields.' });
       showNotification(setNotification, { type: 'error', message: 'Please fill out all fields.' });
 
       return;
@@ -59,7 +59,7 @@ export default function ExpensesPageTemplate() {
 
   const handleUpdate = async () => {
     if (!isValidExpense(editingExpense)) {
-      //setNotification({ type: 'error', message: 'Please fill out all fields.' });
+      //showNotification(setNotification, { type: 'error', message: 'Please fill out all fields.' });
       showNotification(setNotification, { type: 'error', message: 'Please fill out all fields.' });
       return;
     }

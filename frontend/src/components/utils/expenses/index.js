@@ -11,15 +11,15 @@ export async function addExpense(data, setExpenses, setNotification, successMsg 
     if (res.ok) {
       const updated = await res.json();
       setExpenses(updated);
-      setNotification({ type: 'success', message: successMsg });
+      showNotification(setNotification, { type: 'success', message: successMsg });
       return true;
     } else {
-      setNotification({ type: 'error', message: 'Failed to add expense.' });
+      showNotification(setNotification, { type: 'error', message: 'Failed to add expense.' });
       return false;
     }
   } catch (err) {
     console.error(err);
-    setNotification({ type: 'error', message: 'Unexpected error while adding expense.' });
+    showNotification(setNotification, { type: 'error', message: 'Unexpected error while adding expense.' });
     return false;
   }
 }
@@ -35,15 +35,15 @@ export async function updateExpense(data, setExpenses, setNotification) {
     if (res.ok) {
       const updated = await res.json();
       setExpenses(updated);
-      setNotification({ type: 'success', message: 'Expense updated successfully!' });
+      showNotification(setNotification, { type: 'success', message: 'Expense updated successfully!' });
       return true;
     } else {
-      setNotification({ type: 'error', message: 'Failed to update expense.' });
+      showNotification(setNotification, { type: 'error', message: 'Failed to update expense.' });
       return false;
     }
   } catch (err) {
     console.error(err);
-    setNotification({ type: 'error', message: 'Unexpected error while updating expense.' });
+    showNotification(setNotification, { type: 'error', message: 'Unexpected error while updating expense.' });
     return false;
   }
 }
@@ -57,15 +57,15 @@ export async function deleteExpense(id, setExpenses, setNotification) {
     if (res.ok) {
       const updated = await res.json();
       setExpenses(updated);
-      setNotification({ type: 'success', message: 'Expense deleted successfully.' });
+      showNotification(setNotification, { type: 'success', message: 'Expense deleted successfully.' });
       return true;
     } else {
-      setNotification({ type: 'error', message: 'Failed to delete expense.' });
+      showNotification(setNotification, { type: 'error', message: 'Failed to delete expense.' });
       return false;
     }
   } catch (err) {
     console.error(err);
-    setNotification({ type: 'error', message: 'Unexpected error while deleting expense.' });
+    showNotification(setNotification, { type: 'error', message: 'Unexpected error while deleting expense.' });
     return false;
   }
 }

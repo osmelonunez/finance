@@ -53,7 +53,7 @@ export default function RecordsPageTemplate({
     const { record, targetMonth, targetYear } = copyState;
 
     if (!record || !targetMonth || !targetYear) {
-      //setNotification({ type: 'error', message: 'Please select month and year.' });
+      //showNotification(setNotification, { type: 'error', message: 'Please select month and year.' });
       showNotification(setNotification, { type: 'error', message: 'Please select month and year.' });
       return;
     }
