@@ -10,15 +10,7 @@ export default function RecordTable({
 }) {
   const isExpenses = type === 'expenses';
 
-  const sortedRecords = [...records].sort((a, b) => {
-    const yearDiff = parseInt(a.year_value) - parseInt(b.year_value);
-    if (yearDiff !== 0) return yearDiff;
-
-    const monthDiff = parseInt(a.month_id) - parseInt(b.month_id);
-    if (monthDiff !== 0) return monthDiff;
-
-    return a.name.localeCompare(b.name);
-  });
+  const sortedRecords = records;
 
   return (
     <div className="overflow-x-auto border rounded-lg">

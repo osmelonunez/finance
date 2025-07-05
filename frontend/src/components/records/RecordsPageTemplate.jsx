@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useRecordsData from '../../hooks/useRecordsData';
 import useFilteredRecords from '../../hooks/useFilteredRecords';
 import useCategoriesData from '../../hooks/useCategoriesData';
@@ -40,6 +40,10 @@ export default function RecordsPageTemplate({
   const [sort, setSort] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [notification, setNotification] = useState(null);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [sort]);
 
   const [newRecord, setNewRecord] = useState({
     name: '',
@@ -192,11 +196,10 @@ export default function RecordsPageTemplate({
       />
 
       <Pagination
-        currentPage={currentPage}
-        totalItems={filtered.length}
-        itemsPerPage={itemsPerPage}
-        onPageChange={setCurrentPage}
-      />
+  currentPage={currentPage}
+  totalPages={Math.ceil(filtered.length / itemsPerPage)}
+  onPageChange={setCurrentPage}
+/>
 
       {showAddModal && (
         <AddRecordModal

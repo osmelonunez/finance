@@ -30,7 +30,7 @@ export default function FiltersBarRecords({
         >
           <option value="">Sort by</option>
           <option value="name">Name</option>
-          <option value="amount">{isExpenses ? 'Cost' : 'Amount'}</option>
+          <option value={isExpenses ? 'cost' : 'amount'}>{isExpenses ? 'Cost' : 'Amount'}</option>
           <option value="month">Month</option>
           <option value="year">Year</option>
           {isExpenses && <option value="category_id">Category</option>}
