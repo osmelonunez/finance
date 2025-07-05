@@ -1,8 +1,11 @@
+const bcrypt = require('bcrypt');
 const { Client } = require('pg');
 const pool = require('./dbPool');
 require('dotenv').config();
 
-
+const adminUsername = process.env.ADMIN_USERNAME;
+const adminEmail = process.env.ADMIN_EMAIL;
+const adminPassword = process.env.ADMIN_PASSWORD;
 const RETRY_DELAY_MS = 10000; // 7 segundos
 
 async function waitAndRetry(fn, label = 'acción', retries = 20) {
@@ -230,7 +233,30 @@ async function initializeDatabase() {
 
   console.log("✅ Años insertados en la tabla 'years'.");
 
-  console.log("🏁 Inicialización de base de datos finalizada.");
+  if (adminUsername && adminEmail && adminPassword) {
+    const passwordHash = await bcrypt.hash(adminPassword, 10);
+  
+    await client.query(`
+      INSERT INTO users (username, password_hash)
+      VALUES ($1, $2)
+      ON CONFLICT (username) DO NOTHING;
+    `, [adminUsername, passwordHash]);
+    
+    const res = await client.query(`SELECT id FROM users WHERE username = $1`, [adminUsername]);
+    const adminId = res.rows[0]?.id;
+    
+    if (adminId) {
+      await client.query(`
+        INSERT INTO emails (user_id, email, is_primary)
+        VALUES ($1, $2, true)
+        ON CONFLICT (email) DO NOTHING;
+      `, [adminId, adminEmail]);
+    }
+  
+    console.log(`✅ Usuario administrador "${adminUsername}" creado/verificado.`);
+  } else {
+    console.warn("⚠️  Variables ADMIN_USERNAME, ADMIN_EMAIL o ADMIN_PASSWORD no definidas. No se creó el usuario admin.");
+  }
 
   await client.end();
 

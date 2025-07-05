@@ -1,3 +1,4 @@
+require('./db'); // fuerza ejecución de inicialización de la BD
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();

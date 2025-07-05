@@ -1,4 +1,4 @@
-const db = require('../db');
+const db = require('../database/dbPool');
 
 exports.getYears = async (req, res) => {
   try {

@@ -1,5 +1,5 @@
 
-const db = require('../db');
+const db = require('../database/dbPool');
 
 exports.getExpenses = async (req, res) => {
   try {
