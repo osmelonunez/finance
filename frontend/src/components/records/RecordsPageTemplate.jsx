@@ -74,7 +74,7 @@ export default function RecordsPageTemplate({
     if (res.ok) {
       const updated = await res.json();
       setRecords(updated);
-      setNotification({ type: 'success', message: `${title.replace(/s$/, '')} copied successfully!` });
+      showNotification(setNotification, { type: 'success', message: `${title.replace(/s$/, '')} copied successfully!` });
       setCopyState({ show: false, expense: null, targetMonth: '', targetYear: '' });
     } else {
       setNotification({ type: 'error', message: `Failed to copy ${title.toLowerCase()}.` });
