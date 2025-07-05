@@ -63,14 +63,31 @@ async function initializeDatabase() {
   await client.connect();
 
   await client.query(`
+    CREATE TABLE IF NOT EXISTS roles (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(50) UNIQUE NOT NULL
+    );
+  `);
+
+  await client.query(`
+    INSERT INTO roles (name)
+    VALUES ('admin'), ('editor'), ('viewer')
+    ON CONFLICT (name) DO NOTHING;
+  `);
+
+  console.log("✅ Tabla 'roles' verificada/creada.");
+
+  await client.query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       username VARCHAR(255) UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
+      role_id INTEGER REFERENCES roles(id) DEFAULT 3,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
   console.log("✅ Tabla 'users' verificada/creada.");
 
   await client.query(`
@@ -235,16 +252,16 @@ async function initializeDatabase() {
 
   if (adminUsername && adminEmail && adminPassword) {
     const passwordHash = await bcrypt.hash(adminPassword, 10);
-  
+
     await client.query(`
-      INSERT INTO users (username, password_hash)
-      VALUES ($1, $2)
+      INSERT INTO users (username, password_hash, role_id)
+      VALUES ($1, $2, 1)
       ON CONFLICT (username) DO NOTHING;
     `, [adminUsername, passwordHash]);
-    
+
     const res = await client.query(`SELECT id FROM users WHERE username = $1`, [adminUsername]);
     const adminId = res.rows[0]?.id;
-    
+
     if (adminId) {
       await client.query(`
         INSERT INTO emails (user_id, email, is_primary)
@@ -252,8 +269,8 @@ async function initializeDatabase() {
         ON CONFLICT (email) DO NOTHING;
       `, [adminId, adminEmail]);
     }
-  
-    console.log(`✅ Usuario administrador "${adminUsername}" creado/verificado.`);
+
+    console.log(`✅ Usuario administrador "${adminUsername}" creado/verificado con rol admin.`);
   } else {
     console.warn("⚠️  Variables ADMIN_USERNAME, ADMIN_EMAIL o ADMIN_PASSWORD no definidas. No se creó el usuario admin.");
   }
