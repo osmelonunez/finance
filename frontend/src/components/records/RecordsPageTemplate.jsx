@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import useRecordsData from '../../hooks/useRecordsData';
 import useFilteredRecords from '../../hooks/useFilteredRecords';
+import useCategoriesData from '../../hooks/useCategoriesData';
 import FiltersBar from './FiltersBarRecords';
 import RecordTable from './RecordTable';
 import CopyRecordModal from './CopyRecordModal';
@@ -9,12 +10,13 @@ import Pagination from '../common/Pagination';
 import Notification from '../common/Notification';
 import AddRecordModal from './AddRecordModal';
 import EditRecordModal from './EditRecordModal';
-import DeleteModal from '../expenses/DeleteModal';
+import DeleteModal from './DeleteModal';
 import { addRecord, updateRecord, deleteRecord } from '../utils/records';
 import { isValidRecord } from '../utils/validation';
 import { showNotification } from '../utils/showNotification';
 
 export default function RecordsPageTemplate({
+  type,
   title,
   endpoint,
   field,
@@ -22,6 +24,9 @@ export default function RecordsPageTemplate({
   storageKey,
   hasCategory = false
 }) {
+  const isExpenses = type === 'expenses';
+  const { categories } = useCategoriesData();
+
   const {
     records,
     setRecords,
@@ -30,13 +35,20 @@ export default function RecordsPageTemplate({
     loading,
   } = useRecordsData(endpoint);
 
-  const [filters, setFilters] = useState({ month_id: '', year_id: '' });
+  const [filters, setFilters] = useState({ month_id: '', year_id: '', category_id: '' });
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [notification, setNotification] = useState(null);
 
-  const [newRecord, setNewRecord] = useState({ name: '', [field]: '', month_id: '', year_id: '' });
+  const [newRecord, setNewRecord] = useState({
+    name: '',
+    [field]: '',
+    month_id: '',
+    year_id: '',
+    ...(isExpenses && { category_id: '' }),
+  });
+
   const [editingRecord, setEditingRecord] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -49,11 +61,42 @@ export default function RecordsPageTemplate({
   const itemsPerPage = 10;
   const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+  
+  
+  
+  const handleAdd = async () => {
+    console.log('🚀 Trying to add record:', newRecord);
+
+    const requiredFields = ['name', field, 'month_id', 'year_id'];
+    if (requiredFields.some(key => !newRecord[key] || newRecord[key].toString().trim() === '')) {
+      console.warn('❌ Missing required fields:', newRecord);
+      setError('All fields are required.');
+      return;
+    }
+
+    try {
+      const success = await addRecord(endpoint, newRecord, setRecords, setNotification);
+      console.log('✅ Submission result:', success);
+
+      if (success) {
+        setNewRecord({ name: '', [field]: '', month_id: '', year_id: '', ...(isExpenses && { category_id: '' }) });
+        setShowAddModal(false);
+        setError('');
+      } else {
+        console.error('❌ addRecord returned false.');
+        setError('Failed to add record.');
+      }
+    } catch (err) {
+      console.error('🔥 Error while submitting record:', err);
+      setError('Unexpected error during submission.');
+    }
+  };
+
+
+
   const handleCopyConfirm = async () => {
     const { record, targetMonth, targetYear } = copyState;
-
     if (!record || !targetMonth || !targetYear) {
-      //showNotification(setNotification, { type: 'error', message: 'Please select month and year.' });
       showNotification(setNotification, { type: 'error', message: 'Please select month and year.' });
       return;
     }
@@ -62,7 +105,8 @@ export default function RecordsPageTemplate({
       name: record.name,
       [field]: record[field],
       month_id: targetMonth,
-      year_id: targetYear
+      year_id: targetYear,
+      ...(isExpenses && { category_id: record.category_id }),
     };
 
     const res = await fetch(endpoint, {
@@ -75,31 +119,9 @@ export default function RecordsPageTemplate({
       const updated = await res.json();
       setRecords(updated);
       showNotification(setNotification, { type: 'success', message: `${title.replace(/s$/, '')} copied successfully!` });
-      setCopyState({ show: false, expense: null, targetMonth: '', targetYear: '' });
+      setCopyState({ show: false, record: null, targetMonth: '', targetYear: '' });
     } else {
       setNotification({ type: 'error', message: `Failed to copy ${title.toLowerCase()}.` });
-    }
-  };
-
-  const handleAdd = async () => {
-    if (!isValidRecord(newRecord, field)) {
-      setError('Please fill out all fields');
-      return;
-    }
-    const success = await addRecord(endpoint, newRecord, setRecords, setNotification);
-    if (success) {
-      setNewRecord({ name: '', [field]: '', month_id: '', year_id: '' });
-      setShowAddModal(false);
-      setError('');
-    }
-  };
-
-  const handleEdit = async () => {
-    if (!isValidRecord(editingRecord, field)) return;
-    const success = await updateRecord(endpoint, editingRecord, setRecords, setNotification);
-    if (success) {
-      setShowEditModal(false);
-      setEditingRecord(null);
     }
   };
 
@@ -111,37 +133,35 @@ export default function RecordsPageTemplate({
     }
   };
 
-  const handleCopy = async () => {
-    const { targetMonth, targetYear, record } = copyState;
-    if (!targetMonth || !targetYear) return;
-
-    const newEntry = {
-      name: record.name,
-      [field]: record[field],
-      month_id: targetMonth,
-      year_id: targetYear,
-    };
-
-    const success = await addRecord(endpoint, newEntry, setRecords, setNotification, `${title} copied successfully!`);
+  const handleEdit = async () => {
+    if (!isValidRecord(editingRecord, field)) {
+      setError('Please fill out all fields');
+      return;
+    }
+    const success = await updateRecord(endpoint, editingRecord, setRecords, setNotification);
     if (success) {
-      setCopyState({ show: false, record: null, targetMonth: '', targetYear: '' });
+      setShowEditModal(false);
+      setEditingRecord(null);
     }
   };
 
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-bold">{title}</h1>
+
       <FiltersBar
+        type={type}
+        categories={categories}
         filters={filters}
         setFilters={setFilters}
+        months={months}
+        years={years}
         search={search}
         setSearch={setSearch}
         sort={sort}
         setSort={setSort}
         onAdd={() => setShowAddModal(true)}
-        hasCategory={hasCategory}
-        months={months}
-        years={years}
+        hasCategory={isExpenses}
       />
 
       <TotalDisplay
@@ -154,6 +174,7 @@ export default function RecordsPageTemplate({
       />
 
       <RecordTable
+        type={type}
         records={paginated}
         field={field}
         onEdit={(record) => {
@@ -167,6 +188,7 @@ export default function RecordsPageTemplate({
         onCopy={(record) => {
           setCopyState({ show: true, record, targetMonth: '', targetYear: '' });
         }}
+        hasCategory={isExpenses}
       />
 
       <Pagination
@@ -178,6 +200,8 @@ export default function RecordsPageTemplate({
 
       {showAddModal && (
         <AddRecordModal
+        type={type}
+        categories={categories}
           isOpen={showAddModal}
           onCancel={() => setShowAddModal(false)}
           onConfirm={handleAdd}
@@ -187,11 +211,14 @@ export default function RecordsPageTemplate({
           years={years}
           error={error}
           field={field}
+          hasCategory={isExpenses}
         />
       )}
 
       {showEditModal && (
         <EditRecordModal
+        type={type}
+        categories={categories}
           isOpen={showEditModal}
           onCancel={() => setShowEditModal(false)}
           onConfirm={handleEdit}
@@ -212,20 +239,22 @@ export default function RecordsPageTemplate({
       )}
 
       {copyState.show && (
-      <CopyRecordModal
-        isOpen={copyState.show}
-        onCancel={() => setCopyState(prev => ({ ...prev, show: false }))}
-        onConfirm={handleCopyConfirm}
-        record={copyState.record}
-        months={months}
-        years={years}
-        targetMonth={copyState.targetMonth}
-        setTargetMonth={(value) => setCopyState(prev => ({ ...prev, targetMonth: value }))}
-        targetYear={copyState.targetYear}
-        setTargetYear={(value) => setCopyState(prev => ({ ...prev, targetYear: value }))}
-        label={title.replace(/s$/, '')}
-      />
-
+        <CopyRecordModal
+        type={type}
+        categories={categories}
+          isOpen={copyState.show}
+          onCancel={() => setCopyState(prev => ({ ...prev, show: false }))}
+          onConfirm={handleCopyConfirm}
+          record={copyState.record}
+          months={months}
+          years={years}
+          targetMonth={copyState.targetMonth}
+          setTargetMonth={(value) => setCopyState(prev => ({ ...prev, targetMonth: value }))}
+          targetYear={copyState.targetYear}
+          setTargetYear={(value) => setCopyState(prev => ({ ...prev, targetYear: value }))}
+          label={title.replace(/s$/, '')}
+          hasCategory={isExpenses}
+        />
       )}
 
       {notification && (
@@ -235,7 +264,6 @@ export default function RecordsPageTemplate({
           onClose={() => setNotification(null)}
         />
       )}
-
     </div>
   );
 }

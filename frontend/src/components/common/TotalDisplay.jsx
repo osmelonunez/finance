@@ -1,9 +1,7 @@
-// components/common/TotalDisplay.jsx
-
 export default function TotalDisplay({
   items = [],
   label = 'Total',
-  field = 'cost', // <- 'amount' para incomes/savings
+  field = 'cost',
   currency = '€',
   bgColor = 'bg-green-100',
   borderColor = 'border-green-300',

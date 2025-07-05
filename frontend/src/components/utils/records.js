@@ -11,11 +11,9 @@ export async function addRecord(endpoint, data, setRecords, setNotification, suc
     if (res.ok) {
       const updated = await res.json();
       setRecords(updated);
-      //showNotification(setNotification, { type: 'success', message: successMsg });
       showNotification(setNotification, { type: 'success', message: successMsg });
       return true;
     } else {
-      //showNotification(setNotification, { type: 'error', message: 'Failed to add record.' });
       showNotification(setNotification, { type: 'error', message: 'Failed to add record.' });
       return false;
     }

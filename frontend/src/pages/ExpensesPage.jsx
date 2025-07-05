@@ -1,5 +1,15 @@
-import ExpensesPageTemplate from '../components/expenses/ExpensesPageTemplate';
+import RecordsPageTemplate from '../components/records/RecordsPageTemplate';
 
 export default function ExpensesPage() {
-  return <ExpensesPageTemplate />;
+  return (
+    <RecordsPageTemplate
+      type="expenses"
+      title="Expenses"
+      endpoint="/api/expenses"
+      field="cost"
+      color="green"
+      storageKey="expenses"
+      hasCategory={true}
+    />
+  );
 }

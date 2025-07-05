@@ -1,22 +1,26 @@
-// components/common/Modal.jsx
-export default function Modal({ title, children, isOpen, onConfirm, onCancel }) {
+export default function Modal({ isOpen, onCancel, onConfirm, title, children }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
-      <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md space-y-4">
-        <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6 space-y-6">
+        <h2 className="text-xl font-semibold">{title}</h2>
         <div>{children}</div>
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end space-x-4 mt-6">
           <button
+            type="button"
             onClick={onCancel}
-            className="px-4 py-2 border rounded text-gray-600 hover:bg-gray-100"
+            className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded"
           >
             Cancelar
           </button>
           <button
-            onClick={onConfirm}
-            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            type="button"
+            onClick={() => {
+              console.log('✅ Botón confirmar PRESIONADO');
+              onConfirm();
+            }}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
           >
             Confirmar
           </button>

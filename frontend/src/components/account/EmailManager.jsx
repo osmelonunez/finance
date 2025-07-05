@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { Trash2, Wrench, Bell, PlusCircle, Check } from 'lucide-react';
-import Notification from '../common/Notification'; // Ajusta la ruta si es necesario
-import Modal from '../common/Modal'; // Modal genérico reutilizable
+import Notification from '../common/Notification';
+import Modal from '../common/Modal';
 import { isEmailValid } from '../utils/validation';
 import useAuthToken from '../../hooks/useAuthToken'; 
 
 export default function EmailManager() {
-  const token = useAuthToken(); // Usar hook para obtener token
+  const token = useAuthToken();
 
   const [emails, setEmails] = useState([]);
   const [emailError, setEmailError] = useState('');
@@ -20,7 +20,7 @@ export default function EmailManager() {
   const emailInputRef = useRef(null);
 
   useEffect(() => {
-    if (!token) return; // Esperar token
+    if (!token) return;
 
     fetch('/api/emails', {
       headers: { Authorization: `Bearer ${token}` }

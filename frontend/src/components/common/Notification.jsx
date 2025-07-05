@@ -1,4 +1,3 @@
-// components/common/Notification.jsx
 export default function Notification({ type = 'success', message, onClose }) {
   if (!message) return null;
 

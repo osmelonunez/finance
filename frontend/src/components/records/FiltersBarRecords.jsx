@@ -9,7 +9,11 @@ export default function FiltersBarRecords({
   years,
   onAdd,
   label = 'Record',
+  type,
+  categories = []
 }) {
+  const isExpenses = type === 'expenses';
+
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({ ...prev, [name]: value }));
@@ -29,7 +33,7 @@ export default function FiltersBarRecords({
           <option value="amount">Amount</option>
           <option value="month">Month</option>
           <option value="year">Year</option>
-          <option value="">Default (Year, Month, Name)</option>
+          <option value="">Default (Y-M-N)</option>
         </select>
 
         <input
@@ -38,7 +42,7 @@ export default function FiltersBarRecords({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name..."
-          className="border rounded px-3 py-2 w-44"
+          className="border rounded px-3 py-2 w-36"
         />
 
         <select
@@ -72,6 +76,25 @@ export default function FiltersBarRecords({
           Add {label}
         </button>
       </div>
+
+      {isExpenses && categories.length > 0 && (
+        <div>
+          <label className="block text-sm font-medium">Categoría</label>
+          <select
+            name="category_id"
+            value={filters.category_id || ''}
+            onChange={handleFilterChange}
+            className="border rounded px-3 py-2"
+          >
+            <option value="">All</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
     </div>
   );
 }

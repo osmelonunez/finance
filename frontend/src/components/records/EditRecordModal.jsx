@@ -8,8 +8,12 @@ export default function EditRecordModal({
   onChange,
   months,
   years,
-  field
+  field,
+  type,
+  categories = []
 }) {
+  const isExpenses = type === 'expenses';
+
   return (
     <Modal title="Edit Record" isOpen={isOpen} onCancel={onCancel} onConfirm={onConfirm}>
       <div className="grid md:grid-cols-4 gap-4 mt-2">
@@ -20,14 +24,16 @@ export default function EditRecordModal({
           placeholder="Name"
           className="border rounded px-3 py-2"
         />
+
         <input
           name={field}
           value={record[field]}
           onChange={onChange}
-          placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
+          placeholder={isExpenses ? "Cost" : field.charAt(0).toUpperCase() + field.slice(1)}
           type="number"
           className="border rounded px-3 py-2"
         />
+
         <select
           name="month_id"
           value={record.month_id}
@@ -39,6 +45,7 @@ export default function EditRecordModal({
             <option key={m.id} value={m.id}>{m.name}</option>
           ))}
         </select>
+
         <select
           name="year_id"
           value={record.year_id}
@@ -50,6 +57,20 @@ export default function EditRecordModal({
             <option key={y.id} value={y.id}>{y.value}</option>
           ))}
         </select>
+
+        {isExpenses && (
+          <select
+            name="category_id"
+            value={record.category_id || ''}
+            onChange={onChange}
+            className="border rounded px-3 py-2 col-span-2"
+          >
+            <option value="">Select Category</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
+            ))}
+          </select>
+        )}
       </div>
     </Modal>
   );

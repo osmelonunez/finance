@@ -1,6 +1,15 @@
 import { Wrench, Trash2, Copy } from 'lucide-react';
 
-export default function RecordTable({ records, field, onEdit, onDelete, onCopy }) {
+export default function RecordTable({
+  records,
+  field,
+  onEdit,
+  onDelete,
+  onCopy,
+  type
+}) {
+  const isExpenses = type === 'expenses';
+
   const sortedRecords = [...records].sort((a, b) => {
     const yearDiff = parseInt(a.year_value) - parseInt(b.year_value);
     if (yearDiff !== 0) return yearDiff;
@@ -17,9 +26,16 @@ export default function RecordTable({ records, field, onEdit, onDelete, onCopy }
         <thead className="bg-gray-100">
           <tr>
             <th className="px-4 py-2 text-left font-semibold text-gray-700">Name</th>
-            <th className="px-4 py-2 text-left font-semibold text-gray-700 capitalize">{field}</th>
+            {isExpenses ? (
+              <th className="px-4 py-2 text-left font-semibold text-gray-700">Cost</th>
+            ) : (
+              <th className="px-4 py-2 text-left font-semibold text-gray-700 capitalize">{field}</th>
+            )}
             <th className="px-4 py-2 text-left font-semibold text-gray-700">Month</th>
             <th className="px-4 py-2 text-left font-semibold text-gray-700">Year</th>
+            {isExpenses && (
+              <th className="px-4 py-2 text-left font-semibold text-gray-700">Category</th>
+            )}
             <th className="px-4 py-2 text-right font-semibold text-gray-700">Actions</th>
           </tr>
         </thead>
@@ -27,9 +43,14 @@ export default function RecordTable({ records, field, onEdit, onDelete, onCopy }
           {sortedRecords.map((record) => (
             <tr key={record.id} className="text-base">
               <td className="px-4 py-2 text-gray-800">{record.name}</td>
-              <td className="px-4 py-2 text-green-700 font-semibold">{parseFloat(record[field]).toLocaleString('es-ES', { minimumFractionDigits: 2 })} €</td>
+              <td className="px-4 py-2 text-green-700 font-semibold">
+                {parseFloat(isExpenses ? record.cost : record[field]).toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+              </td>
               <td className="px-4 py-2 text-gray-800">{record.month_name}</td>
               <td className="px-4 py-2 text-gray-800">{record.year_value}</td>
+              {isExpenses && (
+                <td className="px-4 py-2 text-gray-800">{record.category_name || record.category_id}</td>
+              )}
               <td className="px-4 py-2 text-gray-800 text-right space-x-2">
                 <button
                   onClick={() => onCopy(record)}

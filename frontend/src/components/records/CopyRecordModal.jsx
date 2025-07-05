@@ -12,7 +12,11 @@ export default function CopyRecordModal({
   targetYear,
   setTargetYear,
   label = 'Record',
+  type,
+  categories = []
 }) {
+  const isExpenses = type === 'expenses';
+
   return (
     <Modal isOpen={isOpen} onCancel={onCancel} onConfirm={onConfirm} title={`Copy ${label}`}>
       <div className="space-y-4">
@@ -20,6 +24,8 @@ export default function CopyRecordModal({
           You are copying <strong>{record?.name}</strong>.
           Please select the new month and year for the copied {label.toLowerCase()}.
         </p>
+
+        
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <select

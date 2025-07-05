@@ -1,5 +1,3 @@
-// utils/validation.js
-
 // Validar complejidad de contraseña:
 // Al menos una minúscula, una mayúscula, un número, un carácter especial, y mínimo 13 caracteres.
 export function isPasswordComplex(pwd) {
