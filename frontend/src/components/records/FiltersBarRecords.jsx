@@ -70,6 +70,22 @@ export default function FiltersBarRecords({
           ))}
         </select>
 
+        {isExpenses && categories.length > 0 && (
+          <div>
+            <select
+              name="category_id"
+              value={filters.category_id || ''}
+              onChange={handleFilterChange}
+              className="border rounded px-3 py-2 w-36"
+            >
+              <option value="">All Categories</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <button
           onClick={onAdd}
           className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 ml-auto"
@@ -77,25 +93,6 @@ export default function FiltersBarRecords({
           Add {label}
         </button>
       </div>
-
-      {isExpenses && categories.length > 0 && (
-        <div>
-          <label className="block text-sm font-medium">Categoría</label>
-          <select
-            name="category_id"
-            value={filters.category_id || ''}
-            onChange={handleFilterChange}
-            className="border rounded px-3 py-2 w-36"
-          >
-            <option value="">All</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
     </div>
   );
 }
