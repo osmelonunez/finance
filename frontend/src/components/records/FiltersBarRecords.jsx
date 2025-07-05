@@ -30,9 +30,10 @@ export default function FiltersBarRecords({
         >
           <option value="">Sort by</option>
           <option value="name">Name</option>
-          <option value="amount">Amount</option>
+          <option value="amount">{isExpenses ? 'Cost' : 'Amount'}</option>
           <option value="month">Month</option>
           <option value="year">Year</option>
+          {isExpenses && <option value="category_id">Category</option>}
           <option value="">Default (Y-M-N)</option>
         </select>
 
@@ -84,7 +85,7 @@ export default function FiltersBarRecords({
             name="category_id"
             value={filters.category_id || ''}
             onChange={handleFilterChange}
-            className="border rounded px-3 py-2"
+            className="border rounded px-3 py-2 w-36"
           >
             <option value="">All</option>
             {categories.map((cat) => (
