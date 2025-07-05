@@ -14,7 +14,6 @@ import SettingsPage from './pages/SettingsPage';
 import AccountPage from './pages/AccountPage';
 
 const navLinks = [
-  { to: '/', label: 'Home' },
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/expenses', label: 'Expenses' },
   { to: '/incomes', label: 'Incomes' },
