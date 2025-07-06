@@ -40,5 +40,3 @@ exports.registerUser = async (req, res) => {
     res.status(500).json({ error: 'Error en el registro' });
   }
 };
-
-const jwt = require('jsonwebtoken');

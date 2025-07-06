@@ -1,10 +1,10 @@
-
 const db = require('../database/dbPool');
 
+// Obtener todos los gastos
 exports.getExpenses = async (req, res) => {
   try {
-    const result = await db.query(
-      `SELECT 
+    const result = await db.query(`
+      SELECT 
         expenses.*, 
         months.name AS month_name, 
         years.value AS year_value, 
@@ -13,8 +13,8 @@ exports.getExpenses = async (req, res) => {
       JOIN months ON expenses.month_id = months.id
       JOIN years ON expenses.year_id = years.id
       JOIN categories ON expenses.category_id = categories.id
-      ORDER BY years.value, months.id`
-    );
+      ORDER BY years.value, months.id
+    `);
     res.json(result.rows);
   } catch (err) {
     console.error('Error al obtener gastos:', err);
@@ -22,6 +22,7 @@ exports.getExpenses = async (req, res) => {
   }
 };
 
+// Crear un nuevo gasto
 exports.createExpense = async (req, res) => {
   const { name, cost, month_id, year_id, category_id } = req.body;
   try {
@@ -30,8 +31,8 @@ exports.createExpense = async (req, res) => {
       [name, cost, month_id, year_id, category_id]
     );
 
-    const result = await db.query(
-      `SELECT 
+    const result = await db.query(`
+      SELECT 
         expenses.*, 
         months.name AS month_name, 
         years.value AS year_value, 
@@ -40,9 +41,8 @@ exports.createExpense = async (req, res) => {
       JOIN months ON expenses.month_id = months.id
       JOIN years ON expenses.year_id = years.id
       JOIN categories ON expenses.category_id = categories.id
-      ORDER BY years.value, months.id`
-    );
-
+      ORDER BY years.value, months.id
+    `);
     res.json(result.rows);
   } catch (err) {
     console.error('Error al agregar gasto:', err);
@@ -50,6 +50,7 @@ exports.createExpense = async (req, res) => {
   }
 };
 
+// Actualizar un gasto por ID
 exports.updateExpense = async (req, res) => {
   const { id } = req.params;
   const { name, cost, month_id, year_id, category_id } = req.body;
@@ -59,8 +60,8 @@ exports.updateExpense = async (req, res) => {
       [name, cost, month_id, year_id, category_id, id]
     );
 
-    const result = await db.query(
-      `SELECT 
+    const result = await db.query(`
+      SELECT 
         expenses.*, 
         months.name AS month_name, 
         years.value AS year_value, 
@@ -69,9 +70,8 @@ exports.updateExpense = async (req, res) => {
       JOIN months ON expenses.month_id = months.id
       JOIN years ON expenses.year_id = years.id
       JOIN categories ON expenses.category_id = categories.id
-      ORDER BY years.value, months.id`
-    );
-
+      ORDER BY years.value, months.id
+    `);
     res.json(result.rows);
   } catch (err) {
     console.error('Error al actualizar gasto:', err);
@@ -79,13 +79,14 @@ exports.updateExpense = async (req, res) => {
   }
 };
 
+// Eliminar un gasto por ID
 exports.deleteExpense = async (req, res) => {
   const { id } = req.params;
   try {
     await db.query('DELETE FROM expenses WHERE id=$1', [id]);
 
-    const result = await db.query(
-      `SELECT 
+    const result = await db.query(`
+      SELECT 
         expenses.*, 
         months.name AS month_name, 
         years.value AS year_value, 
@@ -94,9 +95,8 @@ exports.deleteExpense = async (req, res) => {
       JOIN months ON expenses.month_id = months.id
       JOIN years ON expenses.year_id = years.id
       JOIN categories ON expenses.category_id = categories.id
-      ORDER BY years.value, months.id`
-    );
-
+      ORDER BY years.value, months.id
+    `);
     res.json(result.rows);
   } catch (err) {
     console.error('Error al eliminar gasto:', err);

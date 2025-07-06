@@ -2,8 +2,10 @@ const db = require('../database/dbPool');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
+// 🔐 LOGIN
 exports.loginUser = async (req, res) => {
   const { username, password } = req.body;
+
   try {
     const result = await db.query('SELECT * FROM users WHERE username = $1', [username]);
     const user = result.rows[0];
@@ -17,9 +19,15 @@ exports.loginUser = async (req, res) => {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    const token = jwt.sign({ userId: user.id, username: user.username }, process.env.JWT_SECRET, {
-      expiresIn: '1h'
-    });
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        username: user.username,
+        role: user.role, // 👈 incluir rol
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
 
     res.json({ token });
   } catch (err) {
@@ -28,11 +36,17 @@ exports.loginUser = async (req, res) => {
   }
 };
 
+// 👤 GET ME
 exports.getMe = async (req, res) => {
   try {
-    const result = await db.query('SELECT id, username FROM users WHERE id = $1', [req.user.userId]);
+    const result = await db.query(
+      'SELECT id, username FROM users WHERE id = $1',
+      [req.user.userId]
+    );
     const user = result.rows[0];
+
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
     res.json(user);
   } catch (err) {
     console.error('Error en /api/me GET:', err);
@@ -40,7 +54,7 @@ exports.getMe = async (req, res) => {
   }
 };
 
-
+// ✏️ UPDATE ME
 exports.updateMe = async (req, res) => {
   const { username, password } = req.body;
 

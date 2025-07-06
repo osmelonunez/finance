@@ -70,7 +70,7 @@ export default function FiltersBarRecords({
           ))}
         </select>
 
-        {isExpenses && categories.length > 0 && (
+        {categories && categories.length > 0 && (
           <div>
             <select
               name="category_id"

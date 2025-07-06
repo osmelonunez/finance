@@ -1,5 +1,6 @@
 const db = require('../database/dbPool');
 
+// Obtener todos los ahorros
 exports.getSavings = async (req, res) => {
   try {
     const result = await db.query(
@@ -7,10 +8,10 @@ exports.getSavings = async (req, res) => {
         savings.*, 
         months.name AS month_name, 
         years.value AS year_value
-      FROM savings
-      JOIN months ON savings.month_id = months.id
-      JOIN years ON savings.year_id = years.id
-      ORDER BY year_value, month_id`
+       FROM savings
+       JOIN months ON savings.month_id = months.id
+       JOIN years ON savings.year_id = years.id
+       ORDER BY year_value, month_id`
     );
     res.json(result.rows);
   } catch (err) {
@@ -19,6 +20,7 @@ exports.getSavings = async (req, res) => {
   }
 };
 
+// Crear un nuevo ahorro
 exports.createSaving = async (req, res) => {
   const { name, amount, month_id, year_id } = req.body;
 
@@ -39,7 +41,6 @@ exports.createSaving = async (req, res) => {
        JOIN years ON savings.year_id = years.id
        ORDER BY year_value, month_id`
     );
-
     res.json(result.rows);
   } catch (err) {
     console.error('Error al agregar ahorro:', err);
@@ -47,6 +48,7 @@ exports.createSaving = async (req, res) => {
   }
 };
 
+// Actualizar un ahorro
 exports.updateSaving = async (req, res) => {
   const { id } = req.params;
   const { name, amount, month_id, year_id } = req.body;
@@ -64,7 +66,6 @@ exports.updateSaving = async (req, res) => {
        JOIN years ON savings.year_id = years.id
        ORDER BY year_value, month_id`
     );
-
     res.json(result.rows);
   } catch (err) {
     console.error('Error al actualizar ahorro:', err);
@@ -72,6 +73,7 @@ exports.updateSaving = async (req, res) => {
   }
 };
 
+// Eliminar un ahorro
 exports.deleteSaving = async (req, res) => {
   const { id } = req.params;
 
@@ -85,7 +87,6 @@ exports.deleteSaving = async (req, res) => {
        JOIN years ON savings.year_id = years.id
        ORDER BY year_value, month_id`
     );
-
     res.json(result.rows);
   } catch (err) {
     console.error('Error al eliminar ahorro:', err);

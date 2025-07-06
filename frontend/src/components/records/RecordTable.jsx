@@ -6,10 +6,8 @@ export default function RecordTable({
   onEdit,
   onDelete,
   onCopy,
-  type
+  hasCategory
 }) {
-  const isExpenses = type === 'expenses';
-
   const sortedRecords = records;
 
   return (
@@ -18,14 +16,10 @@ export default function RecordTable({
         <thead className="bg-gray-100">
           <tr>
             <th className="px-4 py-2 text-left font-semibold text-gray-700">Name</th>
-            {isExpenses ? (
-              <th className="px-4 py-2 text-left font-semibold text-gray-700">Cost</th>
-            ) : (
-              <th className="px-4 py-2 text-left font-semibold text-gray-700 capitalize">{field}</th>
-            )}
+            <th className="px-4 py-2 text-left font-semibold text-gray-700 capitalize">{field}</th>
             <th className="px-4 py-2 text-left font-semibold text-gray-700">Month</th>
             <th className="px-4 py-2 text-left font-semibold text-gray-700">Year</th>
-            {isExpenses && (
+            {hasCategory && (
               <th className="px-4 py-2 text-left font-semibold text-gray-700">Category</th>
             )}
             <th className="px-4 py-2 text-right font-semibold text-gray-700">Actions</th>
@@ -36,11 +30,11 @@ export default function RecordTable({
             <tr key={record.id} className="text-base">
               <td className="px-4 py-2 text-gray-800">{record.name}</td>
               <td className="px-4 py-2 text-green-700 font-semibold">
-                {parseFloat(isExpenses ? record.cost : record[field]).toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+                {parseFloat(record[field]).toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
               </td>
               <td className="px-4 py-2 text-gray-800">{record.month_name}</td>
               <td className="px-4 py-2 text-gray-800">{record.year_value}</td>
-              {isExpenses && (
+              {hasCategory && (
                 <td className="px-4 py-2 text-gray-800">{record.category_name || record.category_id}</td>
               )}
               <td className="px-4 py-2 text-gray-800 text-right space-x-2">

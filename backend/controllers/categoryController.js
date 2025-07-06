@@ -1,5 +1,6 @@
 const db = require('../database/dbPool');
 
+// Obtener todas las categorías
 exports.getCategories = async (req, res) => {
   try {
     const result = await db.query('SELECT id, name, description FROM categories ORDER BY name');
@@ -10,6 +11,7 @@ exports.getCategories = async (req, res) => {
   }
 };
 
+// Crear una categoría
 exports.createCategory = async (req, res) => {
   const { name, description } = req.body;
   if (!name) {
@@ -28,6 +30,7 @@ exports.createCategory = async (req, res) => {
   }
 };
 
+// Actualizar una categoría
 exports.updateCategory = async (req, res) => {
   const { id } = req.params;
   const { name, description } = req.body;
@@ -44,11 +47,15 @@ exports.updateCategory = async (req, res) => {
   }
 };
 
+// Eliminar una categoría (si no está en uso)
 exports.deleteCategory = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const usageCheck = await db.query('SELECT 1 FROM expenses WHERE category_id = $1 LIMIT 1', [id]);
+    const usageCheck = await db.query(
+      'SELECT 1 FROM expenses WHERE category_id = $1 LIMIT 1',
+      [id]
+    );
     if (usageCheck.rowCount > 0) {
       return res.status(400).json({ error: 'The category cannot be deleted because it is in use.' });
     }

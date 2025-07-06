@@ -30,6 +30,7 @@ export default function AccountPage() {
 
   useEffect(() => {
     if (!token) return;
+    //console.log('Usando token:', token);
 
     fetch('/api/me', {
       headers: { Authorization: `Bearer ${token}` }

@@ -24,7 +24,7 @@ app.use('/api/savings', savingsRoutes);
 app.use('/api/months', monthsRoutes);
 app.use('/api/years', yearsRoutes);
 app.use('/api', authRoutes);        // /api/login, /api/me
-app.use('/api', registerRoutes);    // /api/register
+app.use('/api/register', registerRoutes);
 app.use('/api/emails', emailsRoutes);
 
 app.listen(process.env.BACKEND_PORT, '0.0.0.0', () => {

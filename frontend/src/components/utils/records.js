@@ -1,10 +1,13 @@
 import { showNotification } from './showNotification';
 
-export async function addRecord(endpoint, data, setRecords, setNotification, successMsg = 'Record added successfully!') {
+export async function addRecord(endpoint, data, setRecords, setNotification, token, successMsg = 'Record added successfully!') {
   try {
     const res = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
       body: JSON.stringify(data),
     });
 
@@ -24,11 +27,14 @@ export async function addRecord(endpoint, data, setRecords, setNotification, suc
   }
 }
 
-export async function updateRecord(endpoint, data, setRecords, setNotification) {
+export async function updateRecord(endpoint, data, setRecords, setNotification, token) {
   try {
     const res = await fetch(`${endpoint}/${data.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
       body: JSON.stringify(data),
     });
 
@@ -48,10 +54,13 @@ export async function updateRecord(endpoint, data, setRecords, setNotification) 
   }
 }
 
-export async function deleteRecord(endpoint, id, setRecords, setNotification) {
+export async function deleteRecord(endpoint, id, setRecords, setNotification, token) {
   try {
     const res = await fetch(`${endpoint}/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
     });
 
     if (res.ok) {

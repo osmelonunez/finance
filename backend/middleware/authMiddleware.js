@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 
+// Verifica que el token sea válido
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -12,4 +13,17 @@ function authenticateToken(req, res, next) {
   });
 }
 
-module.exports = authenticateToken;
+// Verifica que el usuario tenga uno de los roles permitidos
+function authorizeRoles(...roles) {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Acceso denegado: rol no autorizado' });
+    }
+    next();
+  };
+}
+
+module.exports = {
+  authenticateToken,
+  authorizeRoles,
+};

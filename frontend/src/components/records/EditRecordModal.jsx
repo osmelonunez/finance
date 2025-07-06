@@ -14,6 +14,8 @@ export default function EditRecordModal({
 }) {
   const isExpenses = type === 'expenses';
 
+  if (!record) return null;
+
   return (
     <Modal title="Edit Record" isOpen={isOpen} onCancel={onCancel} onConfirm={onConfirm}>
       <div className="grid md:grid-cols-4 gap-4 mt-2">

@@ -1,5 +1,6 @@
 const db = require('../database/dbPool');
 
+// Obtener todos los años (autenticado, sin importar el rol)
 exports.getYears = async (req, res) => {
   try {
     const result = await db.query('SELECT id, value FROM years ORDER BY value');
@@ -10,6 +11,7 @@ exports.getYears = async (req, res) => {
   }
 };
 
+// Crear un año (solo para admin)
 exports.createYear = async (req, res) => {
   const { value } = req.body;
   if (!value || isNaN(value)) {
@@ -26,6 +28,7 @@ exports.createYear = async (req, res) => {
   }
 };
 
+// Eliminar un año (solo para admin)
 exports.deleteYear = async (req, res) => {
   const { id } = req.params;
   try {
@@ -34,9 +37,9 @@ exports.deleteYear = async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     if (err.code === '23503') {
-      return res.status(400).json({ error: 'This year is in use and cannot be deleted.' });
+      return res.status(400).json({ error: 'Este año está en uso y no puede eliminarse.' });
     }
-    console.error('Error deleting year:', err);
-    res.status(500).json({ error: 'Unable to delete year.' });
+    console.error('Error al eliminar año:', err);
+    res.status(500).json({ error: 'Error al eliminar año.' });
   }
 };

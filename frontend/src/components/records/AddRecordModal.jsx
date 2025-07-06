@@ -16,6 +16,8 @@ export default function AddRecordModal({
 }) {
   const isExpenses = type === 'expenses';
 
+  if (!record) return null;
+
   return (
     <Modal title="Add Record" isOpen={isOpen} onCancel={onCancel} onConfirm={onConfirm}>
       {error && <ErrorMessage message={error} />}
