@@ -12,6 +12,9 @@ export default function SettingsPage() {
   const [successMessage, setSuccessMessage] = useState('');
   const { user } = useAuth();
   const showManageUsers = user?.role === 'admin';
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [scheduleDays, setScheduleDays] = useState([]);
+  const [scheduleTime, setScheduleTime] = useState('');
 
   useEffect(() => {
     fetch('/api/years', {
@@ -22,6 +25,17 @@ export default function SettingsPage() {
       .then(res => res.json())
       .then(setYears);
   }, []);
+
+  useEffect(() => {
+    if (showSchedule) {
+      fetch('/api/backup/schedule')
+        .then(res => res.json())
+        .then(data => {
+          setScheduleDays(data.days || []);
+          setScheduleTime(data.time || '');
+        });
+    }
+  }, [showSchedule]);
 
   const handleYearAction = async () => {
     setErrorMessage('');
@@ -169,6 +183,99 @@ export default function SettingsPage() {
                 Remove test data
               </button>
             </div>
+        </div>
+
+        <div className="border-t border-gray-200 my-6" />
+                      
+        <div className="pt-4">
+          <h3 className="text-md font-semibold text-gray-700 mb-2 flex items-center gap-2">
+            🗄️ Database Backups
+          </h3>
+          <div className="flex gap-4 mb-4">
+            <button
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/backup/now', { method: 'POST' });
+                  if (!res.ok) throw new Error();
+                  alert('Backup created!');
+                } catch {
+                  alert('Error creating backup');
+                }
+              }}
+            >
+              Create Backup Now
+            </button>
+            <button
+              className="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded"
+              onClick={() => setShowSchedule(!showSchedule)}
+            >
+              Schedule
+            </button>
+          </div>
+          {showSchedule && (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                try {
+                  const res = await fetch('/api/backup/schedule', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ days: scheduleDays, time: scheduleTime }),
+                  });
+                  if (!res.ok) throw new Error();
+                  alert('Backup schedule saved!');
+                  setShowSchedule(false);
+                } catch {
+                  alert('Error scheduling backups');
+                }
+              }}
+              className="flex flex-col gap-4 bg-gray-50 rounded p-4 mt-2"
+            >
+              <div className="flex items-center gap-2">
+                <span className="font-medium">Days:</span>
+                {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d) => (
+                  <label key={d} className="flex items-center gap-1">
+                    <input
+                      type="checkbox"
+                      name="days"
+                      value={d}
+                      className="accent-blue-700"
+                      checked={scheduleDays.includes(d)}
+                      onChange={e => {
+                        if (e.target.checked) {
+                          setScheduleDays([...scheduleDays, d]);
+                        } else {
+                          setScheduleDays(scheduleDays.filter(day => day !== d));
+                        }
+                      }}
+                    />
+                    {d}
+                  </label>
+                ))}
+              </div>
+              <div className="flex items-center gap-2">
+                <label htmlFor="time" className="font-medium">
+                  Time:
+                </label>
+                <input
+                  type="time"
+                  id="time"
+                  name="time"
+                  className="border px-2 py-1 rounded"
+                  required
+                  value={scheduleTime}
+                  onChange={e => setScheduleTime(e.target.value)}
+                />
+              </div>
+              <button
+                type="submit"
+                className="bg-blue-700 hover:bg-blue-800 text-white px-3 py-1 rounded self-start"
+              >
+                Save schedule
+              </button>
+            </form>
+          )}
         </div>
 
       </div>

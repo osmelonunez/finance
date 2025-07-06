@@ -18,6 +18,9 @@ services:
       dockerfile: backend/Dockerfile
     image: finance-backend:${BACKEND_TAG}
     container_name: finance-backend
+    volumes:
+      - backend:/app/config
+      - backend:/app/backups
     env_file:
       - .env
     depends_on:
@@ -46,3 +49,4 @@ services:
 
 volumes:
   postgres:
+  backend:

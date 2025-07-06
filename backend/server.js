@@ -15,6 +15,8 @@ const emailsRoutes = require('./routes/emails');
 const usersRoutes = require('./routes/users');
 const rolesRoutes = require('./routes/roles');
 const devRoutes = require('./routes/dev');
+const backupRoutes = require('./routes/backup');
+
 
 const app = express();
 app.use(cors());
@@ -32,7 +34,13 @@ app.use('/api/emails', emailsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/roles', rolesRoutes);
 app.use('/api/dev', devRoutes);
+app.use('/api/backup', backupRoutes);
+
+const { scheduleBackupJob } = require('./controllers/backupController');
+scheduleBackupJob();
+
 
 app.listen(process.env.BACKEND_PORT, '0.0.0.0', () => {
   console.log(`Backend listening on port ${process.env.BACKEND_PORT}`);
 });
+
