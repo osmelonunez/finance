@@ -68,14 +68,10 @@ export default function SettingsPage() {
       <p className="text-gray-600 mb-6">Manage your application preferences and configuration options.</p>
 
       <div className="bg-white rounded-lg shadow p-6 space-y-6">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-700 border-b pb-1 mb-3">Account Settings</h3>
-          <p className="text-sm text-gray-500">More options coming soon.</p>
-        </div>
 
         {/* 👥 Manage Users */}
         {user?.role === 'admin' && (
-          <div className="pt-4 border-t mt-6">
+          <div className="pt-4">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-blue-700 font-bold">👥</span>
               <h3 className="text-md font-semibold text-gray-700">Manage Users</h3>
