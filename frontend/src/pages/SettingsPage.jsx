@@ -11,7 +11,7 @@ export default function SettingsPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const { user } = useAuth();
-
+  const showManageUsers = user?.role === 'admin';
 
   useEffect(() => {
     fetch('/api/years', {
@@ -85,7 +85,7 @@ export default function SettingsPage() {
           </div>
         )}
         
-        <div className="pt-4 border-t mt-6">
+        <div className={`pt-4${showManageUsers ? ' border-t mt-6' : ''}`}>
           <div className="flex items-center gap-2 mb-2">
             <span className="text-purple-600 font-bold">👤</span>
             <h3 className="text-md font-semibold text-gray-700">Account Info</h3>
