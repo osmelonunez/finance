@@ -187,6 +187,8 @@ export default function RecordsPageTemplate({
         onAdd={() => setShowAddModal(true)} 
       />
 
+      <TotalDisplay items={filtered} field={field} />
+
       <RecordTable
         records={paginated}
         field={field}
@@ -205,7 +207,6 @@ export default function RecordsPageTemplate({
         }}
       />
 
-      <TotalDisplay records={filtered} field={field} />
       <Pagination
         currentPage={currentPage}
         totalPages={Math.ceil(filtered.length / itemsPerPage)}
