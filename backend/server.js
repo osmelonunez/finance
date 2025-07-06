@@ -12,6 +12,7 @@ const yearsRoutes = require('./routes/years');
 const authRoutes = require('./routes/auth');
 const registerRoutes = require('./routes/register');
 const emailsRoutes = require('./routes/emails');
+const usersRoutes = require('./routes/users');
 
 const app = express();
 app.use(cors());
@@ -26,6 +27,8 @@ app.use('/api/years', yearsRoutes);
 app.use('/api', authRoutes);        // /api/login, /api/me
 app.use('/api/register', registerRoutes);
 app.use('/api/emails', emailsRoutes);
+app.use('/api/users', usersRoutes);
+
 
 app.listen(process.env.BACKEND_PORT, '0.0.0.0', () => {
   console.log(`Backend listening on port ${process.env.BACKEND_PORT}`);

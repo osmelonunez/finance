@@ -70,6 +70,19 @@ export default function SettingsPage() {
           <p className="text-sm text-gray-500">More options coming soon.</p>
         </div>
 
+        {/* 👥 Manage Users */}
+        <div className="pt-4 border-t mt-6">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-blue-700 font-bold">👥</span>
+            <h3 className="text-md font-semibold text-gray-700">Manage Users</h3>
+          </div>
+          <Link
+            to="/users"
+            className="inline-flex items-center px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800 transition"
+          >
+            Manage Users
+          </Link>
+        </div>
         
         <div className="pt-4 border-t mt-6">
           <div className="flex items-center gap-2 mb-2">
@@ -85,7 +98,7 @@ export default function SettingsPage() {
         </div>
 
 
-        <div className="pt-4">
+        <div className="pt-4 border-t mt-6">
           <div className="flex items-center gap-2 mb-2">
             <Layers size={18} className="text-blue-600" />
             <h3 className="text-md font-semibold text-gray-700">Categories</h3>
