@@ -28,18 +28,22 @@ export function AuthProvider({ children }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
-
-      if (!res.ok) return false;
-
+    
       const data = await res.json();
-      localStorage.setItem('token', data.token);
-      const decoded = jwtDecode(data.token);
-      setUser(decoded);
-      setIsAuthenticated(true);
-      return true;
+    
+      if (res.ok && data.token) {
+        localStorage.setItem('token', data.token);
+        const decoded = jwtDecode(data.token);
+        setUser(decoded);
+        setIsAuthenticated(true);
+        return true;
+      } else {
+        // Si el backend envía un error, lo devolvemos como string
+        return data.error || 'Usuario o contraseña incorrectos';
+      }
     } catch (err) {
       console.error('Login error:', err);
-      return false;
+      return 'Ocurrió un error de red. Intenta de nuevo.';
     }
   };
 

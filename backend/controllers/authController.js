@@ -20,6 +20,11 @@ exports.loginUser = async (req, res) => {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
+    // 🚫 Bloquear si el usuario no está activo
+    if (!user.active) {
+      return res.status(403).json({ error: 'Tu usuario está inactivo. Contacta al administrador.' });
+    }
+
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
@@ -29,7 +34,7 @@ exports.loginUser = async (req, res) => {
       {
         userId: user.id,
         username: user.username,
-        role: user.role, // 👈 incluir rol
+        role: user.role,
       },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }

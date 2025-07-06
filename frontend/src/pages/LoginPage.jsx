@@ -21,11 +21,11 @@ useEffect(() => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const success = await login(form.username, form.password);
-    if (success) {
+    const result = await login(form.username, form.password);
+    if (result === true) {
       navigate(from, { replace: true });
     } else {
-      setError('Usuario o contraseña incorrectos');
+      setError(result); // Muestra el mensaje real (inactivo o credenciales inválidas)
     }
   };
 
