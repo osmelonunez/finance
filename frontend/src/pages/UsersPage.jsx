@@ -6,11 +6,13 @@ import Modal from '../components/common/Modal';
 export default function UsersPage() {
   const token = useAuthToken();
   const [users, setUsers] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
 
+  // Obtener usuarios
   useEffect(() => {
     if (!token) return;
     setLoading(true);
@@ -35,6 +37,17 @@ export default function UsersPage() {
       });
   }, [token]);
 
+  // Obtener roles
+  useEffect(() => {
+    if (!token) return;
+    fetch('/api/roles', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => setRoles(data))
+      .catch(() => setRoles([]));
+  }, [token]);
+
   const handleToggleStatus = async (user) => {
     try {
       const res = await fetch(`/api/users/${user.id}/status`, {
@@ -54,7 +67,33 @@ export default function UsersPage() {
     }
   };
 
+  const handleChangeRole = async (user, newRoleId) => {
+    try {
+      const res = await fetch(`/api/users/${user.id}/role`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ role_id: newRoleId })
+      });
+      if (!res.ok) throw new Error();
+      setUsers(users.map(u =>
+        u.id === user.id
+          ? {
+              ...u,
+              role_id: parseInt(newRoleId),
+              role: roles.find(r => r.id === parseInt(newRoleId))?.name
+            }
+          : u
+      ));
+    } catch {
+      alert('No se pudo cambiar el rol del usuario');
+    }
+  };
+
   const handleResetPassword = (user) => {
+    // Aquí puedes implementar la lógica real
     alert(`Restablecer contraseña de ${user.username}`);
   };
 
@@ -86,7 +125,19 @@ export default function UsersPage() {
               {users.map((u) => (
                 <tr key={u.id} className="text-center hover:bg-gray-50 transition">
                   <td className="py-2 px-4">{u.username}</td>
-                  <td className="py-2 px-4">{u.role}</td>
+                  <td className="py-2 px-4">
+                    <select
+                      value={u.role_id}
+                      onChange={e => handleChangeRole(u, e.target.value)}
+                      className="border rounded px-2 py-1"
+                    >
+                      {roles.map(r => (
+                        <option key={r.id} value={r.id}>
+                          {r.name}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
                   <td className="py-2 px-4">
                     <input
                       type="checkbox"
@@ -98,17 +149,14 @@ export default function UsersPage() {
                   <td className="py-2 px-4 flex justify-center gap-3">
                     <button
                       title="Restablecer contraseña"
-                      //onClick={() => handleResetPassword(u)}
-                      className="text-blue-700 hover:text-blue-900"
+                      className="text-blue-300 cursor-not-allowed"
+                      disabled
                     >
                       <KeyRound size={18} />
                     </button>
                     <button
                       title="Eliminar usuario"
-                      onClick={() => {
-                        setUserToDelete(u);
-                        setShowDeleteModal(true);
-                      }}
+                      onClick={() => handleDeleteUser(u)}
                       className="text-red-600 hover:text-red-800"
                     >
                       <Trash2 size={18} />

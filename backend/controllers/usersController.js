@@ -4,7 +4,7 @@ const db = require('../database/dbPool');
 exports.getAllUsers = async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT users.id, users.username, roles.name AS role, users.active
+      `SELECT users.id, users.username, users.role_id, roles.name AS role, users.active
        FROM users
        JOIN roles ON users.role_id = roles.id
        ORDER BY users.id`
@@ -38,5 +38,18 @@ exports.deleteUser = async (req, res) => {
   } catch (err) {
     console.error('Error al eliminar usuario:', err);
     res.status(500).json({ error: 'Error eliminando el usuario' });
+  }
+};
+
+// Actualizar role de un usuario
+exports.updateUserRole = async (req, res) => {
+  const { id } = req.params;
+  const { role_id } = req.body;
+  try {
+    await db.query('UPDATE users SET role_id = $1 WHERE id = $2', [role_id, id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error al actualizar el rol:', err);
+    res.status(500).json({ error: 'Error al actualizar el rol del usuario' });
   }
 };

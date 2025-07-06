@@ -13,6 +13,7 @@ const authRoutes = require('./routes/auth');
 const registerRoutes = require('./routes/register');
 const emailsRoutes = require('./routes/emails');
 const usersRoutes = require('./routes/users');
+const rolesRoutes = require('./routes/roles');
 
 const app = express();
 app.use(cors());
@@ -28,6 +29,8 @@ app.use('/api', authRoutes);        // /api/login, /api/me
 app.use('/api/register', registerRoutes);
 app.use('/api/emails', emailsRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/roles', rolesRoutes);
+
 
 
 app.listen(process.env.BACKEND_PORT, '0.0.0.0', () => {

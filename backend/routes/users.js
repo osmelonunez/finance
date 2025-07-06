@@ -27,4 +27,13 @@ router.delete(
   usersController.deleteUser
 );
 
+// Actualizar el rol de usuario (solo admin)
+router.put(
+  '/:id/role',
+  authenticateToken,
+  authorizeRoles('admin'),
+  usersController.updateUserRole
+);
+
+
 module.exports = router;
