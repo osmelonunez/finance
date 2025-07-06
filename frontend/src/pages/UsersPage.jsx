@@ -98,7 +98,7 @@ export default function UsersPage() {
                   <td className="py-2 px-4 flex justify-center gap-3">
                     <button
                       title="Restablecer contraseña"
-                      onClick={() => handleResetPassword(u)}
+                      //onClick={() => handleResetPassword(u)}
                       className="text-blue-700 hover:text-blue-900"
                     >
                       <KeyRound size={18} />
