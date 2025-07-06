@@ -83,6 +83,7 @@ async function initializeDatabase() {
       username VARCHAR(255) UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       role_id INTEGER REFERENCES roles(id) DEFAULT 3,
+      active BOOLEAN NOT NULL DEFAULT FALSE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
@@ -252,16 +253,16 @@ async function initializeDatabase() {
 
   if (adminUsername && adminEmail && adminPassword) {
     const passwordHash = await bcrypt.hash(adminPassword, 10);
-
+  
     await client.query(`
-      INSERT INTO users (username, password_hash, role_id)
-      VALUES ($1, $2, 1)
+      INSERT INTO users (username, password_hash, role_id, active)
+      VALUES ($1, $2, 1, TRUE)
       ON CONFLICT (username) DO NOTHING;
     `, [adminUsername, passwordHash]);
-
+    
     const res = await client.query(`SELECT id FROM users WHERE username = $1`, [adminUsername]);
     const adminId = res.rows[0]?.id;
-
+    
     if (adminId) {
       await client.query(`
         INSERT INTO emails (user_id, email, is_primary)
@@ -269,7 +270,7 @@ async function initializeDatabase() {
         ON CONFLICT (email) DO NOTHING;
       `, [adminId, adminEmail]);
     }
-
+  
     console.log(`✅ Usuario administrador "${adminUsername}" creado/verificado con rol admin.`);
   } else {
     console.warn("⚠️  Variables ADMIN_USERNAME, ADMIN_EMAIL o ADMIN_PASSWORD no definidas. No se creó el usuario admin.");
