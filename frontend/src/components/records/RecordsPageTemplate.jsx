@@ -187,7 +187,9 @@ export default function RecordsPageTemplate({
         onAdd={() => setShowAddModal(true)} 
       />
 
-      <TotalDisplay items={filtered} field={field} />
+      <div className="my-4">
+        <TotalDisplay items={filtered} field={field} />
+      </div>
 
       <RecordTable
         records={paginated}
