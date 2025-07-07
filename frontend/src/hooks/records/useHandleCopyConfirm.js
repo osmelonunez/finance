@@ -17,10 +17,7 @@ export default function useHandleCopyConfirm({
     const { record, targetMonth, targetYear } = copyState;
 
     if (!record || !targetMonth || !targetYear) {
-      showNotification(setNotification, {
-        type: 'error',
-        message: 'Please select both month and year.',
-      });
+      showNotification(setNotification, { type: 'error', message: 'Please select both month and year.' });
       return;
     }
 
@@ -41,17 +38,14 @@ export default function useHandleCopyConfirm({
         token,
         `${title.replace(/s$/, '')} copied successfully!`
       );
-      console.log('📋 Copy result:', success);
-
       if (success) {
+        showNotification(setNotification, { type: 'success', message: `${title.replace(/s$/, '')} copied successfully!` });
         setCopyState({ show: false, record: null, targetMonth: '', targetYear: '' });
+      } else {
+        showNotification(setNotification, { type: 'error', message: `Failed to copy ${title.toLowerCase()}.` });
       }
     } catch (err) {
-      console.error('🔥 Error copying record:', err);
-      setNotification({
-        type: 'error',
-        message: `Unexpected error while copying ${title.toLowerCase()}.`,
-      });
+      showNotification(setNotification, { type: 'error', message: `Unexpected error while copying ${title.toLowerCase()}.` });
     }
   }, [copyState, setCopyState, field, isExpenses, endpoint, setRecords, setNotification, token, title]);
 

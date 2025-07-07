@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { deleteRecord } from '../../components/utils/records';
+import { showNotification } from '../../components/utils/showNotification';
 
 export default function useHandleDelete({
   endpoint,
@@ -13,17 +14,15 @@ export default function useHandleDelete({
   const handleDelete = useCallback(async () => {
     try {
       const success = await deleteRecord(endpoint, recordToDelete.id, setRecords, setNotification, token);
-      console.log('🗑️ Delete result:', success);
-
       if (success) {
+        showNotification(setNotification, { type: 'success', message: 'Record deleted successfully!' });
         setShowDeleteModal(false);
         setRecordToDelete(null);
       } else {
-        setNotification({ type: 'error', message: 'Failed to delete record.' });
+        showNotification(setNotification, { type: 'error', message: 'Failed to delete record.' });
       }
     } catch (err) {
-      console.error('🔥 Error while deleting record:', err);
-      setNotification({ type: 'error', message: 'Unexpected error while deleting record.' });
+      showNotification(setNotification, { type: 'error', message: 'Unexpected error while deleting record.' });
     }
   }, [endpoint, recordToDelete, setRecords, setNotification, token, setShowDeleteModal, setRecordToDelete]);
 

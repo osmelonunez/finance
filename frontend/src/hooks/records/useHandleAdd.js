@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { addRecord } from '../../components/utils/records';
+import { showNotification } from '../../components/utils/showNotification';
 
 export default function useHandleAdd({
   endpoint,
@@ -14,30 +15,26 @@ export default function useHandleAdd({
   setNotification
 }) {
   const handleAdd = useCallback(async () => {
-    console.log('🚀 Trying to add record:', newRecord);
-
     const requiredFields = ['name', field, 'month_id', 'year_id'];
     if (requiredFields.some(key => !newRecord[key] || newRecord[key].toString().trim() === '')) {
-      console.warn('❌ Missing required fields:', newRecord);
-      setError('All fields are required.');
+      showNotification(setNotification, { type: 'error', message: 'All fields are required.' });
       return;
     }
 
     try {
       const success = await addRecord(endpoint, newRecord, setRecords, setNotification, token);
-      console.log('✅ Submission result:', success);
-
       if (success) {
+        showNotification(setNotification, { type: 'success', message: 'Record added successfully!' });
         setNewRecord({ name: '', [field]: '', month_id: '', year_id: '', ...(isExpenses && { category_id: '' }) });
         setShowAddModal(false);
         setError('');
       } else {
-        console.error('❌ addRecord returned false.');
+        showNotification(setNotification, { type: 'error', message: 'Failed to add record.' });
         setError('Failed to add record.');
       }
     } catch (err) {
-      console.error('🔥 Error while submitting record:', err);
-      setError('Unexpected error during submission.');
+      showNotification(setNotification, { type: 'error', message: 'Unexpected error while adding record.' });
+      setError('Unexpected error while adding record.');
     }
   }, [endpoint, field, isExpenses, token, newRecord, setNewRecord, setShowAddModal, setError, setRecords, setNotification]);
 
