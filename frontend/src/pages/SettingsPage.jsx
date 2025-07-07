@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Layers, Calendar } from 'lucide-react';
+import { Layers, Calendar, Settings, Users, Plus, Trash, Database, Edit, FolderPlus, CalendarPlus, CalendarMinus, User } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
-import { Settings } from 'lucide-react';
 
 export default function SettingsPage() {
   const [years, setYears] = useState([]);
@@ -88,21 +87,23 @@ export default function SettingsPage() {
       {user?.role === 'admin' && (
         <div className="pt-4">
           <div className="flex items-center gap-2 mb-2">
-            <Settings size={20} className="text-blue-700" />
-            <h3 className="text-md font-semibold text-gray-700">
-              Platform Management
-            </h3>
+            <Settings size={18} className="text-blue-700" />
+            <h3 className="text-md font-semibold text-gray-700">Platform Management</h3>
           </div>
           <div className="border-t border-gray-200 my-4" />
-          <div className="grid grid-cols-3 gap-4 mb-4">
+      
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            {/* Manage Users */}
             <Link
               to="/users"
-              className="inline-flex items-center justify-center px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800 transition"
+              className="inline-flex items-center justify-center px-3 py-1.5 border border-blue-200 bg-blue-50 text-blue-700 rounded font-medium hover:bg-blue-100 transition"
             >
+              <Users size={16} className="mr-1" />
               Manage Users
             </Link>
+            {/* Add test data */}
             <button
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+              className="inline-flex items-center justify-center px-3 py-1.5 border border-green-200 bg-green-50 text-green-700 rounded font-medium hover:bg-green-100 transition"
               onClick={async () => {
                 try {
                   const res = await fetch('/api/dev/seed', { method: 'POST' });
@@ -113,10 +114,12 @@ export default function SettingsPage() {
                 }
               }}
             >
+              <Plus size={16} className="mr-1" />
               Add test data
             </button>
+            {/* Remove test data */}
             <button
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+              className="inline-flex items-center justify-center px-3 py-1.5 border border-red-200 bg-red-50 text-red-700 rounded font-medium hover:bg-red-100 transition"
               onClick={async () => {
                 try {
                   const res = await fetch('/api/dev/clean', { method: 'DELETE' });
@@ -127,10 +130,12 @@ export default function SettingsPage() {
                 }
               }}
             >
+              <Trash size={16} className="mr-1" />
               Remove test data
             </button>
+            {/* Create Backup Now */}
             <button
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+              className="inline-flex items-center justify-center px-3 py-1.5 border border-green-200 bg-green-50 text-green-700 rounded font-medium hover:bg-green-100 transition"
               onClick={async () => {
                 try {
                   const res = await fetch('/api/backup/now', { method: 'POST' });
@@ -141,15 +146,22 @@ export default function SettingsPage() {
                 }
               }}
             >
+              <Database size={16} className="mr-1" />
               Create Backup Now
             </button>
+            {/* Backup Schedule with two icons */}
             <button
-              className="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded"
+              className="inline-flex items-center justify-center px-3 py-1.5 border border-blue-200 bg-blue-50 text-blue-700 rounded font-medium hover:bg-blue-100 transition"
               onClick={() => setShowSchedule(!showSchedule)}
             >
+              <Calendar size={16} className="mr-1" />
+              <Database size={16} className="mr-1" />
               Backup Schedule
             </button>
+            {/* Espacio vacío para balancear el grid */}
+            <div />
           </div>
+            
           {/* Backup Schedule Form */}
           {showSchedule && (
             <form
@@ -217,31 +229,31 @@ export default function SettingsPage() {
         </div>
       )}
         
-        <div className={`pt-4${showManageUsers ? ' border-t mt-6' : ''}`}>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-purple-600 font-bold">👤</span>
-            <h3 className="text-md font-semibold text-gray-700">Account Info</h3>
-          </div>
-          <Link
-            to="/account"
-            className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition"
-          >
-            Edit Profile
-          </Link>
+      <div className={`pt-4${showManageUsers ? ' border-t mt-6' : ''}`}>
+        <div className="flex items-center gap-2 mb-2">
+          <User size={20} className="text-purple-600" />
+          <h3 className="text-md font-semibold text-gray-700">Account Info</h3>
         </div>
-
+        <Link
+          to="/account"
+          className="inline-flex items-center px-3 py-1.5 border border-blue-200 bg-blue-50 text-blue-700 rounded font-medium shadow hover:bg-blue-100 transition"
+        >
+          Edit Profile
+        </Link>
+      </div>
 
         <div className="pt-4 border-t mt-6">
           <div className="flex items-center gap-2 mb-2">
             <Layers size={18} className="text-blue-600" />
             <h3 className="text-md font-semibold text-gray-700">Categories</h3>
           </div>
-          <Link
-            to="/categories"
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-          >
-            Manage Categories
-          </Link>
+            <Link
+              to="/categories"
+              className="inline-flex items-center px-3 py-1.5 border border-blue-200 bg-blue-50 text-blue-700 rounded font-medium shadow hover:bg-blue-100 transition"
+            >
+              <FolderPlus size={16} className="mr-1" />
+              Manage Categories
+            </Link>
         </div>
 
         <div className="pt-6">
@@ -251,15 +263,17 @@ export default function SettingsPage() {
           </div>
           <div className="flex gap-2">
             <button
+              className="inline-flex items-center px-3 py-1.5 border border-green-200 bg-green-50 text-green-700 rounded font-medium shadow hover:bg-green-100 transition"
               onClick={() => { setAction('add'); setShowYearModal(true); setErrorMessage(''); setSuccessMessage(''); }}
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
             >
+              <CalendarPlus size={16} className="mr-1" />
               Add Year
             </button>
             <button
+              className="inline-flex items-center px-3 py-1.5 border border-red-200 bg-red-50 text-red-700 rounded font-medium shadow hover:bg-red-100 transition"
               onClick={() => { setAction('delete'); setShowYearModal(true); setErrorMessage(''); setSuccessMessage(''); }}
-              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
             >
+              <CalendarMinus size={16} className="mr-1" />
               Delete Year
             </button>
           </div>
