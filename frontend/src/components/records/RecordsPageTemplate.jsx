@@ -14,10 +14,7 @@ import useHandleCopyConfirm from '../../hooks/records/useHandleCopyConfirm';
 // 3. Componentes locales
 import FiltersBar from './FiltersBarRecords';
 import RecordTable from './RecordTable';
-import CopyRecordModal from './CopyRecordModal';
-import AddRecordModal from './AddRecordModal';
-import EditRecordModal from './EditRecordModal';
-import DeleteModal from './DeleteModal';
+import RecordsModals from './RecordsModals';
 import TotalDisplay from '../common/TotalDisplay';
 import Pagination from '../common/Pagination';
 import Notification from '../common/Notification';
@@ -123,74 +120,35 @@ export default function RecordsPageTemplate({
         onPageChange={setCurrentPage}
       />
 
-      {showAddModal && (
-        <AddRecordModal
-          type={type}
-          categories={categories}
-          isOpen={showAddModal}
-          onCancel={() => setShowAddModal(false)}
-          onConfirm={handleAdd}
-          record={newRecord}
-          onChange={(e) =>
-            setNewRecord({ ...newRecord, [e.target.name]: e.target.value })
-          }
-          months={months}
-          years={years}
-          error={error}
-          field={field}
-          hasCategory={hasCategory}
-        />
-      )}
+      <RecordsModals
+        showAddModal={showAddModal}
+        setShowAddModal={setShowAddModal}
+        handleAdd={handleAdd}
+        newRecord={newRecord}
+        setNewRecord={setNewRecord}
+        months={months}
+        years={years}
+        error={error}
+        field={field}
+        type={type}
+        categories={categories}
+        hasCategory={hasCategory}
 
-      {showEditModal && (
-        <EditRecordModal
-          type={type}
-          categories={categories}
-          isOpen={showEditModal}
-          onCancel={() => setShowEditModal(false)}
-          onConfirm={handleEdit}
-          record={editingRecord}
-          onChange={(e) =>
-            setEditingRecord({ ...editingRecord, [e.target.name]: e.target.value })
-          }
-          months={months}
-          years={years}
-          field={field}
-        />
-      )}
+        showEditModal={showEditModal}
+        setShowEditModal={setShowEditModal}
+        handleEdit={handleEdit}
+        editingRecord={editingRecord}
+        setEditingRecord={setEditingRecord}
 
-      {showDeleteModal && (
-        <DeleteModal
-          isOpen={showDeleteModal}
-          onCancel={() => setShowDeleteModal(false)}
-          onConfirm={handleDelete}
-        />
-      )}
+        showDeleteModal={showDeleteModal}
+        setShowDeleteModal={setShowDeleteModal}
+        handleDelete={handleDelete}
 
-      {copyState.show && (
-        <CopyRecordModal
-          type={type}
-          categories={categories}
-          isOpen={copyState.show}
-          onCancel={() =>
-            setCopyState((prev) => ({ ...prev, show: false }))
-          }
-          onConfirm={handleCopyConfirm}
-          record={copyState.record}
-          months={months}
-          years={years}
-          targetMonth={copyState.targetMonth}
-          setTargetMonth={(value) =>
-            setCopyState((prev) => ({ ...prev, targetMonth: value }))
-          }
-          targetYear={copyState.targetYear}
-          setTargetYear={(value) =>
-            setCopyState((prev) => ({ ...prev, targetYear: value }))
-          }
-          label={title.replace(/s$/, '')}
-          hasCategory={hasCategory}
-        />
-      )}
+        copyState={copyState}
+        setCopyState={setCopyState}
+        handleCopyConfirm={handleCopyConfirm}
+        title={title}
+      />
 
       {notification && (
         <Notification
