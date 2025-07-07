@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Layers, Calendar } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
+import { Settings } from 'lucide-react';
 
 export default function SettingsPage() {
   const [years, setYears] = useState([]);
@@ -83,115 +84,51 @@ export default function SettingsPage() {
 
       <div className="bg-white rounded-lg shadow p-6 space-y-6">
 
-        {/* 👥 Manage Users */}
-        {user?.role === 'admin' && (
-          <div className="pt-4">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-blue-700 font-bold">👥</span>
-              <h3 className="text-md font-semibold text-gray-700">Manage Users</h3>
-            </div>
+      {/* Platform Management */}
+      {user?.role === 'admin' && (
+        <div className="pt-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Settings size={20} className="text-blue-700" />
+            <h3 className="text-md font-semibold text-gray-700">
+              Platform Management
+            </h3>
+          </div>
+          <div className="border-t border-gray-200 my-4" />
+          <div className="grid grid-cols-3 gap-4 mb-4">
             <Link
               to="/users"
-              className="inline-flex items-center px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800 transition"
+              className="inline-flex items-center justify-center px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800 transition"
             >
               Manage Users
             </Link>
-          </div>
-        )}
-        
-        <div className={`pt-4${showManageUsers ? ' border-t mt-6' : ''}`}>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-purple-600 font-bold">👤</span>
-            <h3 className="text-md font-semibold text-gray-700">Account Info</h3>
-          </div>
-          <Link
-            to="/account"
-            className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition"
-          >
-            Edit Profile
-          </Link>
-        </div>
-
-
-        <div className="pt-4 border-t mt-6">
-          <div className="flex items-center gap-2 mb-2">
-            <Layers size={18} className="text-blue-600" />
-            <h3 className="text-md font-semibold text-gray-700">Categories</h3>
-          </div>
-          <Link
-            to="/categories"
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-          >
-            Manage Categories
-          </Link>
-        </div>
-
-        <div className="pt-6">
-          <div className="flex items-center gap-2 mb-2 border-t pt-4">
-            <Calendar size={18} className="text-green-600" />
-            <h3 className="text-md font-semibold text-gray-700">Years</h3>
-          </div>
-          <div className="flex gap-2">
             <button
-              onClick={() => { setAction('add'); setShowYearModal(true); setErrorMessage(''); setSuccessMessage(''); }}
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/dev/seed', { method: 'POST' });
+                  if (!res.ok) throw new Error();
+                  alert('Test data added!');
+                } catch {
+                  alert('Error adding test data');
+                }
+              }}
             >
-              Add Year
+              Add test data
             </button>
             <button
-              onClick={() => { setAction('delete'); setShowYearModal(true); setErrorMessage(''); setSuccessMessage(''); }}
-              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/dev/clean', { method: 'DELETE' });
+                  if (!res.ok) throw new Error();
+                  alert('Test data removed!');
+                } catch {
+                  alert('Error removing test data');
+                }
+              }}
             >
-              Delete Year
+              Remove test data
             </button>
-          </div>
-          {successMessage && <p className="text-sm text-green-600 mt-2">{successMessage}</p>}
-        </div>
-
-        <div className="border-t border-gray-200 my-6" />
-          <div className="pt-4">
-            <h3 className="text-md font-semibold text-gray-700 mb-2 flex items-center gap-2">
-              🧪 Dev Data Tools
-            </h3>
-            <div className="flex gap-4">
-              <button
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
-                onClick={async () => {
-                  try {
-                    const res = await fetch('/api/dev/seed', { method: 'POST' });
-                    if (!res.ok) throw new Error();
-                    alert('Test data added!');
-                  } catch {
-                    alert('Error adding test data');
-                  }
-                }}
-              >
-                Add test data
-              </button>
-              <button
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
-                onClick={async () => {
-                  try {
-                    const res = await fetch('/api/dev/clean', { method: 'DELETE' });
-                    if (!res.ok) throw new Error();
-                    alert('Test data removed!');
-                  } catch {
-                    alert('Error removing test data');
-                  }
-                }}
-              >
-                Remove test data
-              </button>
-            </div>
-        </div>
-
-        <div className="border-t border-gray-200 my-6" />
-                      
-        <div className="pt-4">
-          <h3 className="text-md font-semibold text-gray-700 mb-2 flex items-center gap-2">
-            🗄️ Database Backups
-          </h3>
-          <div className="flex gap-4 mb-4">
             <button
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
               onClick={async () => {
@@ -210,9 +147,10 @@ export default function SettingsPage() {
               className="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded"
               onClick={() => setShowSchedule(!showSchedule)}
             >
-              Schedule
+              Backup Schedule
             </button>
           </div>
+          {/* Backup Schedule Form */}
           {showSchedule && (
             <form
               onSubmit={async (e) => {
@@ -277,6 +215,58 @@ export default function SettingsPage() {
             </form>
           )}
         </div>
+      )}
+        
+        <div className={`pt-4${showManageUsers ? ' border-t mt-6' : ''}`}>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-purple-600 font-bold">👤</span>
+            <h3 className="text-md font-semibold text-gray-700">Account Info</h3>
+          </div>
+          <Link
+            to="/account"
+            className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition"
+          >
+            Edit Profile
+          </Link>
+        </div>
+
+
+        <div className="pt-4 border-t mt-6">
+          <div className="flex items-center gap-2 mb-2">
+            <Layers size={18} className="text-blue-600" />
+            <h3 className="text-md font-semibold text-gray-700">Categories</h3>
+          </div>
+          <Link
+            to="/categories"
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+          >
+            Manage Categories
+          </Link>
+        </div>
+
+        <div className="pt-6">
+          <div className="flex items-center gap-2 mb-2 border-t pt-4">
+            <Calendar size={18} className="text-green-600" />
+            <h3 className="text-md font-semibold text-gray-700">Years</h3>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setAction('add'); setShowYearModal(true); setErrorMessage(''); setSuccessMessage(''); }}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+            >
+              Add Year
+            </button>
+            <button
+              onClick={() => { setAction('delete'); setShowYearModal(true); setErrorMessage(''); setSuccessMessage(''); }}
+              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            >
+              Delete Year
+            </button>
+          </div>
+          {successMessage && <p className="text-sm text-green-600 mt-2">{successMessage}</p>}
+        </div>
+
+        <div/>
 
       </div>
 
