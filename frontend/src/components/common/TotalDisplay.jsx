@@ -15,11 +15,15 @@ export default function TotalDisplay({
   const total = items.reduce((acc, item) => acc + (parseFloat(item[field]) || 0), 0);
 
   return (
-    <div className={`${bgColor} border ${borderColor} rounded-lg p-4 text-right font-semibold ${textColor}`}>
-      {label}: {total.toLocaleString('es-ES', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      })} {currency}
+    <div
+      className={`${bgColor} border ${borderColor} rounded-lg font-semibold ${textColor} w-full flex items-center justify-end h-10 px-4`}
+    >
+      <span className="text-base">
+        Total: {total.toLocaleString('es-ES', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        })} {currency}
+      </span>
     </div>
   );
 }
