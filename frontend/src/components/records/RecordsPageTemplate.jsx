@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import useAuthToken from '../../hooks/useAuthToken';
 import useRecordsData from '../../hooks/useRecordsData';
 import useFilteredRecords from '../../hooks/useFilteredRecords';
-import useCategoriesData from '../../hooks/useCategoriesData';
+import useCategoriesData from '../../hooks/records/useHandleCategoriesData';
 import useHandleAdd from '../../hooks/records/useHandleAdd';
 import useHandleEdit from '../../hooks/records/useHandleEdit';
 import useHandleDelete from '../../hooks/records/useHandleDelete';
@@ -15,8 +15,8 @@ import useHandleCopyConfirm from '../../hooks/records/useHandleCopyConfirm';
 import FiltersBar from './FiltersBarRecords';
 import RecordTable from './RecordTable';
 import RecordsModals from './RecordsModals';
-import TotalDisplay from '../common/TotalDisplay';
-import Pagination from '../common/Pagination';
+import TotalDisplay from './TotalDisplay';
+import Pagination from './Pagination';
 import Notification from '../common/Notification';
 
 export default function RecordsPageTemplate({

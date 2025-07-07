@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import useAuthToken from './useAuthToken';
+import useAuthToken from '../useAuthToken';
 
 export default function useCategoriesData(endpoint = '/api/categories') {
   const [categories, setCategories] = useState([]);
