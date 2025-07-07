@@ -1,3 +1,5 @@
+import { Plus } from 'lucide-react';
+
 export default function FiltersBarRecords({
   filters,
   setFilters,
@@ -85,11 +87,11 @@ export default function FiltersBarRecords({
             </select>
           </div>
         )}
-
         <button
           onClick={onAdd}
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 ml-auto"
+          className="inline-flex items-center px-3 py-1.5 border border-green-300 bg-green-100 text-green-800 rounded font-medium hover:bg-green-200 transition ml-auto"
         >
+          <Plus size={16} className="mr-1" />
           Add {label}
         </button>
       </div>
