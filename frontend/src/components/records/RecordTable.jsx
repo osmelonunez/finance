@@ -39,21 +39,30 @@ export default function RecordTable({
               )}
               <td className="px-4 py-2 text-gray-800 text-right space-x-2">
                 <button
-                  onClick={() => onCopy(record)}
+                  onClick={() => { 
+                    //console.log('Copy:', record); 
+                    onCopy(record); 
+                  }}
                   className="bg-cyan-500 hover:bg-cyan-600 text-white px-2 py-1 rounded"
                   title="Copy"
                 >
                   <Copy size={16} />
                 </button>
                 <button
-                  onClick={() => onEdit(record)}
+                  onClick={() => { 
+                    console.log('onEdit', record);
+                    onEdit(record);
+                  }}
                   className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded"
                   title="Edit"
                 >
                   <Wrench size={16} />
                 </button>
                 <button
-                  onClick={() => onDelete(record)}
+                  onClick={() => { 
+                    console.log('onDelete', record);
+                    onDelete(record);
+                  }}
                   className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded"
                   title="Delete"
                 >
