@@ -1,17 +1,24 @@
+// 1. React y librerías externas
 import { useState, useEffect } from 'react';
+
+// 2. Hooks personalizados
+import useAuthToken from '../../hooks/useAuthToken';
 import useRecordsData from '../../hooks/useRecordsData';
 import useFilteredRecords from '../../hooks/useFilteredRecords';
 import useCategoriesData from '../../hooks/useCategoriesData';
-import useAuthToken from '../../hooks/useAuthToken';
+
+// 3. Componentes locales
 import FiltersBar from './FiltersBarRecords';
 import RecordTable from './RecordTable';
 import CopyRecordModal from './CopyRecordModal';
-import TotalDisplay from '../common/TotalDisplay';
-import Pagination from '../common/Pagination';
-import Notification from '../common/Notification';
 import AddRecordModal from './AddRecordModal';
 import EditRecordModal from './EditRecordModal';
 import DeleteModal from './DeleteModal';
+import TotalDisplay from '../common/TotalDisplay';
+import Pagination from '../common/Pagination';
+import Notification from '../common/Notification';
+
+// 4. Utilidades y helpers
 import { isValidRecord } from '../utils/validation';
 import { showNotification } from '../utils/showNotification';
 import { addRecord, updateRecord, deleteRecord } from '../utils/records';
