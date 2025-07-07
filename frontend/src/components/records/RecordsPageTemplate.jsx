@@ -6,6 +6,10 @@ import useAuthToken from '../../hooks/useAuthToken';
 import useRecordsData from '../../hooks/useRecordsData';
 import useFilteredRecords from '../../hooks/useFilteredRecords';
 import useCategoriesData from '../../hooks/useCategoriesData';
+import useHandleAdd from '../../hooks/records/useHandleAdd';
+import useHandleEdit from '../../hooks/records/useHandleEdit';
+import useHandleDelete from '../../hooks/records/useHandleDelete';
+import useHandleCopyConfirm from '../../hooks/records/useHandleCopyConfirm';
 
 // 3. Componentes locales
 import FiltersBar from './FiltersBarRecords';
@@ -17,11 +21,6 @@ import DeleteModal from './DeleteModal';
 import TotalDisplay from '../common/TotalDisplay';
 import Pagination from '../common/Pagination';
 import Notification from '../common/Notification';
-
-// 4. Utilidades y helpers
-import { isValidRecord } from '../utils/validation';
-import { showNotification } from '../utils/showNotification';
-import { addRecord, updateRecord, deleteRecord } from '../utils/records';
 
 export default function RecordsPageTemplate({
   type,
@@ -74,108 +73,10 @@ export default function RecordsPageTemplate({
   const itemsPerPage = 10;
   const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const handleAdd = async () => {
-    console.log('🚀 Trying to add record:', newRecord);
-
-    const requiredFields = ['name', field, 'month_id', 'year_id'];
-    if (requiredFields.some(key => !newRecord[key] || newRecord[key].toString().trim() === '')) {
-      console.warn('❌ Missing required fields:', newRecord);
-      setError('All fields are required.');
-      return;
-    }
-
-    try {
-      const success = await addRecord(endpoint, newRecord, setRecords, setNotification, token);
-      console.log('✅ Submission result:', success);
-
-      if (success) {
-        setNewRecord({ name: '', [field]: '', month_id: '', year_id: '', ...(isExpenses && { category_id: '' }) });
-        setShowAddModal(false);
-        setError('');
-      } else {
-        console.error('❌ addRecord returned false.');
-        setError('Failed to add record.');
-      }
-    } catch (err) {
-      console.error('🔥 Error while submitting record:', err);
-      setError('Unexpected error during submission.');
-    }
-  };
-
-  const handleCopyConfirm = async () => {
-    const { record, targetMonth, targetYear } = copyState;
-
-    if (!record || !targetMonth || !targetYear) {
-      showNotification(setNotification, {
-        type: 'error',
-        message: 'Please select both month and year.',
-      });
-      return;
-    }
-
-    const newEntry = {
-      name: record.name,
-      [field]: record[field],
-      month_id: targetMonth,
-      year_id: targetYear,
-      ...(isExpenses && { category_id: record.category_id }),
-    };
-
-    try {
-      const success = await addRecord(endpoint, newEntry, setRecords, setNotification, token, `${title.replace(/s$/, '')} copied successfully!`);
-      console.log('📋 Copy result:', success);
-
-      if (success) {
-        setCopyState({ show: false, record: null, targetMonth: '', targetYear: '' });
-      }
-    } catch (err) {
-      console.error('🔥 Error copying record:', err);
-      setNotification({
-        type: 'error',
-        message: `Unexpected error while copying ${title.toLowerCase()}.`,
-      });
-    }
-  };
-
-  const handleDelete = async () => {
-    try {
-      const success = await deleteRecord(endpoint, recordToDelete.id, setRecords, setNotification, token);
-      console.log('🗑️ Delete result:', success);
-
-      if (success) {
-        setShowDeleteModal(false);
-        setRecordToDelete(null);
-      } else {
-        setNotification({ type: 'error', message: 'Failed to delete record.' });
-      }
-    } catch (err) {
-      console.error('🔥 Error while deleting record:', err);
-      setNotification({ type: 'error', message: 'Unexpected error while deleting record.' });
-    }
-  };
-
-  const handleEdit = async () => {
-    if (!isValidRecord(editingRecord, field)) {
-      setError('Please fill out all fields');
-      return;
-    }
-
-    try {
-      const success = await updateRecord(endpoint, editingRecord, setRecords, setNotification, token);
-      console.log('✅ Update result:', success);
-
-      if (success) {
-        setShowEditModal(false);
-        setEditingRecord(null);
-        setError('');
-      } else {
-        setError('Failed to update record.');
-      }
-    } catch (err) {
-      console.error('🔥 Error while updating record:', err);
-      setError('Unexpected error during update.');
-    }
-  };
+  const handleAdd = useHandleAdd({ endpoint, field, isExpenses, token, newRecord, setNewRecord, setShowAddModal, setError, setRecords, setNotification });
+  const handleEdit = useHandleEdit({ endpoint, field, token, editingRecord, setEditingRecord, setShowEditModal, setError, setRecords, setNotification });
+  const handleDelete = useHandleDelete({ endpoint, recordToDelete, setRecords, setNotification, token, setShowDeleteModal, setRecordToDelete });
+  const handleCopyConfirm = useHandleCopyConfirm({ copyState, setCopyState, field, isExpenses, endpoint, setRecords, setNotification, token, title });
 
   return (
     <div className="records-page">
