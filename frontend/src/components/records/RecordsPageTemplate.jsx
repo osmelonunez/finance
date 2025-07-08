@@ -65,6 +65,7 @@ export default function RecordsPageTemplate({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [copyState, setCopyState] = useState({ show: false, record: null, targetMonth: '', targetYear: '' });
   const [error, setError] = useState('');
+  const [infoRecord, setInfoRecord] = useState(null);
 
   const filtered = useFilteredRecords(records, filters, search, sort, field);
   const itemsPerPage = 10;
@@ -89,11 +90,17 @@ export default function RecordsPageTemplate({
         setSearch={setSearch}
         sort={sort}
         setSort={setSort}
-        onAdd={() => setShowAddModal(true)} 
+        onAdd={() => setShowAddModal(true)}
+        type={type}
+        label={type.charAt(0).toUpperCase() + type.slice(1).replace(/s$/, '')}
       />
 
       <div className="my-4">
-        <TotalDisplay items={filtered} field={field} />
+        <TotalDisplay
+          items={filtered}
+          field={field}
+          excludeSource={type === 'expenses' && !filters.source ? 'general_savings' : undefined}
+        />
       </div>
 
       <RecordTable
@@ -112,6 +119,7 @@ export default function RecordsPageTemplate({
         onCopy={(record) => {
           setCopyState({ show: true, record, targetMonth: '', targetYear: '' });
         }}
+        onInfo={setInfoRecord}
       />
 
       <Pagination
@@ -148,6 +156,9 @@ export default function RecordsPageTemplate({
         setCopyState={setCopyState}
         handleCopyConfirm={handleCopyConfirm}
         title={title}
+
+        infoRecord={infoRecord}
+        setInfoRecord={setInfoRecord}
       />
 
       {notification && (

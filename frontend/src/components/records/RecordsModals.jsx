@@ -2,6 +2,7 @@ import AddRecordModal from './AddRecordModal';
 import EditRecordModal from './EditRecordModal';
 import DeleteModal from './DeleteModal';
 import CopyRecordModal from './CopyRecordModal';
+import InfoModal from './InfoModal';
 
 export default function RecordsModals({
   showAddModal,
@@ -30,7 +31,10 @@ export default function RecordsModals({
   copyState,
   setCopyState,
   handleCopyConfirm,
-  title
+  title,
+
+  infoRecord,
+  setInfoRecord
 }) {
   return (
     <>
@@ -92,6 +96,14 @@ export default function RecordsModals({
           hasCategory={hasCategory}
         />
       )}
+
+      {infoRecord && (
+        <InfoModal
+          record={infoRecord}
+          onClose={() => setInfoRecord(null)}
+        />
+      )}
+
     </>
   );
 }

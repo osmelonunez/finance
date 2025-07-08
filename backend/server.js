@@ -17,7 +17,6 @@ const rolesRoutes = require('./routes/roles');
 const devRoutes = require('./routes/dev');
 const backupRoutes = require('./routes/backup');
 
-
 const app = express();
 app.use(cors());
 app.use(express.json());

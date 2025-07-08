@@ -13,30 +13,30 @@ export default function DashboardPage() {
     async function fetchData() {
       const [resIncomes, resExpenses, resSavings, resMonths, resYears] = await Promise.all([
         fetch('/api/incomes', {
-  headers: {
-    Authorization: `Bearer ${localStorage.getItem('token')}`
-  }
-}),
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        }),
         fetch('/api/expenses', {
-  headers: {
-    Authorization: `Bearer ${localStorage.getItem('token')}`
-  }
-}),
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        }),
         fetch('/api/savings', {
-  headers: {
-    Authorization: `Bearer ${localStorage.getItem('token')}`
-  }
-}),
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        }),
         fetch('/api/months', {
-  headers: {
-    Authorization: `Bearer ${localStorage.getItem('token')}`
-  }
-}),
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        }),
         fetch('/api/years', {
-  headers: {
-    Authorization: `Bearer ${localStorage.getItem('token')}`
-  }
-})
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        })
       ]);
       const [incomesData, expensesData, savingsData, monthsData, yearsData] = await Promise.all([
         resIncomes.json(),
@@ -58,15 +58,32 @@ export default function DashboardPage() {
   const filteredExpenses = expenses.filter(e => (!filters.month_id || e.month_id === parseInt(filters.month_id)) && (!filters.year_id || e.year_id === parseInt(filters.year_id)));
   const filteredSavings = savings.filter(s => (!filters.month_id || s.month_id === parseInt(filters.month_id)) && (!filters.year_id || s.year_id === parseInt(filters.year_id)));
 
+  // SOLO expenses que NO son de general_savings (para totales y gráficos)
+  const filteredExpensesNoSavings = filteredExpenses.filter(e => e.source !== "general_savings");
+
+  // 1. Suma total ahorros
+  const totalSavingsRaw = filteredSavings.reduce((sum, s) => sum + parseFloat(s.amount), 0);
+  // 2. Suma gastos desde ahorros generales
+  const generalSavingsExpenses = filteredExpenses.filter(e => e.source === "general_savings").reduce((sum, e) => sum + parseFloat(e.cost), 0);
+  // 3. Nuevo total savings
+  const totalSavings = totalSavingsRaw - generalSavingsExpenses;
+
   const totalIncome = filteredIncomes.reduce((sum, i) => sum + parseFloat(i.amount), 0);
-  const totalExpenses = filteredExpenses.reduce((sum, e) => sum + parseFloat(e.cost), 0);
-  const totalSavings = filteredSavings.reduce((sum, s) => sum + parseFloat(s.amount), 0);
+  const totalExpenses = filteredExpensesNoSavings.reduce((sum, e) => sum + parseFloat(e.cost), 0);
   const balance = totalIncome - totalExpenses - totalSavings;
 
   const groupedData = months.map(m => {
-    const incomeMonth = incomes.filter(i => i.month_id === m.id && (!filters.year_id || i.year_id === parseInt(filters.year_id))).reduce((sum, i) => sum + parseFloat(i.amount), 0);
-    const expenseMonth = expenses.filter(e => e.month_id === m.id && (!filters.year_id || e.year_id === parseInt(filters.year_id))).reduce((sum, e) => sum + parseFloat(e.cost), 0);
-    const savingMonth = savings.filter(s => s.month_id === m.id && (!filters.year_id || s.year_id === parseInt(filters.year_id))).reduce((sum, s) => sum + parseFloat(s.amount), 0);
+    const incomeMonth = incomes
+      .filter(i => i.month_id === m.id && (!filters.year_id || i.year_id === parseInt(filters.year_id)))
+      .reduce((sum, i) => sum + parseFloat(i.amount), 0);
+    // Solo expenses que NO son de general_savings para los gráficos
+    const expenseMonth = expenses
+      .filter(e => e.month_id === m.id && (!filters.year_id || e.year_id === parseInt(filters.year_id)) && e.source !== "general_savings")
+      .reduce((sum, e) => sum + parseFloat(e.cost), 0);
+    const savingMonth = savings
+      .filter(s => s.month_id === m.id && (!filters.year_id || s.year_id === parseInt(filters.year_id)))
+      .reduce((sum, s) => sum + parseFloat(s.amount), 0);
+    // NOTA: Si quisieras mostrar savings mes a mes "reales", puedes restar también aquí los gastos general_savings de ese mes.
     return {
       name: m.name.substring(0, 3),
       income: parseFloat(incomeMonth.toFixed(2)),
@@ -135,7 +152,12 @@ export default function DashboardPage() {
             <PieChart>
               <Pie
                 dataKey="value"
-                data={[{ name: 'Incomes', value: totalIncome }, { name: 'Expenses', value: totalExpenses }, { name: 'Savings', value: totalSavings }, { name: 'Balance', value: balance }]}
+                data={[
+                  { name: 'Incomes', value: totalIncome },
+                  { name: 'Expenses', value: totalExpenses },
+                  { name: 'Savings', value: totalSavings },
+                  { name: 'Balance', value: balance }
+                ]}
                 cx="50%"
                 cy="50%"
                 outerRadius={90}

@@ -5,16 +5,21 @@ import { useAuth } from '../auth/AuthContext';
 export default function LoginPage() {
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-
-useEffect(() => {
-  if (isAuthenticated && localStorage.getItem('token')) {
-    console.log('Usuario autenticado, redirigiendo al dashboard');
-    navigate('/dashboard');
-  }
-}, [isAuthenticated]);
   const location = useLocation();
+
+  useEffect(() => {
+    if (
+      isAuthenticated &&
+      localStorage.getItem('token') &&
+      location.pathname === '/login'
+    ) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate, location]);
+
   const [form, setForm] = useState({ username: '', password: '' });
 
+  // Si venías de otra página protegida, regresas ahí después del login
   const from = location.state?.from?.pathname || '/';
 
   const [error, setError] = useState('');

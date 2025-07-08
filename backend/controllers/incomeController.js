@@ -17,14 +17,30 @@ exports.getIncomes = async (req, res) => {
   }
 };
 
-// Crear ingreso sin asociarlo a un usuario específico
+// Crear ingreso y asociar usuario
 exports.createIncome = async (req, res) => {
   const { name, amount, month_id, year_id } = req.body;
 
   try {
+    const userId = req.user.userId;
+    const username = req.user.username;
+
     await db.query(
-      'INSERT INTO incomes (name, amount, month_id, year_id) VALUES ($1, $2, $3, $4)',
-      [name, amount, month_id, year_id]
+      `INSERT INTO incomes (
+        name, amount, month_id, year_id,
+        created_by_user_id, created_by_username,
+        last_modified_by_user_id, last_modified_by_username
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        name,
+        amount,
+        month_id,
+        year_id,
+        userId,
+        username,
+        userId,
+        username
+      ]
     );
 
     const result = await db.query(
@@ -41,15 +57,29 @@ exports.createIncome = async (req, res) => {
   }
 };
 
-// Actualizar cualquier ingreso por ID
+// Actualizar cualquier ingreso por ID y asociar usuario modificador
 exports.updateIncome = async (req, res) => {
   const { id } = req.params;
   const { name, amount, month_id, year_id } = req.body;
 
   try {
+    const userId = req.user.userId;
+    const username = req.user.username;
+
     await db.query(
-      'UPDATE incomes SET name=$1, amount=$2, month_id=$3, year_id=$4 WHERE id=$5',
-      [name, amount, month_id, year_id, id]
+      `UPDATE incomes
+       SET name=$1, amount=$2, month_id=$3, year_id=$4,
+           last_modified_by_user_id=$5, last_modified_by_username=$6
+       WHERE id=$7`,
+      [
+        name,
+        amount,
+        month_id,
+        year_id,
+        userId,
+        username,
+        id
+      ]
     );
 
     const result = await db.query(
@@ -66,7 +96,7 @@ exports.updateIncome = async (req, res) => {
   }
 };
 
-// Eliminar cualquier ingreso por ID
+// Eliminar cualquier ingreso por ID (sin cambio)
 exports.deleteIncome = async (req, res) => {
   const { id } = req.params;
 

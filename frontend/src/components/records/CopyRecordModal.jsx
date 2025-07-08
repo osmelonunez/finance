@@ -18,12 +18,18 @@ export default function CopyRecordModal({
   const isExpenses = type === 'expenses';
 
   return (
-    <Modal isOpen={isOpen} onCancel={onCancel} onConfirm={onConfirm} title={`Copy ${label}`}>
+    <Modal 
+      isOpen={isOpen} 
+      onCancel={onCancel} 
+      onConfirm={onConfirm} 
+      title={`Copy ${label.charAt(0).toUpperCase() + label.slice(1)}`}
+      >
       <div className="space-y-4">
         <p className="text-gray-600">
           You are copying <strong>{record?.name}</strong>.
           Please select the new month and year for the copied {label.toLowerCase()}.
         </p>
+
 
         
 

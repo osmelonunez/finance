@@ -7,6 +7,7 @@ function authenticateToken(req, res, next) {
   if (!token) return res.status(401).json({ error: 'Token requerido' });
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    //console.log('Payload JWT:', user);
     if (err) return res.status(403).json({ error: 'Token inválido o expirado' });
     req.user = user;
     next();

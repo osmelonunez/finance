@@ -7,6 +7,7 @@ const { authenticateToken } = require('../middleware/authMiddleware');
 // No se filtra por usuario ni por rol
 
 router.get('/', authenticateToken, expensesController.getExpenses);
+router.get('/sources', expensesController.getExpenseSources);
 router.post('/', authenticateToken, expensesController.createExpense);
 router.put('/:id', authenticateToken, expensesController.updateExpense);
 router.delete('/:id', authenticateToken, expensesController.deleteExpense);

@@ -19,7 +19,11 @@ export default function AddRecordModal({
   if (!record) return null;
 
   return (
-    <Modal title="Add Record" isOpen={isOpen} onCancel={onCancel} onConfirm={onConfirm}>
+    <Modal 
+      title={`Add ${type.charAt(0).toUpperCase() + type.slice(1).replace(/s$/, '')}`}
+      isOpen={isOpen} 
+      onCancel={onCancel} 
+      onConfirm={onConfirm}>
       {error && <ErrorMessage message={error} />}
       <div className="grid md:grid-cols-4 gap-4 mt-2">
         <input
@@ -76,6 +80,19 @@ export default function AddRecordModal({
             ))}
           </select>
         )}
+
+        {isExpenses && (
+          <select
+            name="source"
+            value={record.source || 'current_month'}
+            onChange={onChange}
+            className="border rounded px-3 py-2 col-span-2"
+          >
+            <option value="current_month">Current month</option>
+            <option value="general_savings">General savings</option>
+          </select>
+        )}
+
       </div>
     </Modal>
   );

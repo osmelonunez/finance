@@ -20,7 +20,7 @@ exports.getSavings = async (req, res) => {
   }
 };
 
-// Crear un nuevo ahorro
+// Crear un nuevo ahorro (saving)
 exports.createSaving = async (req, res) => {
   const { name, amount, month_id, year_id } = req.body;
 
@@ -29,9 +29,25 @@ exports.createSaving = async (req, res) => {
   }
 
   try {
+    const userId = req.user.userId;
+    const username = req.user.username;
+
     await db.query(
-      'INSERT INTO savings (name, amount, month_id, year_id) VALUES ($1, $2, $3, $4)',
-      [name.trim(), amount, month_id, year_id]
+      `INSERT INTO savings (
+        name, amount, month_id, year_id,
+        created_by_user_id, created_by_username,
+        last_modified_by_user_id, last_modified_by_username
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        name.trim(),
+        amount,
+        month_id,
+        year_id,
+        userId,
+        username,
+        userId,
+        username
+      ]
     );
 
     const result = await db.query(
@@ -54,9 +70,23 @@ exports.updateSaving = async (req, res) => {
   const { name, amount, month_id, year_id } = req.body;
 
   try {
+    const userId = req.user.userId;
+    const username = req.user.username;
+
     await db.query(
-      'UPDATE savings SET name = $1, amount = $2, month_id = $3, year_id = $4 WHERE id = $5',
-      [name.trim(), amount, month_id, year_id, id]
+      `UPDATE savings
+       SET name = $1, amount = $2, month_id = $3, year_id = $4,
+           last_modified_by_user_id = $5, last_modified_by_username = $6
+       WHERE id = $7`,
+      [
+        name.trim(),
+        amount,
+        month_id,
+        year_id,
+        userId,
+        username,
+        id
+      ]
     );
 
     const result = await db.query(
@@ -73,7 +103,7 @@ exports.updateSaving = async (req, res) => {
   }
 };
 
-// Eliminar un ahorro
+// Eliminar un ahorro (sin cambios)
 exports.deleteSaving = async (req, res) => {
   const { id } = req.params;
 

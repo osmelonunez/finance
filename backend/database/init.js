@@ -92,29 +92,6 @@ async function initializeDatabase() {
   console.log("✅ Tabla 'users' verificada/creada.");
 
   await client.query(`
-    CREATE OR REPLACE FUNCTION update_user_timestamp()
-    RETURNS TRIGGER AS $$
-    BEGIN
-      NEW.updated_at = CURRENT_TIMESTAMP;
-      RETURN NEW;
-    END;
-    $$ LANGUAGE plpgsql;
-  `);
-
-  await client.query(`
-    DROP TRIGGER IF EXISTS set_user_timestamp ON users;
-  `);
-
-  await client.query(`
-    CREATE TRIGGER set_user_timestamp
-    BEFORE UPDATE ON users
-    FOR EACH ROW
-    EXECUTE FUNCTION update_user_timestamp();
-  `);
-
-  console.log("✅ Trigger de actualización automática 'users.updated_at' creado/verificado.");
-
-  await client.query(`
     CREATE TABLE IF NOT EXISTS emails (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -125,32 +102,9 @@ async function initializeDatabase() {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
   console.log("✅ Tabla 'emails' verificada/creada.");
-
-  await client.query(`
-    CREATE OR REPLACE FUNCTION update_timestamp()
-    RETURNS TRIGGER AS $$
-    BEGIN
-      NEW.updated_at = CURRENT_TIMESTAMP;
-      RETURN NEW;
-    END;
-    $$ LANGUAGE plpgsql;
-  `);
   
-  await client.query(`
-    DROP TRIGGER IF EXISTS set_timestamp ON emails;
-  `);
-  
-  await client.query(`
-    CREATE TRIGGER set_timestamp
-    BEFORE UPDATE ON emails
-    FOR EACH ROW
-    EXECUTE FUNCTION update_timestamp();
-  `);
-  
-  console.log("✅ Trigger 'set_timestamp' para 'emails.updated_at' creado/verificado.");
-
-
   await client.query(`
     CREATE TABLE IF NOT EXISTS months (
       id INT PRIMARY KEY CHECK (id BETWEEN 1 AND 12),
@@ -173,7 +127,13 @@ async function initializeDatabase() {
       name VARCHAR(255) NOT NULL,
       amount NUMERIC(10, 2) NOT NULL,
       month_id INT NOT NULL REFERENCES months(id),
-      year_id INT NOT NULL REFERENCES years(id)
+      year_id INT NOT NULL REFERENCES years(id),
+      created_by_user_id INTEGER,
+      created_by_username VARCHAR(100),
+      last_modified_by_user_id INTEGER,
+      last_modified_by_username VARCHAR(100),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
@@ -182,10 +142,16 @@ async function initializeDatabase() {
   await client.query(`
     CREATE TABLE IF NOT EXISTS savings (
       id SERIAL PRIMARY KEY,
-      name VARCHAR(255),
+      name VARCHAR(255) NOT NULL,
       amount NUMERIC(10, 2) NOT NULL,
       month_id INT NOT NULL REFERENCES months(id),
-      year_id INT NOT NULL REFERENCES years(id)
+      year_id INT NOT NULL REFERENCES years(id),
+      created_by_user_id INTEGER,
+      created_by_username VARCHAR(100),
+      last_modified_by_user_id INTEGER,
+      last_modified_by_username VARCHAR(100),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
@@ -202,13 +168,29 @@ async function initializeDatabase() {
   console.log("✅ Tabla 'categories' verificada/creada.");
 
   await client.query(`
+    DO $$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'source_type') THEN
+            CREATE TYPE source_type AS ENUM ('current_month', 'general_savings');
+        END IF;
+    END$$;
+  `);
+
+  await client.query(`
     CREATE TABLE IF NOT EXISTS expenses (
       id SERIAL PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
       cost NUMERIC(10, 2) NOT NULL,
       month_id INT NOT NULL REFERENCES months(id),
       year_id INT NOT NULL REFERENCES years(id),
-      category_id INTEGER REFERENCES categories(id) ON DELETE RESTRICT
+      category_id INTEGER REFERENCES categories(id) ON DELETE RESTRICT,
+      source source_type NOT NULL DEFAULT 'current_month',
+      created_by_user_id INTEGER,
+      created_by_username VARCHAR(100),
+      last_modified_by_user_id INTEGER,
+      last_modified_by_username VARCHAR(100),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
@@ -245,11 +227,78 @@ async function initializeDatabase() {
 
   await client.query(`
     INSERT INTO years (value)
-      SELECT generate_series(2025, 2026)
+    VALUES (2025)
     ON CONFLICT DO NOTHING;
   `);
 
   console.log("✅ Años insertados en la tabla 'years'.");
+
+  await client.query(`
+    CREATE OR REPLACE FUNCTION update_timestamp()
+    RETURNS TRIGGER AS $$
+    BEGIN
+      NEW.updated_at = CURRENT_TIMESTAMP;
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+  `);
+
+  // Para tabla emails
+  await client.query(`
+    DROP TRIGGER IF EXISTS set_timestamp ON emails;
+  `);
+  await client.query(`
+    CREATE TRIGGER set_timestamp
+    BEFORE UPDATE ON emails
+    FOR EACH ROW
+    EXECUTE FUNCTION update_timestamp();
+  `);
+
+  // Para tabla users
+  await client.query(`
+    DROP TRIGGER IF EXISTS set_user_timestamp ON users;
+  `);
+  await client.query(`
+    CREATE TRIGGER set_user_timestamp
+    BEFORE UPDATE ON users
+    FOR EACH ROW
+    EXECUTE FUNCTION update_timestamp();
+  `);
+
+  // Para tabla incomes
+  await client.query(`
+    DROP TRIGGER IF EXISTS set_incomes_timestamp ON incomes;
+  `);
+  await client.query(`
+    CREATE TRIGGER set_incomes_timestamp
+    BEFORE UPDATE ON incomes
+    FOR EACH ROW
+    EXECUTE FUNCTION update_timestamp();
+  `);
+
+  // Para tabla expenses
+  await client.query(`
+    DROP TRIGGER IF EXISTS set_expenses_timestamp ON expenses;
+  `);
+  await client.query(`
+    CREATE TRIGGER set_expenses_timestamp
+    BEFORE UPDATE ON expenses
+    FOR EACH ROW
+    EXECUTE FUNCTION update_timestamp();
+  `);
+
+  // Para tabla savings
+  await client.query(`
+    DROP TRIGGER IF EXISTS set_savings_timestamp ON savings;
+  `);
+  await client.query(`
+    CREATE TRIGGER set_savings_timestamp
+    BEFORE UPDATE ON savings
+    FOR EACH ROW
+    EXECUTE FUNCTION update_timestamp();
+  `);
+
+  console.log("✅ Trigger 'set_timestamp' creado/verificado.");
 
   if (adminUsername && adminEmail && adminPassword) {
     const passwordHash = await bcrypt.hash(adminPassword, 10);

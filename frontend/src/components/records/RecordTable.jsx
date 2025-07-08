@@ -1,4 +1,4 @@
-import { Wrench, Trash2, Copy } from 'lucide-react';
+import { Wrench, Trash2, Copy, Info } from 'lucide-react';
 
 export default function RecordTable({
   records,
@@ -6,7 +6,8 @@ export default function RecordTable({
   onEdit,
   onDelete,
   onCopy,
-  hasCategory
+  hasCategory,
+  onInfo
 }) {
   const sortedRecords = records;
 
@@ -38,6 +39,18 @@ export default function RecordTable({
                 <td className="px-4 py-2 text-gray-800">{record.category_name || record.category_id}</td>
               )}
               <td className="px-4 py-2 text-gray-800 text-right space-x-2">
+                <button
+                  onClick={() => onInfo(record)}
+                  className={
+                    record.source === 'general_savings'
+                      ? "bg-orange-200 hover:bg-orange-300 text-orange-700 px-2 py-1 rounded"
+                      : "bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded"
+                  }
+                  title="Info"
+                >
+                  <Info size={16} />
+                </button>
+
                 <button
                   onClick={() => { 
                     //console.log('Copy:', record); 

@@ -1,4 +1,5 @@
 import { Plus } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export default function FiltersBarRecords({
   filters,
@@ -20,6 +21,16 @@ export default function FiltersBarRecords({
     const { name, value } = e.target;
     setFilters(prev => ({ ...prev, [name]: value }));
   };
+
+  const [sourceOptions, setSourceOptions] = useState([]);
+  useEffect(() => {
+  if (type === 'expenses') {
+    fetch('/api/expenses/sources')
+      .then(res => res.json())
+      .then(data => setSourceOptions(data))
+      .catch(err => setSourceOptions([])); // opcional: manejar error
+  }
+}, [type]);
 
   return (
     <div className="bg-white p-6 rounded-xl shadow space-y-4">
@@ -87,13 +98,28 @@ export default function FiltersBarRecords({
             </select>
           </div>
         )}
+
+        {isExpenses && (
+          <select
+            name="source"
+            value={filters.source || ''}
+            onChange={handleFilterChange}
+            className="border rounded px-3 py-2 w-40"
+          >
+            <option value="">All Sources</option>
+            {sourceOptions.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        )}
+
         <button
           onClick={onAdd}
           className="inline-flex items-center px-3 py-1.5 border border-green-300 bg-green-100 text-green-800 rounded font-medium hover:bg-green-200 transition ml-auto"
         >
-          <Plus size={16} className="mr-1" />
           Add {label}
         </button>
+
       </div>
     </div>
   );

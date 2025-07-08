@@ -5,6 +5,9 @@ export default function useFilteredRecords(records, filters, search, sort, field
   return useMemo(() => {
     let result = [...records];
 
+    if (filters.source)
+      result = result.filter(r => r.source === filters.source);
+
     if (filters.month_id)
       result = result.filter(r => parseInt(r.month_id) === parseInt(filters.month_id));
     if (filters.year_id)
