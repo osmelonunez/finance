@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Layers, Calendar, Settings, Users, Plus, Trash, Database, FolderPlus, CalendarPlus, CalendarMinus, User } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import PlatformManagementSection from '../components/settings/PlatformManagementSection';
-import Notification from '../components/common/Notification';
+import YearModal from '../components/settings/YearModal';
 
 export default function SettingsPage() {
   const [years, setYears] = useState([]);
@@ -17,14 +17,13 @@ export default function SettingsPage() {
   const [showSchedule, setShowSchedule] = useState(false);
   const [scheduleDays, setScheduleDays] = useState([]);
   const [scheduleTime, setScheduleTime] = useState('');
-  const [notification, setNotification] = useState(null);
 
   useEffect(() => {
     fetch('/api/years', {
-  headers: {
-    Authorization: `Bearer ${localStorage.getItem('token')}`
-  }
-})
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      }
+    })
       .then(res => res.json())
       .then(setYears);
   }, []);
@@ -45,6 +44,8 @@ export default function SettingsPage() {
     setSuccessMessage('');
     if (!newYear.trim()) return;
 
+    const token = localStorage.getItem('token'); // <--- TOKEN AQUÍ
+
     if (action === 'add') {
       if (years.some(y => y.value === parseInt(newYear))) {
         setErrorMessage('That year already exists.');
@@ -52,7 +53,10 @@ export default function SettingsPage() {
       }
       const res = await fetch('/api/years', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ value: newYear.trim() })
       });
       if (res.ok) {
@@ -63,7 +67,12 @@ export default function SettingsPage() {
     } else if (action === 'delete') {
       const idToDelete = years.find(y => y.id === parseInt(newYear))?.id;
       if (!idToDelete) return;
-      const res = await fetch(`/api/years/${idToDelete}`, { method: 'DELETE' });
+      const res = await fetch(`/api/years/${idToDelete}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (res.ok) {
         const updated = await res.json();
         setYears(updated);
@@ -95,7 +104,6 @@ export default function SettingsPage() {
           setScheduleDays={setScheduleDays}
           scheduleTime={scheduleTime}
           setScheduleTime={setScheduleTime}
-          setNotification={setNotification} // <--- INTEGRACIÓN DE NOTIFICACIONES
         />
       )}
         
@@ -149,58 +157,19 @@ export default function SettingsPage() {
           </div>
           {successMessage && <p className="text-sm text-green-600 mt-2">{successMessage}</p>}
         </div>
-
         <div/>
-
       </div>
-
-      {showYearModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-xl w-full max-w-sm shadow-lg space-y-4">
-            <h3 className="text-lg font-semibold text-gray-800">
-              {action === 'add' ? 'Add New Year' : 'Delete Year'}
-            </h3>
-
-            {action === 'add' ? (
-              <input
-                type="number"
-                value={newYear}
-                onChange={e => setNewYear(e.target.value)}
-                placeholder="Enter year"
-                className="border rounded px-3 py-2 w-full"
-              />
-            ) : (
-              <select
-                value={newYear}
-                onChange={e => setNewYear(e.target.value)}
-                className="border rounded px-3 py-2 w-full"
-              >
-                <option value="">Select year to delete</option>
-                {years.map(y => (
-                  <option key={y.id} value={y.id}>{y.value}</option>
-                ))}
-              </select>
-            )}
-
-            {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
-
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowYearModal(false)}
-                className="px-4 py-2 border rounded text-gray-600"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleYearAction}
-                className={`px-4 py-2 text-white rounded ${action === 'add' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
-              >
-                {action === 'add' ? 'Add' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <YearModal
+        isOpen={showYearModal}
+        onClose={() => setShowYearModal(false)}
+        action={action}
+        newYear={newYear}
+        setNewYear={setNewYear}
+        years={years}
+        errorMessage={errorMessage}
+        successMessage={successMessage}
+        onSubmit={handleYearAction}
+      />
     </div>
   );
 }
