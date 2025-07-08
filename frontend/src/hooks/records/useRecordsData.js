@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import useAuthToken from './useAuthToken';
+import useAuthToken from '../useAuthToken';
 
 export default function useRecordsData(endpoint) {
   const [records, setRecords] = useState([]);

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 
 // 2. Hooks personalizados
 import useAuthToken from '../../hooks/useAuthToken';
-import useRecordsData from '../../hooks/useRecordsData';
+import useRecordsData from '../../hooks/records/useRecordsData';
 import useFilteredRecords from '../../hooks/useFilteredRecords';
 import useCategoriesData from '../../hooks/records/useHandleCategoriesData';
 import useHandleAdd from '../../hooks/records/useHandleAdd';
