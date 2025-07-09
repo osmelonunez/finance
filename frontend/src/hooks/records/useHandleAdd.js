@@ -1,7 +1,3 @@
-import { useCallback } from 'react';
-import { addRecord } from '../../components/utils/records';
-import { showNotification } from '../../components/utils/showNotification';
-
 export default function useHandleAdd({
   endpoint,
   field,
@@ -10,33 +6,41 @@ export default function useHandleAdd({
   newRecord,
   setNewRecord,
   setShowAddModal,
-  setError,
   setRecords,
-  setNotification
+  showNotification
 }) {
-  const handleAdd = useCallback(async () => {
-    const requiredFields = ['name', field, 'month_id', 'year_id'];
-    if (requiredFields.some(key => !newRecord[key] || newRecord[key].toString().trim() === '')) {
-      showNotification(setNotification, { type: 'error', message: 'All fields are required.' });
+  return async () => {
+    if (!newRecord.name || !newRecord[field]) {
+      showNotification({ type: 'error', message: 'All fields are required.' }, 2000);
+      return;
+    }
+    if (isExpenses && !newRecord.category_id) {
+      showNotification({ type: 'error', message: 'Category is required.' }, 2000);
       return;
     }
 
     try {
-      const success = await addRecord(endpoint, newRecord, setRecords, setNotification, token);
-      if (success) {
-        showNotification(setNotification, { type: 'success', message: 'Record added successfully!' });
-        setNewRecord({ name: '', [field]: '', month_id: '', year_id: '', ...(isExpenses && { category_id: '' }) });
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(newRecord),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setRecords(data);
         setShowAddModal(false);
-        setError('');
+        setNewRecord({ name: '', [field]: '', month_id: '', year_id: '', ...(isExpenses && { category_id: '' }) });
+        showNotification({ type: 'success', message: 'Record added successfully.' }, 2000);
       } else {
-        showNotification(setNotification, { type: 'error', message: 'Failed to add record.' });
-        setError('Failed to add record.');
+        const data = await res.json();
+        showNotification({ type: 'error', message: data.error || 'Failed to add record.' }, 2000);
       }
     } catch (err) {
-      showNotification(setNotification, { type: 'error', message: 'Unexpected error while adding record.' });
-      setError('Unexpected error while adding record.');
+      showNotification({ type: 'error', message: 'Network error.' }, 2000);
     }
-  }, [endpoint, field, isExpenses, token, newRecord, setNewRecord, setShowAddModal, setError, setRecords, setNotification]);
-
-  return handleAdd;
+  };
 }

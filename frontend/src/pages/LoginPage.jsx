@@ -30,7 +30,7 @@ export default function LoginPage() {
     if (result === true) {
       navigate(from, { replace: true });
     } else {
-      setError(result); // Muestra el mensaje real (inactivo o credenciales inválidas)
+      setError(result);
     }
   };
 
@@ -62,7 +62,7 @@ export default function LoginPage() {
         </button>
       </div>
       <p className="text-sm text-gray-600">
-        ¿No tienes una cuenta? <a href="/register" className="text-blue-600 hover:underline">Regístrate</a>
+        Don't have an account? <a href="/register" className="text-blue-600 hover:underline">Create new account</a>
       </p>
       {error && (
         <div className="bg-red-100 text-red-700 p-2 rounded text-sm border border-red-300">

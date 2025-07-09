@@ -1,10 +1,10 @@
 export default function PasswordRequirements({ password }) {
   const requirements = [
-    { label: "• Minúscula", test: /[a-z]/ },
-    { label: "• Mayúscula", test: /[A-Z]/ },
-    { label: "• Número", test: /\d/ },
-    { label: "• Carácter especial", test: /[^A-Za-z\d]/ },
-    { label: "• 13 o más caracteres", test: /^.{13,}$/ },
+    { label: "• Lowercase letter", test: /[a-z]/ },
+    { label: "• Uppercase letter", test: /[A-Z]/ },
+    { label: "• Number", test: /\d/ },
+    { label: "• Special character", test: /[^A-Za-z\d]/ },
+    { label: "• 13 or more characters", test: /^.{13,}$/ },
   ];
 
   return (

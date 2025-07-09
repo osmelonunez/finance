@@ -23,12 +23,11 @@ export default function EditableField({
 
     if (type === 'password') {
       if (value !== confirmValue) {
-        setError('Las contraseñas no coinciden.');
+        setError('Passwords do not match.');
         return;
       }
-      // Aquí validar los requisitos con la función que tengas (por ejemplo isPasswordComplex)
       if (!isPasswordComplex(value)) {
-        setError('La contraseña no cumple los requisitos mínimos.');
+        setError('Password does not meet the minimum requirements.');
         return;
       }
       setShowConfirmModal(true);
@@ -36,7 +35,6 @@ export default function EditableField({
       onSave();
     }
   };
-
 
   const cancelEdit = () => {
     setIsEditing(false);
@@ -56,7 +54,7 @@ export default function EditableField({
             else setIsEditing(true);
           }}
           className="p-1 rounded-full hover:bg-gray-100"
-          title={isEditing ? `Cancelar edición` : `Editar ${label.toLowerCase()}`}
+          title={isEditing ? "Cancel editing" : `Edit ${label.toLowerCase()}`}
         >
           <Wrench size={18} className="text-yellow-600" />
         </button>
@@ -65,7 +63,7 @@ export default function EditableField({
           <button
             onClick={handleSaveClick}
             className="p-1 rounded-full hover:bg-green-100"
-            title="Guardar"
+            title="Save"
           >
             <Check size={20} className="text-green-600" />
           </button>
@@ -86,7 +84,7 @@ export default function EditableField({
             <input
               type="password"
               value={confirmValue}
-              placeholder="Confirmar contraseña"
+              placeholder="Confirm password"
               onChange={e => setConfirmValue(e.target.value)}
               className="border rounded px-3 py-2 w-full mt-2"
             />
@@ -97,7 +95,7 @@ export default function EditableField({
           {children}
 
           <Modal
-            title="Confirmar actualización"
+            title="Confirm update"
             isOpen={showConfirmModal}
             onConfirm={() => {
               onSave();
@@ -107,7 +105,7 @@ export default function EditableField({
               setShowConfirmModal(false);
             }}
           >
-            <p>¿Estás seguro que deseas actualizar la contraseña?</p>
+            <p>Are you sure you want to update the password?</p>
           </Modal>
         </>
       )}

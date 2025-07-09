@@ -2,26 +2,18 @@ import { useEffect, useState, useCallback } from 'react';
 import EditableField from '../components/account/EditableField';
 import PasswordRequirements from '../components/account/PasswordRequirements';
 import EmailManager from '../components/account/EmailManager';
-import Notification from '../components/common/Notification';
 import Loader from '../components/common/Loader';
-import ErrorMessage from '../components/common/ErrorMessage';
-import Modal from '../components/common/Modal';
 import useAuthToken from '../hooks/useAuthToken';
-import { isPasswordComplex } from '../components/utils/validation';
+import { showNotification } from '../components/utils/showNotification';
 
 export default function AccountPage() {
   const token = useAuthToken();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [editingUsername, setEditingUsername] = useState(false);
   const [editingPassword, setEditingPassword] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [confirmAction, setConfirmAction] = useState(null);
-  const [notification, setNotification] = useState(null);
 
   useEffect(() => {
     if (!token) return;
@@ -29,13 +21,16 @@ export default function AccountPage() {
     fetch('/api/me', {
       headers: { Authorization: `Bearer ${token}` }
     })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to load user data');
+        return res.json();
+      })
       .then(userData => {
         setUsername(userData.username);
         setLoading(false);
       })
       .catch(() => {
-        setError('Error al cargar los datos');
+        showNotification({ type: 'error', message: 'Failed to load user data' });
         setLoading(false);
       });
   }, [token]);
@@ -54,40 +49,28 @@ export default function AccountPage() {
 
   const handleUpdate = async (field) => {
     if (!token) {
-      setError('Token no disponible');
+      showNotification({ type: 'error', message: 'Token not available' });
       return;
     }
-
-    setMessage('');
-    setError('');
-
     if (field === 'password') {
-      if (!isPasswordComplex(password)) {
-        setError('La contraseña no cumple con los requisitos mínimos.');
-        return;
+      // Solo actualiza, la confirmación visual ya la gestiona EditableField
+      const res = await updateAccount({ username, password });
+      if (res.ok) {
+        showNotification({ type: 'success', message: 'Password updated successfully' });
+        setPassword('');
+        setEditingPassword(false);
+      } else {
+        const data = await res.json();
+        showNotification({ type: 'error', message: data.error || 'Failed to update password' });
       }
-      setConfirmAction(() => async () => {
-        const res = await updateAccount({ username, password });
-        if (res.ok) {
-          setMessage('Contraseña actualizada correctamente');
-          setTimeout(() => setMessage(''), 2000);
-          setPassword('');
-          setEditingPassword(false);
-        } else {
-          const data = await res.json();
-          setError(data.error || 'Error al actualizar');
-        }
-      });
-      setShowConfirmModal(true);
     } else if (field === 'username') {
       const res = await updateAccount({ username });
       if (res.ok) {
-        setMessage('Usuario actualizado correctamente');
-        setTimeout(() => setMessage(''), 2000);
+        showNotification({ type: 'success', message: 'Username updated successfully' });
         setEditingUsername(false);
       } else {
         const data = await res.json();
-        setError(data.error || 'Error al actualizar');
+        showNotification({ type: 'error', message: data.error || 'Failed to update username' });
       }
     }
   };
@@ -98,20 +81,10 @@ export default function AccountPage() {
 
   return (
     <div className="max-w-xl mx-auto p-6 space-y-6 bg-white rounded-xl shadow">
-      <h2 className="text-xl font-bold text-gray-800">Mi cuenta</h2>
-
-      {notification && (
-        <Notification
-          type={notification.type}
-          message={notification.message}
-          onClose={() => setNotification(null)}
-        />
-      )}
-
-      <ErrorMessage message={error} />
+      <h2 className="text-xl font-bold text-gray-800">My account</h2>
 
       <EditableField
-        label="Usuario"
+        label="Username"
         value={username}
         onChange={e => setUsername(e.target.value)}
         onSave={() => handleUpdate('username')}
@@ -120,9 +93,9 @@ export default function AccountPage() {
       />
 
       <EditableField
-        label="Contraseña"
+        label="Password"
         type="password"
-        placeholder="Nueva contraseña"
+        placeholder="New password"
         value={password}
         onChange={e => setPassword(e.target.value)}
         onSave={() => handleUpdate('password')}
@@ -133,18 +106,6 @@ export default function AccountPage() {
       </EditableField>
 
       <EmailManager token={token} />
-
-      <Modal
-        title="Confirmar actualización"
-        isOpen={showConfirmModal}
-        onConfirm={() => {
-          confirmAction();
-          setShowConfirmModal(false);
-        }}
-        onCancel={() => setShowConfirmModal(false)}
-      >
-        <p>¿Estás seguro que deseas actualizar la contraseña?</p>
-      </Modal>
     </div>
   );
 }

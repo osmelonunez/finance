@@ -17,7 +17,7 @@ import RecordTable from './RecordTable';
 import RecordsModals from './RecordsModals';
 import TotalDisplay from './TotalDisplay';
 import Pagination from './Pagination';
-import Notification from '../common/Notification';
+import { showNotification } from '../utils/showNotification'; // Importa la función global
 
 export default function RecordsPageTemplate({
   type,
@@ -44,7 +44,6 @@ export default function RecordsPageTemplate({
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [notification, setNotification] = useState(null);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -71,10 +70,11 @@ export default function RecordsPageTemplate({
   const itemsPerPage = 10;
   const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const handleAdd = useHandleAdd({ endpoint, field, isExpenses, token, newRecord, setNewRecord, setShowAddModal, setError, setRecords, setNotification });
-  const handleEdit = useHandleEdit({ endpoint, field, token, editingRecord, setEditingRecord, setShowEditModal, setError, setRecords, setNotification });
-  const handleDelete = useHandleDelete({ endpoint, recordToDelete, setRecords, setNotification, token, setShowDeleteModal, setRecordToDelete });
-  const handleCopyConfirm = useHandleCopyConfirm({ copyState, setCopyState, field, isExpenses, endpoint, setRecords, setNotification, token, title });
+  // Pasa la función global showNotification a todos los hooks
+  const handleAdd = useHandleAdd({ endpoint, field, isExpenses, token, newRecord, setNewRecord, setShowAddModal, setError, setRecords, showNotification });
+  const handleEdit = useHandleEdit({ endpoint, field, token, editingRecord, setEditingRecord, setShowEditModal, setError, setRecords, showNotification });
+  const handleDelete = useHandleDelete({ endpoint, recordToDelete, setRecords, showNotification, token, setShowDeleteModal, setRecordToDelete });
+  const handleCopyConfirm = useHandleCopyConfirm({ copyState, setCopyState, field, isExpenses, endpoint, setRecords, showNotification, token, title });
 
   return (
     <div className="records-page">
@@ -160,14 +160,6 @@ export default function RecordsPageTemplate({
         infoRecord={infoRecord}
         setInfoRecord={setInfoRecord}
       />
-
-      {notification && (
-        <Notification
-          type={notification.type}
-          message={notification.message}
-          onClose={() => setNotification(null)}
-        />
-      )}
     </div>
   );
 }

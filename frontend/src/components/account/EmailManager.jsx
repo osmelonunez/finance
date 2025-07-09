@@ -1,22 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
 import { Trash2, Wrench, Bell, PlusCircle, Check } from 'lucide-react';
-import Notification from '../common/Notification';
 import Modal from '../common/Modal';
 import { isEmailValid } from '../utils/validation';
-import useAuthToken from '../../hooks/useAuthToken'; 
+import useAuthToken from '../../hooks/useAuthToken';
+import { showNotification } from '../utils/showNotification';
 
 export default function EmailManager() {
   const token = useAuthToken();
 
   const [emails, setEmails] = useState([]);
-  const [emailError, setEmailError] = useState('');
-  const [emailMessage, setEmailMessage] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [showAddInput, setShowAddInput] = useState(false);
   const [editingEmailId, setEditingEmailId] = useState(null);
   const [editedEmail, setEditedEmail] = useState('');
   const [emailToDelete, setEmailToDelete] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [inputTouched, setInputTouched] = useState(false);
   const emailInputRef = useRef(null);
 
   useEffect(() => {
@@ -28,30 +27,26 @@ export default function EmailManager() {
       .then(res => res.json())
       .then(setEmails)
       .catch(() => {
-        setEmailError('Error al cargar los correos');
-        setTimeout(() => setEmailError(''), 2000);
+        showNotification({ type: 'error', message: 'Failed to load emails' }, 2000);
       });
   }, [token]);
 
   const handleAddEmail = async () => {
-    setEmailMessage('');
-    setEmailError('');
+    setInputTouched(true);
 
     if (!newEmail || !isEmailValid(newEmail)) {
-      setEmailError('Correo inválido');
-      setTimeout(() => setEmailError(''), 2000);
+      showNotification({ type: 'error', message: 'Invalid email address' }, 2000);
       return;
     }
 
     const exists = emails.some(email => email.email.toLowerCase() === newEmail.toLowerCase());
     if (exists) {
-      setEmailError('Este correo ya está agregado.');
-      setTimeout(() => setEmailError(''), 2000);
+      showNotification({ type: 'error', message: 'This email is already added.' }, 2000);
       return;
     }
 
     if (!token) {
-      setEmailError('Token no disponible');
+      showNotification({ type: 'error', message: 'Token not available' }, 2000);
       return;
     }
 
@@ -67,13 +62,13 @@ export default function EmailManager() {
     if (res.ok) {
       const updated = await res.json();
       setEmails(updated);
-      setEmailMessage('Correo agregado');
+      showNotification({ type: 'success', message: 'Email added successfully' }, 2000);
       setNewEmail('');
       setShowAddInput(false);
+      setInputTouched(false);
     } else {
       const data = await res.json();
-      setEmailError(data.error || 'Error al agregar');
-      setTimeout(() => setEmailError(''), 2000);
+      showNotification({ type: 'error', message: data.error || 'Failed to add email' }, 2000);
     }
   };
 
@@ -81,8 +76,7 @@ export default function EmailManager() {
     if (!editingEmailId || !editedEmail) return;
 
     if (!isEmailValid(editedEmail)) {
-      setEmailError('Correo inválido');
-      setTimeout(() => setEmailError(''), 2000);
+      showNotification({ type: 'error', message: 'Invalid email address' }, 2000);
       return;
     }
 
@@ -90,13 +84,12 @@ export default function EmailManager() {
       email.email.toLowerCase() === editedEmail.toLowerCase() && email.id !== editingEmailId
     );
     if (exists) {
-      setEmailError('Este correo ya está agregado.');
-      setTimeout(() => setEmailError(''), 2000);
+      showNotification({ type: 'error', message: 'This email is already added.' }, 2000);
       return;
     }
 
     if (!token) {
-      setEmailError('Token no disponible');
+      showNotification({ type: 'error', message: 'Token not available' }, 2000);
       return;
     }
 
@@ -114,18 +107,16 @@ export default function EmailManager() {
       setEmails(updated);
       setEditingEmailId(null);
       setEditedEmail('');
-      setEmailMessage('Correo actualizado');
-      setTimeout(() => setEmailMessage(''), 2000);
+      showNotification({ type: 'success', message: 'Email updated successfully' }, 2000);
     } else {
       const data = await res.json();
-      setEmailError(data.error || 'Error al actualizar el correo');
-      setTimeout(() => setEmailError(''), 2000);
+      showNotification({ type: 'error', message: data.error || 'Failed to update email' }, 2000);
     }
   };
 
   const handleToggleNotifications = async (id, enabled) => {
     if (!token) {
-      setEmailError('Token no disponible');
+      showNotification({ type: 'error', message: 'Token not available' }, 2000);
       return;
     }
 
@@ -141,13 +132,17 @@ export default function EmailManager() {
     if (res.ok) {
       const updated = await res.json();
       setEmails(updated);
+      showNotification({
+        type: 'success',
+        message: enabled ? 'Notifications enabled' : 'Notifications disabled'
+      }, 2000);
     }
   };
 
   const confirmDelete = async () => {
     if (!emailToDelete) return;
     if (!token) {
-      setEmailError('Token no disponible');
+      showNotification({ type: 'error', message: 'Token not available' }, 2000);
       return;
     }
 
@@ -163,8 +158,9 @@ export default function EmailManager() {
       setEmails(updated);
       setShowDeleteModal(false);
       setEmailToDelete(null);
-      setEmailMessage('Correo eliminado');
-      setTimeout(() => setEmailMessage(''), 2000);
+      showNotification({ type: 'success', message: 'Email deleted successfully' }, 2000);
+    } else {
+      showNotification({ type: 'error', message: 'Failed to delete email' }, 2000);
     }
   };
 
@@ -174,20 +170,11 @@ export default function EmailManager() {
     setTimeout(() => emailInputRef.current?.focus(), 0);
   };
 
+  const inputInvalid = !isEmailValid(newEmail) && inputTouched && showAddInput;
+
   return (
     <div className="mt-8">
-      <Notification
-        type="success"
-        message={emailMessage}
-        onClose={() => setEmailMessage('')}
-      />
-      <Notification
-        type="error"
-        message={emailError}
-        onClose={() => setEmailError('')}
-      />
-
-      <h3 className="text-md font-semibold text-gray-700 mb-2">Correos asociados</h3>
+      <h3 className="text-md font-semibold text-gray-700 mb-2">Associated emails</h3>
       <ul className="text-sm text-gray-700">
         {emails.map(email => (
           <li key={email.id} className="py-1.5 flex justify-between items-center gap-3">
@@ -204,7 +191,7 @@ export default function EmailManager() {
                   <button
                     onClick={handleEditEmail}
                     className="p-1 rounded-full hover:bg-green-100"
-                    title="Guardar cambios"
+                    title="Save changes"
                   >
                     <Check size={18} className="text-green-600" />
                   </button>
@@ -213,7 +200,7 @@ export default function EmailManager() {
                 <>
                   <span className="font-medium hover:underline hover:text-blue-600 cursor-pointer transition-colors duration-200">{email.email}</span>
                   <span className="text-xs text-gray-500">
-                    {email.is_primary ? 'Principal' : ''}
+                    {email.is_primary ? 'Primary' : ''}
                   </span>
                 </>
               )}
@@ -223,7 +210,7 @@ export default function EmailManager() {
                 <button
                   onClick={() => handleToggleNotifications(email.id, !email.notifications_enabled)}
                   className="p-1 rounded-full hover:bg-gray-100"
-                  title="Notificaciones"
+                  title="Notifications"
                 >
                   <Bell size={18} className={email.notifications_enabled ? 'text-green-600' : 'text-gray-400'} />
                 </button>
@@ -237,7 +224,7 @@ export default function EmailManager() {
                     }
                   }}
                   className="p-1 rounded-full hover:bg-yellow-100"
-                  title="Editar"
+                  title="Edit"
                 >
                   <Wrench size={18} className="text-yellow-600" />
                 </button>
@@ -247,7 +234,7 @@ export default function EmailManager() {
                     setShowDeleteModal(true);
                   }}
                   className="p-1 rounded-full hover:bg-red-100"
-                  title="Eliminar"
+                  title="Delete"
                 >
                   <Trash2 size={18} className="text-red-600" />
                 </button>
@@ -265,12 +252,13 @@ export default function EmailManager() {
                 if (showAddInput) {
                   setShowAddInput(false);
                   setNewEmail('');
+                  setInputTouched(false);
                 } else {
                   setShowAddInput(true);
                 }
               }}
               className="p-1 rounded-full hover:bg-gray-100"
-              title={showAddInput ? 'Cancelar' : 'Agregar correo'}
+              title={showAddInput ? 'Cancel' : 'Add email'}
             >
               <PlusCircle
                 size={20}
@@ -282,7 +270,7 @@ export default function EmailManager() {
               <button
                 onClick={handleAddEmail}
                 className="p-1 rounded-full hover:bg-green-100"
-                title="Guardar nuevo correo"
+                title="Save new email"
               >
                 <Check size={20} className="text-green-600" />
               </button>
@@ -294,23 +282,29 @@ export default function EmailManager() {
           <div className="flex items-center animate-fade-in">
             <input
               type="email"
-              placeholder="Correo secundario"
-              className={`border rounded px-3 py-2 ${emailError ? 'border-red-500' : 'border-gray-300'} max-w-xs w-full`}
+              placeholder="Secondary email"
+              className={`border rounded px-3 py-2 max-w-xs w-full ${inputInvalid ? 'border-red-500' : 'border-gray-300'}`}
               value={newEmail}
-              onChange={e => setNewEmail(e.target.value)}
+              onChange={e => {
+                setNewEmail(e.target.value);
+                setInputTouched(true);
+              }}
             />
+            {inputInvalid && (
+              <span className="ml-3 text-xs text-red-500">Enter a valid email address</span>
+            )}
           </div>
         )}
 
       </div>
 
       <Modal
-        title="¿Eliminar correo?"
+        title="Delete email?"
         isOpen={showDeleteModal}
         onConfirm={confirmDelete}
         onCancel={() => setShowDeleteModal(false)}
       >
-        <p>¿Estás seguro que deseas eliminar <strong>{emailToDelete?.email}</strong>?</p>
+        <p>Are you sure you want to delete <strong>{emailToDelete?.email}</strong>?</p>
       </Modal>
     </div>
   );

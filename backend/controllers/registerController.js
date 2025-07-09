@@ -5,7 +5,8 @@ exports.registerUser = async (req, res) => {
   const { username, email, password } = req.body;
 
   if (!username || !email || !password) {
-    return res.status(400).json({ error: 'Todos los campos son obligatorios' });
+
+    return res.status(400).json({ error: 'MISSING_FIELDS' });
   }
 
   try {
@@ -13,11 +14,11 @@ exports.registerUser = async (req, res) => {
     const emailExists = await db.query('SELECT * FROM emails WHERE email = $1', [email]);
 
     if (userExists.rows.length > 0) {
-      return res.status(400).json({ error: 'Ya existe un usuario con ese nombre' });
+      return res.status(400).json({ error: 'USERNAME_EXISTS' });
     }
 
     if (emailExists.rows.length > 0) {
-      return res.status(400).json({ error: 'Ya existe un usuario con ese correo' });
+      return res.status(400).json({ error: 'EMAIL_EXISTS' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -34,9 +35,9 @@ exports.registerUser = async (req, res) => {
       [userId, email]
     );
 
-    res.status(201).json({ message: 'Usuario y correo registrados con éxito' });
+    res.status(201).json({ message: 'REGISTER_SUCCESS' });
   } catch (err) {
     console.error('Error en /register:', err);
-    res.status(500).json({ error: 'Error en el registro' });
+    res.status(500).json({ error: 'REGISTER_ERROR' });
   }
 };

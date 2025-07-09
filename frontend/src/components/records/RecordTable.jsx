@@ -63,7 +63,7 @@ export default function RecordTable({
                 </button>
                 <button
                   onClick={() => { 
-                    console.log('onEdit', record);
+                    //console.log('onEdit', record);
                     onEdit(record);
                   }}
                   className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded"
@@ -73,7 +73,7 @@ export default function RecordTable({
                 </button>
                 <button
                   onClick={() => { 
-                    console.log('onDelete', record);
+                    //console.log('onDelete', record);
                     onDelete(record);
                   }}
                   className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded"
