@@ -7,13 +7,10 @@ import Loader from '../components/common/Loader';
 import ErrorMessage from '../components/common/ErrorMessage';
 import Modal from '../components/common/Modal';
 import useAuthToken from '../hooks/useAuthToken';
-import useTokenExpiration from '../hooks/useTokenExpiration';
-import TokenWarnings from '../components/common/TokenWarnings';
 import { isPasswordComplex } from '../components/utils/validation';
 
 export default function AccountPage() {
   const token = useAuthToken();
-  const { warnings, removeWarning } = useTokenExpiration(token);
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -30,7 +27,6 @@ export default function AccountPage() {
 
   useEffect(() => {
     if (!token) return;
-    //console.log('Usando token:', token);
 
     fetch('/api/me', {
       headers: { Authorization: `Bearer ${token}` }
@@ -111,8 +107,6 @@ export default function AccountPage() {
   return (
     <div className="max-w-xl mx-auto p-6 space-y-6 bg-white rounded-xl shadow">
       <h2 className="text-xl font-bold text-gray-800">Mi cuenta</h2>
-
-      <TokenWarnings warnings={warnings} onRemove={removeWarning} />
 
       {notification && (
         <Notification
