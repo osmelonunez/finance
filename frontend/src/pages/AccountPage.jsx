@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import EditableField from '../components/account/EditableField';
 import PasswordRequirements from '../components/account/PasswordRequirements';
 import EmailManager from '../components/account/EmailManager';
@@ -19,10 +19,8 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(true);
   const [editingUsername, setEditingUsername] = useState(false);
   const [editingPassword, setEditingPassword] = useState(false);
-
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
-  const [pendingField, setPendingField] = useState(null);
   const [notification, setNotification] = useState(null);
 
   useEffect(() => {
@@ -42,6 +40,18 @@ export default function AccountPage() {
       });
   }, [token]);
 
+  const updateAccount = useCallback(async (body) => {
+    const res = await fetch('/api/me', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(body)
+    });
+    return res;
+  }, [token]);
+
   const handleUpdate = async (field) => {
     if (!token) {
       setError('Token no disponible');
@@ -51,25 +61,15 @@ export default function AccountPage() {
     setMessage('');
     setError('');
 
-    if (field === 'password' && !isPasswordComplex(password)) {
-      setError('La contraseña no cumple con los requisitos mínimos.');
-      return;
-    }
-
     if (field === 'password') {
-      setPendingField(field);
+      if (!isPasswordComplex(password)) {
+        setError('La contraseña no cumple con los requisitos mínimos.');
+        return;
+      }
       setConfirmAction(() => async () => {
-        const res = await fetch('/api/me', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({ username, password })
-        });
-
+        const res = await updateAccount({ username, password });
         if (res.ok) {
-          setMessage('Actualizado correctamente');
+          setMessage('Contraseña actualizada correctamente');
           setTimeout(() => setMessage(''), 2000);
           setPassword('');
           setEditingPassword(false);
@@ -79,20 +79,12 @@ export default function AccountPage() {
         }
       });
       setShowConfirmModal(true);
-    } else {
-      const res = await fetch('/api/me', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ username, password })
-      });
-
+    } else if (field === 'username') {
+      const res = await updateAccount({ username });
       if (res.ok) {
-        setMessage('Actualizado correctamente');
+        setMessage('Usuario actualizado correctamente');
         setTimeout(() => setMessage(''), 2000);
-        if (field === 'username') setEditingUsername(false);
+        setEditingUsername(false);
       } else {
         const data = await res.json();
         setError(data.error || 'Error al actualizar');
@@ -149,12 +141,9 @@ export default function AccountPage() {
           confirmAction();
           setShowConfirmModal(false);
         }}
-        onCancel={() => {
-          setShowConfirmModal(false);
-          setPendingField(null);
-        }}
+        onCancel={() => setShowConfirmModal(false)}
       >
-        <p>¿Estás seguro que deseas actualizar {pendingField}?</p>
+        <p>¿Estás seguro que deseas actualizar la contraseña?</p>
       </Modal>
     </div>
   );
