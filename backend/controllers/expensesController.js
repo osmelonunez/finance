@@ -96,13 +96,12 @@ exports.updateExpense = async (req, res) => {
   const { name, cost, month_id, year_id, category_id, source } = req.body;
   try {
     const userId = req.user.userId;
-    const username = req.user.username;
 
     await db.query(
       `UPDATE expenses
        SET name=$1, cost=$2, month_id=$3, year_id=$4, category_id=$5, source=$6,
-           last_modified_by_user_id=$7, last_modified_by_username=$8
-       WHERE id=$9`,
+           last_modified_by_user_id=$7
+       WHERE id=$8`,
       [
         name,
         cost,
@@ -111,7 +110,6 @@ exports.updateExpense = async (req, res) => {
         category_id,
         source || 'current_month',
         userId,
-        username,
         id
       ]
     );
@@ -121,11 +119,15 @@ exports.updateExpense = async (req, res) => {
         expenses.*, 
         months.name AS month_name, 
         years.value AS year_value, 
-        categories.name AS category_name
+        categories.name AS category_name,
+        u1.username AS created_by_username,
+        u2.username AS last_modified_by_username
       FROM expenses
       JOIN months ON expenses.month_id = months.id
       JOIN years ON expenses.year_id = years.id
       JOIN categories ON expenses.category_id = categories.id
+      LEFT JOIN users u1 ON expenses.created_by_user_id = u1.id
+      LEFT JOIN users u2 ON expenses.last_modified_by_user_id = u2.id
       ORDER BY years.value, months.id
     `);
     res.json(result.rows);

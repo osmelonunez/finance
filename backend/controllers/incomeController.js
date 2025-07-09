@@ -68,29 +68,34 @@ exports.updateIncome = async (req, res) => {
 
   try {
     const userId = req.user.userId;
-    const username = req.user.username;
 
     await db.query(
       `UPDATE incomes
        SET name=$1, amount=$2, month_id=$3, year_id=$4,
-           last_modified_by_user_id=$5, last_modified_by_username=$6
-       WHERE id=$7`,
+           last_modified_by_user_id=$5
+       WHERE id=$6`,
       [
         name,
         amount,
         month_id,
         year_id,
         userId,
-        username,
         id
       ]
     );
 
     const result = await db.query(
-      `SELECT incomes.*, months.name AS month_name, years.value AS year_value
+      `SELECT 
+         incomes.*, 
+         months.name AS month_name, 
+         years.value AS year_value,
+         u1.username AS created_by_username,
+         u2.username AS last_modified_by_username
        FROM incomes
        JOIN months ON incomes.month_id = months.id
        JOIN years ON incomes.year_id = years.id
+       LEFT JOIN users u1 ON incomes.created_by_user_id = u1.id
+       LEFT JOIN users u2 ON incomes.last_modified_by_user_id = u2.id
        ORDER BY years.value, months.id`
     );
     res.json(result.rows);
