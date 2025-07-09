@@ -128,10 +128,8 @@ async function initializeDatabase() {
       amount NUMERIC(10, 2) NOT NULL,
       month_id INT NOT NULL REFERENCES months(id),
       year_id INT NOT NULL REFERENCES years(id),
-      created_by_user_id INTEGER,
-      created_by_username VARCHAR(100),
-      last_modified_by_user_id INTEGER,
-      last_modified_by_username VARCHAR(100),
+      created_by_user_id INTEGER REFERENCES users(id) ON DELETE RESTRICT,
+      last_modified_by_user_id INTEGER REFERENCES users(id) ON DELETE RESTRICT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
@@ -146,10 +144,8 @@ async function initializeDatabase() {
       amount NUMERIC(10, 2) NOT NULL,
       month_id INT NOT NULL REFERENCES months(id),
       year_id INT NOT NULL REFERENCES years(id),
-      created_by_user_id INTEGER,
-      created_by_username VARCHAR(100),
-      last_modified_by_user_id INTEGER,
-      last_modified_by_username VARCHAR(100),
+      created_by_user_id INTEGER REFERENCES users(id) ON DELETE RESTRICT,
+      last_modified_by_user_id INTEGER REFERENCES users(id) ON DELETE RESTRICT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
@@ -185,10 +181,8 @@ async function initializeDatabase() {
       year_id INT NOT NULL REFERENCES years(id),
       category_id INTEGER REFERENCES categories(id) ON DELETE RESTRICT,
       source source_type NOT NULL DEFAULT 'current_month',
-      created_by_user_id INTEGER,
-      created_by_username VARCHAR(100),
-      last_modified_by_user_id INTEGER,
-      last_modified_by_username VARCHAR(100),
+      created_by_user_id INTEGER REFERENCES users(id) ON DELETE RESTRICT,
+      last_modified_by_user_id INTEGER REFERENCES users(id) ON DELETE RESTRICT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );

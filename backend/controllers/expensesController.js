@@ -8,11 +8,15 @@ exports.getExpenses = async (req, res) => {
         expenses.*, 
         months.name AS month_name, 
         years.value AS year_value, 
-        categories.name AS category_name
+        categories.name AS category_name,
+        u1.username AS created_by_username,
+        u2.username AS last_modified_by_username
       FROM expenses
       JOIN months ON expenses.month_id = months.id
       JOIN years ON expenses.year_id = years.id
       JOIN categories ON expenses.category_id = categories.id
+      LEFT JOIN users u1 ON expenses.created_by_user_id = u1.id
+      LEFT JOIN users u2 ON expenses.last_modified_by_user_id = u2.id
       ORDER BY years.value, months.id
     `);
     res.json(result.rows);
@@ -44,31 +48,26 @@ exports.getExpenseSources = async (req, res) => {
   }
 };
 
-// Crear un nuevo gasto
 exports.createExpense = async (req, res) => {
   const { name, cost, month_id, year_id, category_id, source } = req.body;
   try {
     const userId = req.user.userId;
-    const username = req.user.username;
-    //console.log('User en createExpense:', req.user);
 
     await db.query(
       `INSERT INTO expenses (
         name, cost, month_id, year_id, category_id, source,
-        created_by_user_id, created_by_username,
-        last_modified_by_user_id, last_modified_by_username
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        created_by_user_id,
+        last_modified_by_user_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [
         name,
         cost,
         month_id,
         year_id,
         category_id,
-        source || 'current_month', // Valor por default si no envían source
+        source || 'current_month',
         userId,
-        username,
-        userId,
-        username
+        userId
       ]
     );
 

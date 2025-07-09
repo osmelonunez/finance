@@ -7,10 +7,14 @@ exports.getSavings = async (req, res) => {
       `SELECT 
         savings.*, 
         months.name AS month_name, 
-        years.value AS year_value
+        years.value AS year_value,
+        u1.username AS created_by_username,
+        u2.username AS last_modified_by_username
        FROM savings
        JOIN months ON savings.month_id = months.id
        JOIN years ON savings.year_id = years.id
+       LEFT JOIN users u1 ON savings.created_by_user_id = u1.id
+       LEFT JOIN users u2 ON savings.last_modified_by_user_id = u2.id
        ORDER BY year_value, month_id`
     );
     res.json(result.rows);
@@ -30,23 +34,20 @@ exports.createSaving = async (req, res) => {
 
   try {
     const userId = req.user.userId;
-    const username = req.user.username;
 
     await db.query(
       `INSERT INTO savings (
         name, amount, month_id, year_id,
-        created_by_user_id, created_by_username,
-        last_modified_by_user_id, last_modified_by_username
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        created_by_user_id,
+        last_modified_by_user_id
+      ) VALUES ($1, $2, $3, $4, $5, $6)`,
       [
         name.trim(),
         amount,
         month_id,
         year_id,
         userId,
-        username,
-        userId,
-        username
+        userId
       ]
     );
 
