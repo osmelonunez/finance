@@ -12,11 +12,13 @@ export default function SettingsPage() {
   const [action, setAction] = useState('add');
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const { user } = useAuth();
-  const showManageUsers = user?.role === 'admin';
   const [showSchedule, setShowSchedule] = useState(false);
   const [scheduleDays, setScheduleDays] = useState([]);
   const [scheduleTime, setScheduleTime] = useState('');
+  const { user } = useAuth();
+  const showPlatformManagement = user?.role === 'admin';
+  const showCategoriesAndYears = user?.role === 'admin' || user?.role === 'editor';
+
 
   useEffect(() => {
     fetch('/api/years', {
@@ -96,7 +98,7 @@ export default function SettingsPage() {
       <div className="bg-white rounded-lg shadow p-6 space-y-6">
 
       {/* Platform Management */}
-      {user?.role === 'admin' && (
+      {showPlatformManagement && (
         <PlatformManagementSection
           showSchedule={showSchedule}
           setShowSchedule={setShowSchedule}
@@ -107,7 +109,7 @@ export default function SettingsPage() {
         />
       )}
         
-      <div className={`pt-4${showManageUsers ? ' border-t mt-6' : ''}`}>
+      <div className="pt-4">
         <div className="flex items-center gap-2 mb-2">
           <User size={20} className="text-purple-600" />
           <h3 className="text-md font-semibold text-gray-700">Account Info</h3>
@@ -120,20 +122,25 @@ export default function SettingsPage() {
         </Link>
       </div>
 
+      {/* Categorías (solo admin o editor) */}
+      {showCategoriesAndYears && (
         <div className="pt-4 border-t mt-6">
           <div className="flex items-center gap-2 mb-2">
             <Layers size={18} className="text-blue-600" />
             <h3 className="text-md font-semibold text-gray-700">Categories</h3>
           </div>
-            <Link
-              to="/categories"
-              className="inline-flex items-center px-3 py-1.5 border border-blue-200 bg-blue-50 text-blue-700 rounded font-medium shadow hover:bg-blue-100 transition"
-            >
-              <FolderPlus size={16} className="mr-1" />
-              Manage Categories
-            </Link>
+          <Link
+            to="/categories"
+            className="inline-flex items-center px-3 py-1.5 border border-blue-200 bg-blue-50 text-blue-700 rounded font-medium shadow hover:bg-blue-100 transition"
+          >
+            <FolderPlus size={16} className="mr-1" />
+            Manage Categories
+          </Link>
         </div>
+      )}
 
+      {/* Gestión de años (solo admin o editor) */}
+      {showCategoriesAndYears && (
         <div className="pt-6">
           <div className="flex items-center gap-2 mb-2 border-t pt-4">
             <Calendar size={18} className="text-green-600" />
@@ -157,6 +164,8 @@ export default function SettingsPage() {
           </div>
           {successMessage && <p className="text-sm text-green-600 mt-2">{successMessage}</p>}
         </div>
+      )}
+
         <div/>
       </div>
       <YearModal

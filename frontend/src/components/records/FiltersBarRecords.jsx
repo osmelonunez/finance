@@ -12,7 +12,8 @@ export default function FiltersBarRecords({
   onAdd,
   label = 'Record',
   type,
-  categories = []
+  categories = [],
+  isViewer={isViewer}
 }) {
   const isExpenses = type === 'expenses';
 
@@ -111,14 +112,14 @@ export default function FiltersBarRecords({
             ))}
           </select>
         )}
-
-        <button
-          onClick={onAdd}
-          className="inline-flex items-center px-3 py-1.5 border border-green-300 bg-green-100 text-green-800 rounded font-medium hover:bg-green-200 transition ml-auto"
-        >
-          Add {label}
-        </button>
-
+        {!isViewer && (
+          <button
+            onClick={onAdd}
+            className="inline-flex items-center px-3 py-1.5 border border-green-300 bg-green-100 text-green-800 rounded font-medium hover:bg-green-200 transition ml-auto"
+          >
+            Add {label}
+          </button>
+        )}
       </div>
     </div>
   );

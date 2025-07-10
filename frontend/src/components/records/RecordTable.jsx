@@ -7,7 +7,8 @@ export default function RecordTable({
   onDelete,
   onCopy,
   hasCategory,
-  onInfo
+  onInfo,
+  isViewer
 }) {
   const sortedRecords = records;
 
@@ -50,37 +51,42 @@ export default function RecordTable({
                 >
                   <Info size={16} />
                 </button>
-
-                <button
-                  onClick={() => { 
-                    //console.log('Copy:', record); 
-                    onCopy(record); 
-                  }}
-                  className="bg-cyan-500 hover:bg-cyan-600 text-white px-2 py-1 rounded"
-                  title="Copy"
-                >
-                  <Copy size={16} />
-                </button>
-                <button
-                  onClick={() => { 
-                    //console.log('onEdit', record);
-                    onEdit(record);
-                  }}
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded"
-                  title="Edit"
-                >
-                  <Wrench size={16} />
-                </button>
-                <button
-                  onClick={() => { 
-                    //console.log('onDelete', record);
-                    onDelete(record);
-                  }}
-                  className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded"
-                  title="Delete"
-                >
-                  <Trash2 size={16} />
-                </button>
+                {!isViewer && (
+                  <button
+                    onClick={() => { 
+                      //console.log('Copy:', record); 
+                      onCopy(record); 
+                    }}
+                    className="bg-cyan-500 hover:bg-cyan-600 text-white px-2 py-1 rounded"
+                    title="Copy"
+                  >
+                    <Copy size={16} />
+                  </button>
+                )}
+                {!isViewer && (
+                  <button
+                    onClick={() => { 
+                      //console.log('onEdit', record);
+                      onEdit(record);
+                    }}
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded"
+                    title="Edit"
+                  >
+                    <Wrench size={16} />
+                  </button>
+                )}
+                {!isViewer && (
+                  <button
+                    onClick={() => { 
+                      //console.log('onDelete', record);
+                      onDelete(record);
+                    }}
+                    className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded"
+                    title="Delete"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
               </td>
             </tr>
           ))}

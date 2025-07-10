@@ -10,6 +10,8 @@ import useHandleAdd from '../../hooks/records/useHandleAdd';
 import useHandleEdit from '../../hooks/records/useHandleEdit';
 import useHandleDelete from '../../hooks/records/useHandleDelete';
 import useHandleCopyConfirm from '../../hooks/records/useHandleCopyConfirm';
+import { useAuth } from '../../auth/AuthContext'; // Ajusta la ruta si es diferente
+
 
 // 3. Componentes locales
 import FiltersBar from './FiltersBarRecords';
@@ -39,6 +41,9 @@ export default function RecordsPageTemplate({
     years,
     loading,
   } = useRecordsData(endpoint);
+
+  const { user } = useAuth();
+  const isViewer = user?.role === 'viewer';
 
   const [filters, setFilters] = useState({ month_id: '', year_id: '', category_id: '' });
   const [search, setSearch] = useState('');
@@ -93,6 +98,7 @@ export default function RecordsPageTemplate({
         onAdd={() => setShowAddModal(true)}
         type={type}
         label={type.charAt(0).toUpperCase() + type.slice(1).replace(/s$/, '')}
+        isViewer={isViewer}
       />
 
       <div className="my-4">
@@ -120,6 +126,7 @@ export default function RecordsPageTemplate({
           setCopyState({ show: true, record, targetMonth: '', targetYear: '' });
         }}
         onInfo={setInfoRecord}
+        isViewer={isViewer}
       />
 
       <Pagination
