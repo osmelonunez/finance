@@ -1,0 +1,66 @@
+import React from "react";
+import { Wrench, Trash2, CheckCircle } from "lucide-react";
+
+export default function AlertList({ alerts, onResolve, onEdit, onDelete }) {
+  // Filtrar según lo pedido
+  const filteredAlerts = alerts.filter(alert => {
+    if (!alert.resolved) return true;
+    if (!alert.resolved_at) return false;
+    const resolvedAt = new Date(alert.resolved_at);
+    const now = new Date();
+    const diffHours = (now - resolvedAt) / (1000 * 60 * 60);
+    return diffHours <= 24;
+  });
+
+  return (
+    <ul>
+      {filteredAlerts.map(alert => (
+        <li
+          key={alert.id}
+          className={`mb-2 px-4 py-2 rounded border flex flex-col md:flex-row justify-between items-start md:items-center ${alert.resolved ? "bg-gray-100 text-gray-400" : "bg-yellow-50 border-yellow-200"}`}
+        >
+          <div className="flex-1">
+            <span className="font-medium">{alert.message}</span>
+            <span className="block text-xs text-gray-400 mt-1">
+              {alert.created_at && <span>Created: {alert.created_at.slice(0,10)} | </span>}
+              {alert.created_by_name && <span>By: {alert.created_by_name}</span>}
+              {alert.due_date && <span> | Target date: {alert.due_date.slice(0,10)}</span>}
+            </span>
+            {alert.resolved && (
+              <span className="block text-xs text-green-600 mt-1">
+                Resolved
+                {alert.resolved_by_name && ` by ${alert.resolved_by_name}`}
+                {alert.resolved_at && ` on ${alert.resolved_at.slice(0,10)}`}
+              </span>
+            )}
+          </div>
+          {!alert.resolved && (
+            <div className="flex gap-2 mt-2 md:mt-0">
+              <button
+                onClick={() => onResolve(alert.id)}
+                className="bg-green-500 text-white text-xs p-2 rounded hover:bg-green-600 flex items-center"
+                title="Mark as resolved"
+              >
+                <CheckCircle size={16} />
+              </button>
+              <button
+                onClick={() => onEdit(alert)}
+                className="bg-blue-500 text-white text-xs p-2 rounded hover:bg-blue-600 flex items-center"
+                title="Edit alert"
+              >
+                <Wrench size={16} />
+              </button>
+              <button
+                onClick={() => onDelete(alert.id)}
+                className="bg-red-500 text-white text-xs p-2 rounded hover:bg-red-600 flex items-center"
+                title="Delete alert"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}

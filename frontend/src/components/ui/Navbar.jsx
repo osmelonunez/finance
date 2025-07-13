@@ -8,21 +8,44 @@ export default function Navbar({ links = [] }) {
   const navigate = useNavigate();
   const [showAlerts, setShowAlerts] = useState(false);
   const alertsButtonRef = useRef();
+  const [alerts, setAlerts] = useState([]);
 
-  // Demo: alerta con estado de leída/no leída
-  const [alerts, setAlerts] = useState([
-    { id: 1, message: "Monthly report available", date: "2024-07-11", read: false },
-    { id: 2, message: "System update scheduled", date: "2024-07-13", read: false },
-  ]);
+  // Helper para traer alertas reales
+  const fetchAlerts = async () => {
+    try {
+      const res = await fetch('/api/alerts', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const data = await res.json();
 
-  // Contador de alertas no leídas
-  const unreadCount = alerts.filter(a => !a.read).length;
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
+      // Filtra: no resueltas y due_date hoy o anterior (o sin due_date)
+      const today = new Date().toISOString().slice(0, 10);
+      const filtered = data.filter(
+        alert =>
+          !alert.resolved &&
+          (!alert.due_date || alert.due_date.slice(0, 10) <= today)
+      );
+      setAlerts(filtered);
+    } catch (err) {
+      setAlerts([]); // En caso de error, lista vacía
+    }
   };
 
+  // Fetch al montar y cada minuto
+  useEffect(() => {
+    fetchAlerts();
+    const interval = setInterval(fetchAlerts, 60000); // 1 minuto = 60,000 ms
+    return () => clearInterval(interval);
+  }, []);
+
+  // Actualiza al abrir la campana (por si hay cambios de otra pestaña)
+  useEffect(() => {
+    if (showAlerts) fetchAlerts();
+  }, [showAlerts]);
+
+  // Cierra dropdown si haces click fuera
   useEffect(() => {
     if (!showAlerts) return;
     function handleClick(e) {
@@ -34,14 +57,12 @@ export default function Navbar({ links = [] }) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [showAlerts]);
 
-  // Al pasar el mouse por encima de una alerta, marcarla como leída
-  const handleMouseEnterAlert = (alertId) => {
-    setAlerts(prev =>
-      prev.map(alert =>
-        alert.id === alertId ? { ...alert, read: true } : alert
-      )
-    );
+  const handleLogout = () => {
+    logout();
+    navigate('/');
   };
+
+  const unreadCount = alerts.length;
 
   return (
     <nav className="bg-white text-gray-800 py-4 shadow-md">
@@ -72,37 +93,38 @@ export default function Navbar({ links = [] }) {
                 </span>
               )}
             </button>
-              {showAlerts && (
-                <div className="absolute right-0 mt-2 w-64 bg-white border rounded-lg shadow-lg z-50">
-                  <button
-                    onClick={() => {
-                      setShowAlerts(false);
-                      navigate('/alerts'); // Usa useNavigate de react-router-dom
-                    }}
-                    className="w-full text-left p-2 border-b font-semibold text-sm text-blue-700 hover:bg-blue-50 transition"
-                    style={{ outline: 'none' }}
-                  >
-                    Manage alerts
-                  </button>
-                  <ul className="max-h-60 overflow-y-auto">
-                    {alerts.length === 0 && (
-                      <li className="p-3 text-gray-400 text-sm text-center">No alerts</li>
-                    )}
-                    {alerts.map(alert => (
-                      <li
-                        key={alert.id}
-                        onMouseEnter={() => !alert.read && handleMouseEnterAlert(alert.id)}
-                        className={`p-3 border-b last:border-b-0 hover:bg-yellow-50 text-sm cursor-pointer transition-colors duration-150 ${
-                          alert.read ? "opacity-60" : "font-medium"
-                        }`}
-                      >
-                        <div>{alert.message}</div>
-                        <div className="text-xs text-gray-400">{alert.date}</div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+            {showAlerts && (
+              <div className="absolute right-0 mt-2 w-64 bg-white border rounded-lg shadow-lg z-50">
+                <button
+                  onClick={() => {
+                    setShowAlerts(false);
+                    navigate('/alerts');
+                  }}
+                  className="w-full text-left p-2 border-b font-semibold text-sm text-blue-700 hover:bg-blue-50 transition"
+                  style={{ outline: 'none' }}
+                >
+                  Manage alerts
+                </button>
+                <ul className="max-h-60 overflow-y-auto">
+                  {alerts.length === 0 && (
+                    <li className="p-3 text-gray-400 text-sm text-center">No alerts</li>
+                  )}
+                  {alerts.map(alert => (
+                    <li
+                      key={alert.id}
+                      className="p-3 border-b last:border-b-0 hover:bg-yellow-50 text-sm cursor-pointer transition-colors duration-150"
+                    >
+                      <div>{alert.message}</div>
+                      <div className="text-xs text-gray-400">
+                        {alert.due_date
+                          ? `Target date: ${alert.due_date.slice(0,10)}`
+                          : (alert.created_at ? `Created: ${alert.created_at.slice(0,10)}` : "")}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
           {/* SETTINGS */}
           <Link

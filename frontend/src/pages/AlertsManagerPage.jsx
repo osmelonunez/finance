@@ -1,97 +1,174 @@
 import { useState, useEffect } from "react";
+import AlertList from "../components/alerts/AlertList";
 
 export default function AlertsManagerPage() {
-  // Simulación de alertas (en real, fetch desde tu API)
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [editAlert, setEditAlert] = useState(null);
 
+  // Traer alertas al montar
   useEffect(() => {
-    // Aquí deberías hacer fetch a tu endpoint GET /api/alerts
-    // Ejemplo demo:
-    setTimeout(() => {
-      setAlerts([
-        { id: 1, message: "Monthly report available", resolved: false, date: "2024-07-11" },
-        { id: 2, message: "System update scheduled", resolved: true, date: "2024-07-13" },
-      ]);
+    const fetchAlerts = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/alerts", {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        const data = await res.json();
+        setAlerts(data);
+      } catch (err) {}
       setLoading(false);
-    }, 500);
+    };
+    fetchAlerts();
   }, []);
 
-  // Handler para crear una alerta nueva (ejemplo demo)
-  const handleCreateAlert = (e) => {
+  // Crear o editar alerta
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!message.trim()) return;
-    const newAlert = {
-      id: Date.now(),
-      message,
-      resolved: false,
-      date: new Date().toISOString().slice(0, 10)
-    };
-    setAlerts([newAlert, ...alerts]);
-    setMessage("");
+    try {
+      if (editAlert) {
+        // PATCH para editar
+        const res = await fetch(`/api/alerts/${editAlert.id}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            message,
+            due_date: dueDate || null
+          })
+        });
+        const updated = await res.json();
+        setAlerts(alerts =>
+          alerts.map(alert =>
+            alert.id === editAlert.id ? updated : alert
+          )
+        );
+        setEditAlert(null);
+      } else {
+        // POST para crear
+        const res = await fetch("/api/alerts", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            message,
+            record_id: null,
+            type: null,
+            due_date: dueDate || null
+          })
+        });
+        const newAlert = await res.json();
+        if (newAlert && newAlert.id) {
+          setAlerts(prev => [newAlert, ...prev]);
+        }
+      }
+      setMessage("");
+      setDueDate("");
+    } catch (err) {}
   };
 
-  // Handler para marcar como resuelta
-  const handleResolve = (id) => {
-    setAlerts(alerts =>
-      alerts.map(alert =>
-        alert.id === id ? { ...alert, resolved: true } : alert
-      )
-    );
+  // Marcar alerta como resuelta
+  const handleResolve = async (id) => {
+    try {
+      const res = await fetch(`/api/alerts/${id}/resolve`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      const updated = await res.json();
+      setAlerts(alerts =>
+        alerts.map(alert =>
+          alert.id === id ? updated : alert
+        )
+      );
+    } catch (err) {}
+  };
+
+  // Reactivar alerta
+  const handleReactivate = async (id) => {
+    try {
+      const res = await fetch(`/api/alerts/${id}/resolve`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ resolved: false })
+      });
+      const updated = await res.json();
+      setAlerts(alerts =>
+        alerts.map(alert =>
+          alert.id === id ? updated : alert
+        )
+      );
+    } catch (err) {}
+  };
+
+  // Preparar edición
+  const handleEdit = (alert) => {
+    setEditAlert(alert);
+    setMessage(alert.message);
+    setDueDate(alert.due_date ? alert.due_date.slice(0,10) : "");
+  };
+
+  // Cancelar edición
+  const handleCancelEdit = () => {
+    setEditAlert(null);
+    setMessage("");
+    setDueDate("");
   };
 
   return (
     <div className="max-w-xl mx-auto mt-10 bg-white rounded shadow p-6">
       <h1 className="text-xl font-bold mb-4">Manage Alerts</h1>
-
-      {/* Crear alerta */}
-      <form onSubmit={handleCreateAlert} className="flex mb-6 gap-2">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-2 mb-6">
         <input
           type="text"
           placeholder="New alert message"
-          className="flex-1 border px-3 py-2 rounded"
+          className="border px-3 py-2 rounded"
           value={message}
           onChange={e => setMessage(e.target.value)}
+          required
         />
-        <button
-          type="submit"
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
-        >
-          Create
-        </button>
+        <input
+          type="date"
+          value={dueDate}
+          onChange={e => setDueDate(e.target.value)}
+          className="border px-3 py-2 rounded"
+        />
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
+          >
+            {editAlert ? "Update" : "Create"}
+          </button>
+          {editAlert && (
+            <button
+              type="button"
+              onClick={handleCancelEdit}
+              className="bg-gray-300 text-black px-4 py-2 rounded"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
       </form>
-
-      {/* Lista de alertas */}
       {loading ? (
         <div className="text-gray-500 text-center py-4">Loading alerts...</div>
-      ) : alerts.length === 0 ? (
-        <div className="text-gray-400 text-center py-6">No alerts found.</div>
       ) : (
-        <ul>
-          {alerts.map(alert => (
-            <li
-              key={alert.id}
-              className={`mb-2 px-4 py-2 rounded border flex justify-between items-center ${alert.resolved ? "bg-gray-100 text-gray-400" : "bg-yellow-50 border-yellow-200"}`}
-            >
-              <div>
-                <span className="font-medium">{alert.message}</span>
-                <span className="block text-xs text-gray-400">{alert.date}</span>
-              </div>
-              {!alert.resolved && (
-                <button
-                  onClick={() => handleResolve(alert.id)}
-                  className="bg-green-500 text-white text-xs px-3 py-1 rounded ml-3 hover:bg-green-600"
-                >
-                  Mark as resolved
-                </button>
-              )}
-              {alert.resolved && (
-                <span className="text-green-600 font-bold text-xs">Resolved</span>
-              )}
-            </li>
-          ))}
-        </ul>
+        <AlertList
+          alerts={alerts}
+          onResolve={handleResolve}
+          onReactivate={handleReactivate}
+          onEdit={handleEdit}
+        />
       )}
     </div>
   );

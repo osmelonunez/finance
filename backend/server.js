@@ -16,6 +16,7 @@ const usersRoutes = require('./routes/users');
 const rolesRoutes = require('./routes/roles');
 const devRoutes = require('./routes/dev');
 const backupRoutes = require('./routes/backup');
+const alertRoutes = require('./routes/alert');
 
 const app = express();
 app.use(cors());
@@ -34,6 +35,7 @@ app.use('/api/users', usersRoutes);
 app.use('/api/roles', rolesRoutes);
 app.use('/api/dev', devRoutes);
 app.use('/api/backup', backupRoutes);
+app.use('/api/alerts', alertRoutes);
 
 const { scheduleBackupJob } = require('./controllers/backupController');
 scheduleBackupJob();

@@ -92,6 +92,24 @@ async function initializeDatabase() {
   console.log("✅ Tabla 'users' verificada/creada.");
 
   await client.query(`
+    CREATE TABLE IF NOT EXISTS alerts (
+      id SERIAL PRIMARY KEY,
+      created_by INTEGER REFERENCES users(id) NOT NULL,
+      record_id INTEGER,
+      record_type VARCHAR(30),
+      message TEXT NOT NULL,
+      type VARCHAR(50),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      resolved BOOLEAN NOT NULL DEFAULT FALSE,
+      resolved_by INTEGER REFERENCES users(id),
+      resolved_at TIMESTAMP,
+      due_date TIMESTAMP
+    );
+  `);
+  
+  console.log("✅ Tabla 'alerts' verificada/creada.");
+
+  await client.query(`
     CREATE TABLE IF NOT EXISTS emails (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
