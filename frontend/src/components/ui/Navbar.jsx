@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../auth/AuthContext';
+import { useAuth } from '../../auth/AuthContext';
 import { LogOut, Settings, Bell } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 

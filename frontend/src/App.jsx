@@ -1,14 +1,14 @@
 import RegisterPage from './pages/RegisterPage';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
-import PrivateRoute from './components/PrivateRoute';
+import PrivateRoute from './components/security/PrivateRoute';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import ExpensesPage from './pages/ExpensesPage';
 import IncomesPage from './pages/IncomesPage';
 import CategoryManager from './pages/CategoryManager';
 import DashboardPage from './pages/DashboardPage';
-import Navbar from './components/Navbar';
+import Navbar from './components/ui/Navbar';
 import SavingsPage from './pages/SavingsPage';
 import SettingsPage from './pages/SettingsPage';
 import AccountPage from './pages/AccountPage';
