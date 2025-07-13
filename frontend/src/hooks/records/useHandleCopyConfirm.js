@@ -28,6 +28,8 @@ export default function useHandleCopyConfirm({
       month_id: targetMonth,
       year_id: targetYear,
       ...(isExpenses && { category_id: record.category_id }),
+      ...(isExpenses && { source: record.source }),
+      created_by_user_id: record.created_by_user_id,
     };
 
     try {
