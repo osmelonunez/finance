@@ -25,14 +25,8 @@ exports.createAlert = async (req, res) => {
 exports.getUserAlerts = async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT 
-          a.*, 
-          u1.username AS created_by_name, 
-          u2.username AS resolved_by_name
-        FROM alerts a
-        LEFT JOIN users u1 ON a.created_by = u1.id
-        LEFT JOIN users u2 ON a.resolved_by = u2.id
-        ORDER BY a.resolved ASC, a.due_date ASC NULLS LAST, a.created_at DESC`
+      `SELECT * FROM alerts
+       ORDER BY resolved ASC, due_date ASC NULLS LAST, created_at DESC`
     );
     res.json(result.rows);
   } catch (err) {
@@ -82,5 +76,29 @@ exports.getAlertsByRecord = async (req, res) => {
   } catch (err) {
     console.error('Error fetching alerts by record:', err);
     res.status(500).json({ error: 'Error fetching alerts by record' });
+  }
+};
+
+// Editar alerta (mensaje o fecha)
+exports.updateAlert = async (req, res) => {
+  const alertId = req.params.id;
+  const { message, due_date } = req.body;
+  try {
+    const result = await db.query(
+      `UPDATE alerts
+       SET message = COALESCE($1, message),
+           due_date = COALESCE($2, due_date),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $3
+       RETURNING *`,
+      [message, due_date, alertId]
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Alert not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error updating alert:', err);
+    res.status(500).json({ error: 'Error updating alert' });
   }
 };

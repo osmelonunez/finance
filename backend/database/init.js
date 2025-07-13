@@ -100,6 +100,7 @@ async function initializeDatabase() {
       message TEXT NOT NULL,
       type VARCHAR(50),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       resolved BOOLEAN NOT NULL DEFAULT FALSE,
       resolved_by INTEGER REFERENCES users(id),
       resolved_at TIMESTAMP,

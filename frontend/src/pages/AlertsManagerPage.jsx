@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import AlertList from "../components/alerts/AlertList";
+import { Plus, Check } from "lucide-react";
 
 export default function AlertsManagerPage() {
   const [alerts, setAlerts] = useState([]);
@@ -7,8 +8,10 @@ export default function AlertsManagerPage() {
   const [message, setMessage] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [editAlert, setEditAlert] = useState(null);
+  const [showForm, setShowForm] = useState(false);
 
-  // Traer alertas al montar
+  const formRef = useRef();
+
   useEffect(() => {
     const fetchAlerts = async () => {
       setLoading(true);
@@ -24,13 +27,11 @@ export default function AlertsManagerPage() {
     fetchAlerts();
   }, []);
 
-  // Crear o editar alerta
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!message.trim()) return;
     try {
       if (editAlert) {
-        // PATCH para editar
         const res = await fetch(`/api/alerts/${editAlert.id}`, {
           method: "PATCH",
           headers: {
@@ -50,7 +51,6 @@ export default function AlertsManagerPage() {
         );
         setEditAlert(null);
       } else {
-        // POST para crear
         const res = await fetch("/api/alerts", {
           method: "POST",
           headers: {
@@ -71,10 +71,24 @@ export default function AlertsManagerPage() {
       }
       setMessage("");
       setDueDate("");
+      setShowForm(false);
     } catch (err) {}
   };
 
-  // Marcar alerta como resuelta
+  const handleEdit = (alert) => {
+    setEditAlert(alert);
+    setMessage(alert.message);
+    setDueDate(alert.due_date ? alert.due_date.slice(0,10) : "");
+    setShowForm(true);
+  };
+
+  const handleCancelEdit = () => {
+    setEditAlert(null);
+    setMessage("");
+    setDueDate("");
+    setShowForm(false);
+  };
+
   const handleResolve = async (id) => {
     try {
       const res = await fetch(`/api/alerts/${id}/resolve`, {
@@ -90,7 +104,6 @@ export default function AlertsManagerPage() {
     } catch (err) {}
   };
 
-  // Reactivar alerta
   const handleReactivate = async (id) => {
     try {
       const res = await fetch(`/api/alerts/${id}/resolve`, {
@@ -110,56 +123,95 @@ export default function AlertsManagerPage() {
     } catch (err) {}
   };
 
-  // Preparar edición
-  const handleEdit = (alert) => {
-    setEditAlert(alert);
-    setMessage(alert.message);
-    setDueDate(alert.due_date ? alert.due_date.slice(0,10) : "");
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this alert?")) return;
+    try {
+      await fetch(`/api/alerts/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      setAlerts(alerts => alerts.filter(alert => alert.id !== id));
+    } catch (err) {}
   };
 
-  // Cancelar edición
-  const handleCancelEdit = () => {
-    setEditAlert(null);
-    setMessage("");
-    setDueDate("");
+  const handlePlusClick = () => {
+    if (editAlert) {
+      handleCancelEdit();
+    } else {
+      setShowForm((prev) => !prev);
+      if (showForm) {
+        setMessage("");
+        setDueDate("");
+      }
+    }
+  };
+
+  const handleCheckClick = () => {
+    if (formRef.current) {
+      formRef.current.requestSubmit();
+    }
   };
 
   return (
-    <div className="max-w-xl mx-auto mt-10 bg-white rounded shadow p-6">
+    <div className="max-w-xl mx-auto mt-10 bg-white rounded shadow p-6 relative">
       <h1 className="text-xl font-bold mb-4">Manage Alerts</h1>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-2 mb-6">
-        <input
-          type="text"
-          placeholder="New alert message"
-          className="border px-3 py-2 rounded"
-          value={message}
-          onChange={e => setMessage(e.target.value)}
-          required
-        />
-        <input
-          type="date"
-          value={dueDate}
-          onChange={e => setDueDate(e.target.value)}
-          className="border px-3 py-2 rounded"
-        />
-        <div className="flex gap-2">
+      {/* Botón agregar y check alineado a la IZQUIERDA debajo del título */}
+      <div className="w-full flex justify-start mb-6">
+        <button
+          onClick={handlePlusClick}
+          type="button"
+          title={showForm || editAlert ? "Cancel" : "Add alert"}
+          className={`
+            flex items-center justify-center
+            border-2
+            ${showForm || editAlert ? "border-yellow-500 text-yellow-500" : "border-green-500 text-green-600"}
+            rounded-full
+            bg-white
+            hover:bg-green-50
+            transition-colors duration-150
+            focus:outline-none
+          `}
+          style={{ width: 20, height: 20 }}
+        >
+          <Plus size={16} strokeWidth={2.2} />
+        </button>
+        {(showForm || editAlert) && (
           <button
-            type="submit"
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
+            type="button"
+            onClick={handleCheckClick}
+            className="ml-2 p-0 rounded-full text-green-600 border-none bg-transparent hover:text-green-700"
+            title="Save"
+            style={{ width: 18, height: 18 }}
           >
-            {editAlert ? "Update" : "Create"}
+            <Check size={20} />
           </button>
-          {editAlert && (
-            <button
-              type="button"
-              onClick={handleCancelEdit}
-              className="bg-gray-300 text-black px-4 py-2 rounded"
-            >
-              Cancel
-            </button>
-          )}
-        </div>
-      </form>
+        )}
+      </div>
+
+      {(showForm || editAlert) && (
+        <form
+          ref={formRef}
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-2 mb-6 mt-4"
+        >
+          <input
+            type="text"
+            placeholder="New alert message"
+            className="border px-3 py-2 rounded"
+            value={message}
+            onChange={e => setMessage(e.target.value)}
+            required
+            autoFocus
+          />
+          <input
+            type="date"
+            value={dueDate}
+            onChange={e => setDueDate(e.target.value)}
+            className="border px-3 py-2 rounded"
+          />
+        </form>
+      )}
+
       {loading ? (
         <div className="text-gray-500 text-center py-4">Loading alerts...</div>
       ) : (
@@ -168,6 +220,7 @@ export default function AlertsManagerPage() {
           onResolve={handleResolve}
           onReactivate={handleReactivate}
           onEdit={handleEdit}
+          onDelete={handleDelete}
         />
       )}
     </div>
