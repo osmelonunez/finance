@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from 'recharts';
+import {
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, BarChart, Bar, Legend
+} from 'recharts';
 
 export default function DashboardPage() {
   const [incomes, setIncomes] = useState([]);
@@ -54,9 +57,18 @@ export default function DashboardPage() {
     fetchData();
   }, []);
 
-  const filteredIncomes = incomes.filter(i => (!filters.month_id || i.month_id === parseInt(filters.month_id)) && (!filters.year_id || i.year_id === parseInt(filters.year_id)));
-  const filteredExpenses = expenses.filter(e => (!filters.month_id || e.month_id === parseInt(filters.month_id)) && (!filters.year_id || e.year_id === parseInt(filters.year_id)));
-  const filteredSavings = savings.filter(s => (!filters.month_id || s.month_id === parseInt(filters.month_id)) && (!filters.year_id || s.year_id === parseInt(filters.year_id)));
+  const filteredIncomes = incomes.filter(i =>
+    (!filters.month_id || i.month_id === parseInt(filters.month_id)) &&
+    (!filters.year_id || i.year_id === parseInt(filters.year_id))
+  );
+  const filteredExpenses = expenses.filter(e =>
+    (!filters.month_id || e.month_id === parseInt(filters.month_id)) &&
+    (!filters.year_id || e.year_id === parseInt(filters.year_id))
+  );
+  const filteredSavings = savings.filter(s =>
+    (!filters.month_id || s.month_id === parseInt(filters.month_id)) &&
+    (!filters.year_id || s.year_id === parseInt(filters.year_id))
+  );
 
   // SOLO expenses que NO son de general_savings (para totales y gráficos)
   const filteredExpensesNoSavings = filteredExpenses.filter(e => e.source !== "general_savings");
@@ -64,7 +76,9 @@ export default function DashboardPage() {
   // 1. Suma total ahorros
   const totalSavingsRaw = filteredSavings.reduce((sum, s) => sum + parseFloat(s.amount), 0);
   // 2. Suma gastos desde ahorros generales
-  const generalSavingsExpenses = filteredExpenses.filter(e => e.source === "general_savings").reduce((sum, e) => sum + parseFloat(e.cost), 0);
+  const generalSavingsExpenses = filteredExpenses
+    .filter(e => e.source === "general_savings")
+    .reduce((sum, e) => sum + parseFloat(e.cost), 0);
   // 3. Nuevo total savings
   const totalSavings = totalSavingsRaw - generalSavingsExpenses;
 
@@ -72,6 +86,7 @@ export default function DashboardPage() {
   const totalExpenses = filteredExpensesNoSavings.reduce((sum, e) => sum + parseFloat(e.cost), 0);
   const balance = totalIncome - totalExpenses - totalSavings;
 
+  // --- Agrupado por mes (como ya tenías) ---
   const groupedData = months.map(m => {
     const incomeMonth = incomes
       .filter(i => i.month_id === m.id && (!filters.year_id || i.year_id === parseInt(filters.year_id)))
@@ -83,13 +98,40 @@ export default function DashboardPage() {
     const savingMonth = savings
       .filter(s => s.month_id === m.id && (!filters.year_id || s.year_id === parseInt(filters.year_id)))
       .reduce((sum, s) => sum + parseFloat(s.amount), 0);
-    // NOTA: Si quisieras mostrar savings mes a mes "reales", puedes restar también aquí los gastos general_savings de ese mes.
     return {
       name: m.name.substring(0, 3),
       income: parseFloat(incomeMonth.toFixed(2)),
       expense: parseFloat(expenseMonth.toFixed(2)),
       saving: parseFloat(savingMonth.toFixed(2)),
       balance: parseFloat((incomeMonth - expenseMonth - savingMonth).toFixed(2))
+    };
+  });
+
+  // --- NUEVO: Agrupado por año ---
+  const groupedDataByYear = years.map(y => {
+    const incomeYear = incomes
+      .filter(i => i.year_id === y.id)
+      .reduce((sum, i) => sum + parseFloat(i.amount), 0);
+
+    const expenseYear = expenses
+      .filter(e => e.year_id === y.id && e.source !== "general_savings")
+      .reduce((sum, e) => sum + parseFloat(e.cost), 0);
+
+    // Suma savings y resta general_savings expenses para savings reales
+    const savingYearRaw = savings
+      .filter(s => s.year_id === y.id)
+      .reduce((sum, s) => sum + parseFloat(s.amount), 0);
+    const generalSavingsExpenseYear = expenses
+      .filter(e => e.year_id === y.id && e.source === "general_savings")
+      .reduce((sum, e) => sum + parseFloat(e.cost), 0);
+    const savingYear = savingYearRaw - generalSavingsExpenseYear;
+
+    return {
+      name: y.value,
+      income: parseFloat(incomeYear.toFixed(2)),
+      expense: parseFloat(expenseYear.toFixed(2)),
+      saving: parseFloat(savingYear.toFixed(2)),
+      balance: parseFloat((incomeYear - expenseYear - savingYear).toFixed(2))
     };
   });
 
@@ -173,9 +215,26 @@ export default function DashboardPage() {
       </div>
 
       <div className="bg-white p-4 rounded shadow">
-        <h3 className="text-sm text-gray-600 mb-2">Income vs. Expenses vs. Savings vs. Balance (Bar)</h3>
+        <h3 className="text-sm text-gray-600 mb-2">Income vs. Expenses vs. Savings vs. Balance (Bar by Month)</h3>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={groupedData}>
+            <XAxis dataKey="name" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="income" fill="#10b981" name="Incomes" />
+            <Bar dataKey="expense" fill="#ef4444" name="Expenses" />
+            <Bar dataKey="saving" fill="#fbbf24" name="Savings" />
+            <Bar dataKey="balance" fill="#3b82f6" name="Balance" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* NUEVO: Gráfico de barras por año */}
+      <div className="bg-white p-4 rounded shadow">
+        <h3 className="text-sm text-gray-600 mb-2">Income vs. Expenses vs. Savings vs. Balance (Bar by Year)</h3>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={groupedDataByYear}>
             <XAxis dataKey="name" />
             <YAxis />
             <Tooltip />
