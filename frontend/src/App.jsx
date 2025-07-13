@@ -13,6 +13,7 @@ import SavingsPage from './pages/SavingsPage';
 import SettingsPage from './pages/SettingsPage';
 import AccountPage from './pages/AccountPage';
 import UsersPage from './pages/UsersPage';
+import AlertsManagerPage from './pages/AlertsManagerPage';
 
 const navLinks = [
   { to: '/dashboard', label: 'Dashboard' },
@@ -44,6 +45,7 @@ export default function App() {
             <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
             <Route path="/account" element={<PrivateRoute><AccountPage /></PrivateRoute>} />
             <Route path="/users" element={<PrivateRoute><UsersPage /></PrivateRoute>} />
+            <Route path="/alerts" element={<PrivateRoute><AlertsManagerPage /></PrivateRoute>} />
           </Routes>
         </main>
       </div>

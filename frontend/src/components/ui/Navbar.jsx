@@ -72,30 +72,37 @@ export default function Navbar({ links = [] }) {
                 </span>
               )}
             </button>
-            {showAlerts && (
-              <div className="absolute right-0 mt-2 w-64 bg-white border rounded-lg shadow-lg z-50">
-                <div className="p-2 border-b font-semibold text-sm text-gray-600">
-                  Alerts (Coming soon)
+              {showAlerts && (
+                <div className="absolute right-0 mt-2 w-64 bg-white border rounded-lg shadow-lg z-50">
+                  <button
+                    onClick={() => {
+                      setShowAlerts(false);
+                      navigate('/alerts'); // Usa useNavigate de react-router-dom
+                    }}
+                    className="w-full text-left p-2 border-b font-semibold text-sm text-blue-700 hover:bg-blue-50 transition"
+                    style={{ outline: 'none' }}
+                  >
+                    Manage alerts
+                  </button>
+                  <ul className="max-h-60 overflow-y-auto">
+                    {alerts.length === 0 && (
+                      <li className="p-3 text-gray-400 text-sm text-center">No alerts</li>
+                    )}
+                    {alerts.map(alert => (
+                      <li
+                        key={alert.id}
+                        onMouseEnter={() => !alert.read && handleMouseEnterAlert(alert.id)}
+                        className={`p-3 border-b last:border-b-0 hover:bg-yellow-50 text-sm cursor-pointer transition-colors duration-150 ${
+                          alert.read ? "opacity-60" : "font-medium"
+                        }`}
+                      >
+                        <div>{alert.message}</div>
+                        <div className="text-xs text-gray-400">{alert.date}</div>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <ul className="max-h-60 overflow-y-auto">
-                  {alerts.length === 0 && (
-                    <li className="p-3 text-gray-400 text-sm text-center">No alerts</li>
-                  )}
-                  {alerts.map(alert => (
-                    <li
-                      key={alert.id}
-                      onMouseEnter={() => !alert.read && handleMouseEnterAlert(alert.id)}
-                      className={`p-3 border-b last:border-b-0 hover:bg-yellow-50 text-sm cursor-pointer transition-colors duration-150 ${
-                        alert.read ? "opacity-60" : "font-medium"
-                      }`}
-                    >
-                      <div>{alert.message}</div>
-                      <div className="text-xs text-gray-400">{alert.date}</div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+              )}
           </div>
           {/* SETTINGS */}
           <Link
