@@ -74,12 +74,12 @@ export default function EmailManager() {
 
   const handleEditEmail = async () => {
     if (!editingEmailId || !editedEmail) return;
-
+  
     if (!isEmailValid(editedEmail)) {
       showNotification({ type: 'error', message: 'Invalid email address' }, 2000);
       return;
     }
-
+  
     const exists = emails.some(email =>
       email.email.toLowerCase() === editedEmail.toLowerCase() && email.id !== editingEmailId
     );
@@ -87,21 +87,27 @@ export default function EmailManager() {
       showNotification({ type: 'error', message: 'This email is already added.' }, 2000);
       return;
     }
-
+  
     if (!token) {
       showNotification({ type: 'error', message: 'Token not available' }, 2000);
       return;
     }
-
+  
+    // <-- NUEVO: toma el email original para no perder notificaciones_enabled
+    const originalEmail = emails.find(e => e.id === editingEmailId);
+  
     const res = await fetch(`/api/emails/${editingEmailId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`
       },
-      body: JSON.stringify({ email: editedEmail })
+      body: JSON.stringify({
+        email: editedEmail,
+        notifications_enabled: originalEmail.notifications_enabled // ¡Aquí!
+      })
     });
-
+  
     if (res.ok) {
       const updated = await res.json();
       setEmails(updated);
