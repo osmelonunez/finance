@@ -1,5 +1,5 @@
 import RegisterPage from './pages/RegisterPage';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import HomePage from './pages/HomePage';
@@ -22,24 +22,29 @@ const navLinks = [
 ];
 
 export default function App() {
+  const location = useLocation();
+
   return (
     <AuthProvider>
       <div className="min-h-screen bg-gray-100 text-gray-800">
-        <Navbar links={navLinks} />
+        {/* Solo muestra la Navbar si NO estás en /login ni /register */}
+        {location.pathname !== '/login' && location.pathname !== '/register' && (
+          <Navbar links={navLinks} />
+        )}
         <main className="max-w-6xl mx-auto px-4 py-6">
           <Routes>
-  <Route path="/login" element={<LoginPage />} />
-  <Route path="/register" element={<RegisterPage />} />
-  <Route path="/" element={<HomePage />} />
-  <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
-  <Route path="/expenses" element={<PrivateRoute><ExpensesPage /></PrivateRoute>} />
-  <Route path="/incomes" element={<PrivateRoute><IncomesPage /></PrivateRoute>} />
-  <Route path="/savings" element={<PrivateRoute><SavingsPage /></PrivateRoute>} />
-  <Route path="/categories" element={<PrivateRoute><CategoryManager /></PrivateRoute>} />
-  <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
-  <Route path="/account" element={<PrivateRoute><AccountPage /></PrivateRoute>} />
-  <Route path="/users" element={<PrivateRoute><UsersPage /></PrivateRoute>} />
-</Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/" element={<HomePage />} />
+            <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
+            <Route path="/expenses" element={<PrivateRoute><ExpensesPage /></PrivateRoute>} />
+            <Route path="/incomes" element={<PrivateRoute><IncomesPage /></PrivateRoute>} />
+            <Route path="/savings" element={<PrivateRoute><SavingsPage /></PrivateRoute>} />
+            <Route path="/categories" element={<PrivateRoute><CategoryManager /></PrivateRoute>} />
+            <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
+            <Route path="/account" element={<PrivateRoute><AccountPage /></PrivateRoute>} />
+            <Route path="/users" element={<PrivateRoute><UsersPage /></PrivateRoute>} />
+          </Routes>
         </main>
       </div>
     </AuthProvider>

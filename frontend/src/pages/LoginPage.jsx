@@ -18,17 +18,13 @@ export default function LoginPage() {
   }, [isAuthenticated, navigate, location]);
 
   const [form, setForm] = useState({ username: '', password: '' });
-
-  // Si venías de otra página protegida, regresas ahí después del login
-  const from = location.state?.from?.pathname || '/';
-
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const result = await login(form.username, form.password);
     if (result === true) {
-      navigate(from, { replace: true });
+      navigate('/dashboard', { replace: true }); // <-- redirige siempre a dashboard
     } else {
       setError(result);
     }
