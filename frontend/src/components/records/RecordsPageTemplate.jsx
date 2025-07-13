@@ -40,6 +40,7 @@ export default function RecordsPageTemplate({
     months,
     years,
     loading,
+    fetchData
   } = useRecordsData(endpoint);
 
   const { user } = useAuth();
@@ -76,10 +77,10 @@ export default function RecordsPageTemplate({
   const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   // Pasa la función global showNotification a todos los hooks
-  const handleAdd = useHandleAdd({ endpoint, field, isExpenses, token, newRecord, setNewRecord, setShowAddModal, setError, setRecords, showNotification });
-  const handleEdit = useHandleEdit({ endpoint, field, token, editingRecord, setEditingRecord, setShowEditModal, setError, setRecords, showNotification });
-  const handleDelete = useHandleDelete({ endpoint, recordToDelete, setRecords, showNotification, token, setShowDeleteModal, setRecordToDelete });
-  const handleCopyConfirm = useHandleCopyConfirm({ copyState, setCopyState, field, isExpenses, endpoint, setRecords, showNotification, token, title });
+  const handleAdd = useHandleAdd({ endpoint, field, isExpenses, token, newRecord, setNewRecord, setShowAddModal, setError, setRecords, showNotification, afterSuccess: fetchData });
+  const handleEdit = useHandleEdit({ endpoint, field, token, editingRecord, setEditingRecord, setShowEditModal, setError, setRecords, showNotification, afterSuccess: fetchData });
+  const handleDelete = useHandleDelete({ endpoint, recordToDelete, setRecords, showNotification, token, setShowDeleteModal, setRecordToDelete, afterSuccess: fetchData });
+  const handleCopyConfirm = useHandleCopyConfirm({ copyState, setCopyState, field, isExpenses, endpoint, setRecords, showNotification, token, title, afterSuccess: fetchData });
 
   return (
     <div className="records-page">

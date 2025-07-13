@@ -12,7 +12,8 @@ export default function useHandleEdit({
   setError,
   setRecords,
   setNotification,
-  showNotification
+  showNotification,
+  afterSuccess, // <--- NUEVO
 }) {
   const handleEdit = useCallback(async () => {
     if (!isValidRecord(editingRecord, field)) {
@@ -27,6 +28,7 @@ export default function useHandleEdit({
         setShowEditModal(false);
         setEditingRecord(null);
         setError('');
+        if (afterSuccess) afterSuccess(); // <--- LLAMADA AL FINAL
       } else {
         showNotification({ type: 'error', message: 'Failed to update record.' });
         setError('Failed to update record.');
@@ -35,7 +37,19 @@ export default function useHandleEdit({
       showNotification({ type: 'error', message: 'Unexpected error while updating record.' });
       setError('Unexpected error while updating record.');
     }
-  }, [endpoint, field, token, editingRecord, setEditingRecord, setShowEditModal, setError, setRecords, setNotification]);
+  }, [
+    endpoint,
+    field,
+    token,
+    editingRecord,
+    setEditingRecord,
+    setShowEditModal,
+    setError,
+    setRecords,
+    setNotification,
+    showNotification,
+    afterSuccess // <--- AGREGA AQUÍ
+  ]);
 
   return handleEdit;
 }

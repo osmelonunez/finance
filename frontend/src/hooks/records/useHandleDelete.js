@@ -9,7 +9,8 @@ export default function useHandleDelete({
   token,
   setShowDeleteModal,
   setRecordToDelete,
-  showNotification
+  showNotification,
+  afterSuccess, // <--- Nuevo
 }) {
   const handleDelete = useCallback(async () => {
     try {
@@ -18,13 +19,14 @@ export default function useHandleDelete({
         showNotification({ type: 'success', message: 'Record deleted successfully!' });
         setShowDeleteModal(false);
         setRecordToDelete(null);
+        if (afterSuccess) afterSuccess(); // <--- Llama aquí
       } else {
         showNotification({ type: 'error', message: 'Failed to delete record.' });
       }
     } catch (err) {
       showNotification({ type: 'error', message: 'Unexpected error while deleting record.' });
     }
-  }, [endpoint, recordToDelete, setRecords, setNotification, token, setShowDeleteModal, setRecordToDelete]);
+  }, [endpoint, recordToDelete, setRecords, setNotification, token, setShowDeleteModal, setRecordToDelete, afterSuccess]);
 
   return handleDelete;
 }

@@ -7,7 +7,8 @@ export default function useHandleAdd({
   setNewRecord,
   setShowAddModal,
   setRecords,
-  showNotification
+  showNotification,
+  afterSuccess, // <--- Nuevo parámetro
 }) {
   return async () => {
     if (!newRecord.name || !newRecord[field]) {
@@ -35,6 +36,7 @@ export default function useHandleAdd({
         setShowAddModal(false);
         setNewRecord({ name: '', [field]: '', month_id: '', year_id: '', ...(isExpenses && { category_id: '' }) });
         showNotification({ type: 'success', message: 'Record added successfully.' }, 2000);
+        if (afterSuccess) afterSuccess(); // <--- Aquí refrescas datos
       } else {
         const data = await res.json();
         showNotification({ type: 'error', message: data.error || 'Failed to add record.' }, 2000);

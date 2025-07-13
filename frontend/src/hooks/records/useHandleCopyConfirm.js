@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import { addRecord } from '../../components/utils/records';
 
-
 export default function useHandleCopyConfirm({
   copyState,
   setCopyState,
@@ -12,7 +11,8 @@ export default function useHandleCopyConfirm({
   setNotification,
   token,
   title,
-  showNotification
+  showNotification,
+  afterSuccess, // <--- Nuevo
 }) {
   const handleCopyConfirm = useCallback(async () => {
     const { record, targetMonth, targetYear } = copyState;
@@ -44,13 +44,14 @@ export default function useHandleCopyConfirm({
       if (success) {
         showNotification({ type: 'success', message: `${title.replace(/s$/, '')} copied successfully!` });
         setCopyState({ show: false, record: null, targetMonth: '', targetYear: '' });
+        if (afterSuccess) afterSuccess(); // <--- Aquí llamas al fetch
       } else {
         showNotification({ type: 'error', message: `Failed to copy ${title.toLowerCase()}.` });
       }
     } catch (err) {
       showNotification({ type: 'error', message: `Unexpected error while copying ${title.toLowerCase()}.` });
     }
-  }, [copyState, setCopyState, field, isExpenses, endpoint, setRecords, setNotification, token, title]);
+  }, [copyState, setCopyState, field, isExpenses, endpoint, setRecords, setNotification, token, title, afterSuccess]);
 
   return handleCopyConfirm;
 }
