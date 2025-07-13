@@ -1,11 +1,7 @@
 import React from "react";
 
 export default function Notification(props) {
-  // Validación máxima: nunca da error aunque lo llamen mal
-  if (!props || typeof props !== 'object') {
-    //console.log('Notification llamado con props:', props);
-    return null;
-  }
+  if (!props || typeof props !== 'object') return null;
 
   const {
     type = "success",
