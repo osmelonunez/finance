@@ -4,19 +4,15 @@ const db = require('../database/dbPool');
 async function getRecordName(type, id) {
   if (!type || !id) return null;
   let table = '';
-  let column = 'name';
 
   if (type === 'expenses') table = 'expenses';
-  else if (type === 'incomes') {
-    table = 'incomes';
-    column = 'concept'; // Cámbialo si la columna se llama distinto
-  }
+  else if (type === 'incomes') table = 'incomes';
   else if (type === 'savings') table = 'savings';
   else return null;
 
   try {
-    const result = await db.query(`SELECT ${column} FROM ${table} WHERE id = $1`, [id]);
-    return result.rows[0]?.[column] || null;
+    const result = await db.query(`SELECT name FROM ${table} WHERE id = $1`, [id]);
+    return result.rows[0]?.name || null;
   } catch (e) {
     console.error(`Error fetching ${type} name:`, e);
     return null;
@@ -131,5 +127,16 @@ exports.updateAlert = async (req, res) => {
   } catch (err) {
     console.error('Error updating alert:', err);
     res.status(500).json({ error: 'Error updating alert' });
+  }
+};
+
+exports.deleteAlert = async (req, res) => {
+  try {
+    const alertId = req.params.id;
+    await db.query('DELETE FROM alerts WHERE id = $1', [alertId]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error deleting alert:", err);
+    res.status(500).json({ error: "Error deleting alert" });
   }
 };

@@ -14,6 +14,9 @@ router.get('/', authenticateToken, alertController.getAlerts);
 // PATCH  /api/alerts/:id  <-- ¡NUEVO!
 router.patch('/:id', authenticateToken, alertController.updateAlert);
 
+// POST  /api/alerts/:id  <-- ¡NUEVO!
+router.delete('/:id', alertController.deleteAlert);
+
 // PATCH  /api/alerts/:id/resolve
 router.patch('/:id/resolve', authenticateToken, alertController.resolveAlert);
 

@@ -17,7 +17,9 @@ export default function AlertList({ alerts, onResolve, onEdit, onDelete, editAle
       {filteredAlerts.map(alert => (
         <li
           key={alert.id}
-          className={`mb-2 px-4 py-2 rounded border flex flex-col md:flex-row justify-between items-start md:items-center ${alert.resolved ? "bg-gray-100 text-gray-400" : "bg-yellow-50 border-yellow-200"}`}
+          className={`mb-2 px-4 py-2 rounded border bg-white flex flex-col md:flex-row justify-between items-start md:items-center
+            ${alert.resolved ? "border-gray-300 shadow-none text-gray-400" : "border-gray-200 shadow-[0_2px_8px_rgba(253,224,71,0.2)] text-black"}
+          `}
         >
           <div className="flex-1">
             <span className="font-medium">{alert.message}</span>
