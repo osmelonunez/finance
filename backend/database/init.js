@@ -267,6 +267,17 @@ async function initializeDatabase() {
     EXECUTE FUNCTION update_timestamp();
   `);
 
+  // Para tabla alerts
+  await client.query(`
+    DROP TRIGGER IF EXISTS set_timestamp ON alerts;
+  `);
+  await client.query(`
+    CREATE TRIGGER set_timestamp
+    BEFORE UPDATE ON alerts
+    FOR EACH ROW
+    EXECUTE FUNCTION update_timestamp();
+  `);
+
   // Para tabla users
   await client.query(`
     DROP TRIGGER IF EXISTS set_user_timestamp ON users;
