@@ -55,19 +55,15 @@ case "$ACTION" in
     printf "${GREEN}✅ Cambios guardados y enviados a remoto.${NC}\n"
     ;;
   delete)
-    before=$(docker system df -v | grep "Total space used" | awk '{print $4,$5}')
     printf "${RED}⚠️  Eliminando proyecto y limpiando Docker...${NC}\n"
     cd "$PROJECT_DIR" || exit 1
     docker-compose down
     docker volume rm $(docker volume ls -q | grep -v '^finance_postgres$') > /dev/null 2>&1
-    docker rmi -f $(docker images -q | grep -v 1e729d43a0d1 | grep -v 815066284948) > /dev/null 2>&1
+    docker rmi -f $(docker images -q | grep -v c0aab7962b2 | grep -v 815066284948) > /dev/null 2>&1
     docker builder prune -a --force
     cd "$WORKSPACE" || exit 1
     rm -rf "$PROJECT_DIR"
-    after=$(docker system df -v | grep "Total space used" | awk '{print $4,$5}')
     clear
-    printf "${CYAN}💡 Espacio usado antes: $before${NC}\n"
-    printf "${CYAN}💡 Espacio usado después: $after${NC}\n"
     printf "${GREEN}🗑️  Proyecto eliminado completamente.${NC}\n"
     ;;
   status)
