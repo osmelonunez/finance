@@ -1,7 +1,7 @@
 import React from "react";
 import { Wrench, Trash2, CheckCircle } from "lucide-react";
 
-export default function AlertList({ alerts, onResolve, onEdit, onDelete }) {
+export default function AlertList({ alerts, onResolve, onEdit, onDelete, editAlert }) {
   // Filtrar según lo pedido
   const filteredAlerts = alerts.filter(alert => {
     if (!alert.resolved) return true;
@@ -53,7 +53,12 @@ export default function AlertList({ alerts, onResolve, onEdit, onDelete }) {
               </button>
               <button
                 onClick={() => onEdit(alert)}
-                className="bg-blue-500 text-white text-xs p-2 rounded hover:bg-blue-600 flex items-center"
+                className={
+                  `text-xs p-2 rounded flex items-center
+                  ${editAlert && editAlert.id === alert.id 
+                    ? "bg-yellow-100 text-yellow-600 border border-yellow-500" // Color modo edición
+                    : "bg-blue-500 text-white hover:bg-blue-600"}`
+                }
                 title="Edit alert"
               >
                 <Wrench size={16} />

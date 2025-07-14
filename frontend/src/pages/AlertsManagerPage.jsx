@@ -75,12 +75,17 @@ export default function AlertsManagerPage() {
     } catch (err) {}
   };
 
-  const handleEdit = (alert) => {
-    setEditAlert(alert);
-    setMessage(alert.message);
-    setDueDate(alert.due_date ? alert.due_date.slice(0,10) : "");
-    setShowForm(true);
-  };
+    const handleEdit = (alert) => {
+      if (editAlert && editAlert.id === alert.id) {
+        // Si ya está en edición, al darle otra vez cierra la edición
+        handleCancelEdit();
+      } else {
+        setEditAlert(alert);
+        setMessage(alert.message);
+        setDueDate(alert.due_date ? alert.due_date.slice(0,10) : "");
+        setShowForm(true);
+      }
+    };
 
   const handleCancelEdit = () => {
     setEditAlert(null);
@@ -221,6 +226,7 @@ export default function AlertsManagerPage() {
           onReactivate={handleReactivate}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          editAlert={editAlert}
         />
       )}
     </div>
