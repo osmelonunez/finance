@@ -7,6 +7,7 @@ const adminUsername = process.env.ADMIN_USERNAME;
 const adminEmail = process.env.ADMIN_EMAIL;
 const adminPassword = process.env.ADMIN_PASSWORD;
 const RETRY_DELAY_MS = 10000; // 7 segundos
+const { runMigrations } = require('./migrations/migrate');
 
 async function waitAndRetry(fn, label = 'acción', retries = 20) {
   for (let attempt = 1; attempt <= retries; attempt++) {
@@ -61,6 +62,16 @@ async function initializeDatabase() {
   });
 
   await client.connect();
+
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS migrations (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) UNIQUE NOT NULL,
+      run_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  console.log("✅ Tabla 'migrations' verificada/creada.");
 
   await client.query(`
     CREATE TABLE IF NOT EXISTS roles (
@@ -348,6 +359,8 @@ async function initializeDatabase() {
   } else {
     console.warn("⚠️  Variables ADMIN_USERNAME, ADMIN_EMAIL o ADMIN_PASSWORD no definidas. No se creó el usuario admin.");
   }
+
+  await runMigrations();
 
   await client.end();
 

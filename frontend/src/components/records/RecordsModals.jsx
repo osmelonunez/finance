@@ -3,6 +3,7 @@ import EditRecordModal from './EditRecordModal';
 import DeleteModal from './DeleteModal';
 import CopyRecordModal from './CopyRecordModal';
 import InfoModal from './InfoModal';
+import AlertModal from './AlertModal';
 
 export default function RecordsModals({
   showAddModal,
@@ -34,7 +35,10 @@ export default function RecordsModals({
   title,
 
   infoRecord,
-  setInfoRecord
+  setInfoRecord,
+
+  alertRecord,
+  setAlertRecord
 }) {
   return (
     <>
@@ -101,6 +105,13 @@ export default function RecordsModals({
         <InfoModal
           record={infoRecord}
           onClose={() => setInfoRecord(null)}
+        />
+      )}
+
+      {alertRecord && (
+        <AlertModal
+          record={alertRecord}
+          onClose={() => setAlertRecord(null)}
         />
       )}
 

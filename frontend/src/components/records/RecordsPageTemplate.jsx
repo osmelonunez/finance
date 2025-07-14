@@ -71,6 +71,23 @@ export default function RecordsPageTemplate({
   const [copyState, setCopyState] = useState({ show: false, record: null, targetMonth: '', targetYear: '' });
   const [error, setError] = useState('');
   const [infoRecord, setInfoRecord] = useState(null);
+  const [alertRecord, setAlertRecord] = useState(null);
+  const [alerts, setAlerts] = useState([]);
+
+  useEffect(() => {
+    const fetchAlerts = async () => {
+      try {
+        const res = await fetch("/api/alerts", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        });
+        const data = await res.json();
+        setAlerts(Array.isArray(data) ? data : []);
+      } catch (err) {
+        setAlerts([]);
+      }
+    };
+    fetchAlerts();
+  }, []);
 
   const filtered = useFilteredRecords(records, filters, search, sort, field);
   const itemsPerPage = 10;
@@ -128,6 +145,12 @@ export default function RecordsPageTemplate({
         }}
         onInfo={setInfoRecord}
         isViewer={isViewer}
+        onAlert={(record) => {
+          console.log('onAlert llamado:', record);
+          setAlertRecord(record);
+        }}
+        recordType={type}
+        alerts={alerts}
       />
 
       <Pagination
@@ -167,6 +190,9 @@ export default function RecordsPageTemplate({
 
         infoRecord={infoRecord}
         setInfoRecord={setInfoRecord}
+
+        alertRecord={alertRecord}
+        setAlertRecord={setAlertRecord}
       />
     </div>
   );
