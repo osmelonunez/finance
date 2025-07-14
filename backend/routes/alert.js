@@ -9,7 +9,7 @@ const { authenticateToken } = require('../middleware/authMiddleware');
 router.post('/', authenticateToken, alertController.createAlert);
 
 // GET    /api/alerts/
-router.get('/', authenticateToken, alertController.getUserAlerts);
+router.get('/', authenticateToken, alertController.getAlerts);
 
 // PATCH  /api/alerts/:id  <-- ¡NUEVO!
 router.patch('/:id', authenticateToken, alertController.updateAlert);

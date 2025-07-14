@@ -26,6 +26,14 @@ export default function AlertList({ alerts, onResolve, onEdit, onDelete }) {
               {alert.created_by_name && <span>By: {alert.created_by_name}</span>}
               {alert.due_date && <span> | Target date: {alert.due_date.slice(0,10)}</span>}
             </span>
+            {/* 👇 Aquí va la línea adicional, sin fondo, solo como texto */}
+            {alert.record_type && alert.record_name && (
+              <span className="block text-xs text-gray-500 mt-1">
+                <b>{alert.record_type[0].toUpperCase() + alert.record_type.slice(1)}</b>
+                {": "}
+                {alert.record_name}
+              </span>
+            )}
             {alert.resolved && (
               <span className="block text-xs text-green-600 mt-1">
                 Resolved

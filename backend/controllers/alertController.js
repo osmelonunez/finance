@@ -1,6 +1,51 @@
-// controllers/alertController.js
-
 const db = require('../database/dbPool');
+
+// Devuelve el nombre del registro asociado, dado el tipo y el ID
+async function getRecordName(type, id) {
+  if (!type || !id) return null;
+  let table = '';
+  let column = 'name';
+
+  if (type === 'expenses') table = 'expenses';
+  else if (type === 'incomes') {
+    table = 'incomes';
+    column = 'concept'; // Cámbialo si la columna se llama distinto
+  }
+  else if (type === 'savings') table = 'savings';
+  else return null;
+
+  try {
+    const result = await db.query(`SELECT ${column} FROM ${table} WHERE id = $1`, [id]);
+    return result.rows[0]?.[column] || null;
+  } catch (e) {
+    console.error(`Error fetching ${type} name:`, e);
+    return null;
+  }
+}
+
+// Handler para obtener todas las alertas
+exports.getAlerts = async (req, res) => {
+  try {
+    // Consulta todas las alertas
+    const result = await db.query('SELECT * FROM alerts ORDER BY created_at DESC');
+    const alerts = Array.isArray(result.rows) ? result.rows : [];
+
+    // Enriquecer cada alerta con el nombre si aplica
+    const alertsWithNames = await Promise.all(
+      alerts.map(async alert => {
+        if (alert.record_type && alert.record_id) {
+          alert.record_name = await getRecordName(alert.record_type, alert.record_id);
+        }
+        return alert;
+      })
+    );
+
+    res.json(alertsWithNames); // Siempre un array
+  } catch (err) {
+    console.error("Error en getAlerts:", err);
+    res.status(500).json({ error: "Error fetching alerts" });
+  }
+};
 
 // Crear una alerta
 exports.createAlert = async (req, res) => {
@@ -18,20 +63,6 @@ exports.createAlert = async (req, res) => {
   } catch (err) {
     console.error('Error creating alert:', err);
     res.status(500).json({ error: 'Error creating alert' });
-  }
-};
-
-// Obtener todas las alertas activas (visibles para todos)
-exports.getUserAlerts = async (req, res) => {
-  try {
-    const result = await db.query(
-      `SELECT * FROM alerts
-       ORDER BY resolved ASC, due_date ASC NULLS LAST, created_at DESC`
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error('Error fetching alerts:', err);
-    res.status(500).json({ error: 'Error fetching alerts' });
   }
 };
 
