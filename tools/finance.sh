@@ -55,6 +55,7 @@ case "$ACTION" in
     printf "${GREEN}✅ Cambios guardados y enviados a remoto.${NC}\n"
     ;;
   delete)
+    before=$(docker system df -v | grep "Total space used" | awk '{print $4,$5}')
     printf "${RED}⚠️  Eliminando proyecto y limpiando Docker...${NC}\n"
     cd "$PROJECT_DIR" || exit 1
     docker-compose down
@@ -63,7 +64,10 @@ case "$ACTION" in
     docker builder prune -a --force
     cd "$WORKSPACE" || exit 1
     rm -rf "$PROJECT_DIR"
+    after=$(docker system df -v | grep "Total space used" | awk '{print $4,$5}')
     clear
+    printf "${CYAN}💡 Espacio usado antes: $before${NC}\n"
+    printf "${CYAN}💡 Espacio usado después: $after${NC}\n"
     printf "${GREEN}🗑️  Proyecto eliminado completamente.${NC}\n"
     ;;
   status)
