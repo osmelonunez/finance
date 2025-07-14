@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import AlertList from "../components/alerts/AlertList";
-import { Plus, Check } from "lucide-react";
+import { Plus, Check, Trash2 } from "lucide-react";
 
 export default function AlertsManagerPage() {
   const [alerts, setAlerts] = useState([]);
@@ -136,6 +136,10 @@ export default function AlertsManagerPage() {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       setAlerts(alerts => alerts.filter(alert => alert.id !== id));
+      // Si la alerta eliminada estaba en edición, sal del modo edición
+      if (editAlert && editAlert.id === id) {
+        handleCancelEdit();
+      }
     } catch (err) {}
   };
 
@@ -191,6 +195,18 @@ export default function AlertsManagerPage() {
             <Check size={20} />
           </button>
         )}
+        {editAlert && (
+          <button
+            type="button"
+            onClick={() => handleDelete(editAlert.id)}
+            className="ml-2 p-0 rounded-full text-red-500 border-none bg-transparent hover:text-red-700"
+            title="Delete alert"
+            style={{ width: 18, height: 18 }}
+          >
+            <Trash2 size={20} />
+          </button>
+        )}
+
       </div>
 
       {(showForm || editAlert) && (

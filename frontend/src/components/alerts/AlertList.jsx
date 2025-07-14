@@ -65,13 +65,6 @@ export default function AlertList({ alerts, onResolve, onEdit, onDelete, editAle
               >
                 <Wrench size={16} />
               </button>
-              <button
-                onClick={() => onDelete(alert.id)}
-                className="bg-red-500 text-white text-xs p-2 rounded hover:bg-red-600 flex items-center"
-                title="Delete alert"
-              >
-                <Trash2 size={16} />
-              </button>
             </div>
           )}
         </li>
