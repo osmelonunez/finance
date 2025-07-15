@@ -9,7 +9,6 @@ import useCategoriesData from '../../hooks/records/useHandleCategoriesData';
 import useHandleAdd from '../../hooks/records/useHandleAdd';
 import useHandleEdit from '../../hooks/records/useHandleEdit';
 import useHandleDelete from '../../hooks/records/useHandleDelete';
-import useHandleCopyConfirm from '../../hooks/records/useHandleCopyConfirm';
 import { useAuth } from '../../auth/AuthContext'; // Ajusta la ruta si es diferente
 
 
@@ -19,6 +18,7 @@ import RecordTable from './RecordTable';
 import RecordsModals from './RecordsModals';
 import TotalDisplay from './TotalDisplay';
 import Pagination from './Pagination';
+import ViewRecordModal from './ViewRecordModal';
 import { showNotification } from '../utils/showNotification'; // Importa la función global
 
 export default function RecordsPageTemplate({
@@ -63,16 +63,11 @@ export default function RecordsPageTemplate({
     ...(isExpenses && { category_id: '' }),
   });
 
-  const [editingRecord, setEditingRecord] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [recordToDelete, setRecordToDelete] = useState(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [copyState, setCopyState] = useState({ show: false, record: null, targetMonth: '', targetYear: '' });
   const [error, setError] = useState('');
-  const [infoRecord, setInfoRecord] = useState(null);
   const [alertRecord, setAlertRecord] = useState(null);
   const [alerts, setAlerts] = useState([]);
+  const [viewRecord, setViewRecord] = useState(null);
 
   useEffect(() => {
     const fetchAlerts = async () => {
@@ -95,9 +90,16 @@ export default function RecordsPageTemplate({
 
   // Pasa la función global showNotification a todos los hooks
   const handleAdd = useHandleAdd({ endpoint, field, isExpenses, token, newRecord, setNewRecord, setShowAddModal, setError, setRecords, showNotification, afterSuccess: fetchData });
-  const handleEdit = useHandleEdit({ endpoint, field, token, editingRecord, setEditingRecord, setShowEditModal, setError, setRecords, showNotification, afterSuccess: fetchData });
-  const handleDelete = useHandleDelete({ endpoint, recordToDelete, setRecords, showNotification, token, setShowDeleteModal, setRecordToDelete, afterSuccess: fetchData });
-  const handleCopyConfirm = useHandleCopyConfirm({ copyState, setCopyState, field, isExpenses, endpoint, setRecords, showNotification, token, title, afterSuccess: fetchData });
+  const handleDelete = useHandleDelete({ endpoint, setRecords, showNotification, token, afterSuccess: fetchData });
+  const handleEdit = useHandleEdit({ endpoint, field, token, setError, setRecords, showNotification, afterSuccess: fetchData });
+
+const handleEditAndRefreshView = async (updatedRecord) => {
+  const result = await handleEdit(updatedRecord);
+  if (result !== false) {
+    setViewRecord(updatedRecord);
+  }
+  return result;
+};
 
   return (
     <div className="records-page">
@@ -132,18 +134,7 @@ export default function RecordsPageTemplate({
         field={field}
         color={color}
         hasCategory={hasCategory}
-        onEdit={(record) => {
-          setEditingRecord({ ...record });
-          setShowEditModal(true);
-        }}
-        onDelete={(record) => {
-          setRecordToDelete(record);
-          setShowDeleteModal(true);
-        }}
-        onCopy={(record) => {
-          setCopyState({ show: true, record, targetMonth: '', targetYear: '' });
-        }}
-        onInfo={setInfoRecord}
+        onEdit={setViewRecord}
         isViewer={isViewer}
         onAlert={(record) => {
           console.log('onAlert llamado:', record);
@@ -151,6 +142,7 @@ export default function RecordsPageTemplate({
         }}
         recordType={type}
         alerts={alerts}
+        onView={setViewRecord}
       />
 
       <Pagination
@@ -173,27 +165,26 @@ export default function RecordsPageTemplate({
         categories={categories}
         hasCategory={hasCategory}
 
-        showEditModal={showEditModal}
-        setShowEditModal={setShowEditModal}
-        handleEdit={handleEdit}
-        editingRecord={editingRecord}
-        setEditingRecord={setEditingRecord}
-
-        showDeleteModal={showDeleteModal}
-        setShowDeleteModal={setShowDeleteModal}
-        handleDelete={handleDelete}
-
-        copyState={copyState}
-        setCopyState={setCopyState}
-        handleCopyConfirm={handleCopyConfirm}
-        title={title}
-
-        infoRecord={infoRecord}
-        setInfoRecord={setInfoRecord}
-
         alertRecord={alertRecord}
         setAlertRecord={setAlertRecord}
       />
+
+      {viewRecord && (
+        <ViewRecordModal
+          isOpen={!!viewRecord}
+          onClose={() => setViewRecord(null)}
+          record={viewRecord}
+          field={field}
+          hasCategory={hasCategory}
+          title={title}
+          months={months}
+          years={years}
+          categories={categories}
+          handleEdit={handleEditAndRefreshView}
+          handleDelete={handleDelete}
+        />
+      )}
+
     </div>
   );
 }
