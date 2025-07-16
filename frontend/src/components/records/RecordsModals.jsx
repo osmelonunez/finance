@@ -1,5 +1,5 @@
-import AddRecordModal from './AddRecordModal';
-import AlertModal from './AlertModal';
+import AddRecordModal from './modals/AddRecordModal';
+import AlertModal from './modals/AlertModal';
 
 export default function RecordsModals({
   showAddModal,

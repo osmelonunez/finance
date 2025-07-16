@@ -1,5 +1,5 @@
-import Modal from '../common/Modal';
-import ErrorMessage from '../common/ErrorMessage';
+import Modal from '../../common/Modal';
+import ErrorMessage from '../../common/ErrorMessage';
 
 export default function AddRecordModal({
   isOpen,

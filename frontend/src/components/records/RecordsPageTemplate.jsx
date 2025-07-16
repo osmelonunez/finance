@@ -18,7 +18,7 @@ import RecordTable from './RecordTable';
 import RecordsModals from './RecordsModals';
 import TotalDisplay from './TotalDisplay';
 import Pagination from './Pagination';
-import ViewRecordModal from './ViewRecordModal';
+import ViewRecordModal from './modals/ViewRecordModal';
 import { showNotification } from '../utils/showNotification'; // Importa la función global
 
 export default function RecordsPageTemplate({

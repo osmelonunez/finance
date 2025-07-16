@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import SimpleModal from '../common/SimpleModal';
+import SimpleModal from './SimpleModal';
 import RecordInfoContent from './RecordInfoContent';
 import RecordEditForm from './RecordEditForm';
 import { Wrench, Trash2, RefreshCw } from 'lucide-react';
