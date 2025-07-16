@@ -1,4 +1,17 @@
+import { useEffect } from "react";
+
 export default function SimpleModal({ isOpen, onClose, title, children }) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEsc = (e) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleOverlayClick = (e) => {
@@ -20,7 +33,7 @@ export default function SimpleModal({ isOpen, onClose, title, children }) {
         onClick={e => e.stopPropagation()}
       >
         <h2 className="text-xl font-semibold mb-4">{title}</h2>
-        {/* Solo los children, no botones aquí */}
+        {/* Only children, no buttons here */}
         <div>{children}</div>
       </div>
     </div>

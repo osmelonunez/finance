@@ -17,6 +17,8 @@ export default function ViewRecordModal({
   categories = [],
   handleEdit,
   handleDelete,
+  handleAdd,
+  records,
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
@@ -90,51 +92,112 @@ useEffect(() => {
       )}
 
       {/* Recurrence config view */}
-{showRecurrentConfig && (
-  <RecurrenceSelector
-    record={record}
-    years={years}
-    months={months}
-    onSave={({ type, selected }) => {
-      // lógica para usar el resultado
-      setShowRecurrentConfig(false);
-      // Aquí puedes llamar a handleEdit o handleAdd, etc.
-    }}
-    onCancel={() => setShowRecurrentConfig(false)}
-  />
-)}
-      {/* Edit mode (stays as you had it) */}
-{isEditing && (
-  <>
-    <RecordEditForm
-      editingRecord={editingRecord}
-      setEditingRecord={setEditingRecord}
-      field={field}
-      months={months}
-      years={years}
-      categories={categories}
-      hasCategory={hasCategory}
-    />
-    <div className="flex justify-end mt-8 space-x-3">
-      <button
-        onClick={() => setIsEditing(false)}
-        className="bg-gray-300 hover:bg-gray-400 text-gray-800 rounded px-4 py-2"
-      >
-        Cancel
-      </button>
-      <button
-        onClick={async () => {
-          await handleEdit(editingRecord);
-          setIsEditing(false);
+      {showRecurrentConfig && (
+      <RecurrenceSelector
+        record={record}
+        years={years}
+        months={months}
+        onSave={async ({ type, selected }) => {
+          // Crear varios registros para años seleccionados
+          if (type === "years") {
+            for (const yearId of selected) {
+              for (const month of months) {
+                const exists = records.some(r =>
+                  r.name === record.name &&
+                  r.category_id === record.category_id &&
+                  r.month_id === Number(month.id) &&
+                  r.year_id === Number(yearId)
+                );
+                if (!exists) {
+                  const newRecord = {
+                    name: record.name,
+                    cost: Number(record.cost),
+                    month_id: Number(month.id),
+                    year_id: Number(yearId),
+                    category_id: Number(record.category_id),
+                    source: record.source,
+                  };
+                  if ('id' in newRecord) delete newRecord.id;
+                  //console.log("Creating new record (by year & month):", newRecord);
+                  await handleAdd(newRecord);
+                } else {
+                  //console.log("Duplicate skipped:", {
+                  //  name: record.name,
+                  //  category_id: record.category_id,
+                  //  month_id: month.id,
+                  //  year_id: yearId
+                  //});
+                }
+              }
+            }
+          }
+          // Crear registros para meses seleccionados (del año actual del registro)
+          if (type === "months") {
+            for (const monthId of selected) {
+              const exists = records.some(r =>
+                r.name === record.name &&
+                r.category_id === record.category_id &&
+                r.month_id === Number(monthId) &&
+                r.year_id === Number(record.year_id)
+              );
+              if (!exists) {
+                const newRecord = {
+                  name: record.name,
+                  cost: Number(record.cost),
+                  month_id: Number(monthId),
+                  year_id: Number(record.year_id), // año actual del registro
+                  category_id: Number(record.category_id),
+                  source: record.source,
+                };
+                if ('id' in newRecord) delete newRecord.id;
+                //console.log("Creating new record (by month):", newRecord);
+                await handleAdd(newRecord);
+              } else {
+                //console.log("Duplicate skipped:", {
+                //  name: record.name,
+                //  category_id: record.category_id,
+                //  month_id: monthId,
+                //  year_id: record.year_id
+                //});
+              }
+            }
+          }
+          setShowRecurrentConfig(false);
         }}
-        className="bg-green-600 hover:bg-green-700 text-white rounded px-4 py-2"
-      >
-        Save
-      </button>
-    </div>
-  </>
-)}
-
+        onCancel={() => setShowRecurrentConfig(false)}
+      />
+      )}
+      {/* Edit mode (stays as you had it) */}
+      {isEditing && (
+        <>
+          <RecordEditForm
+            editingRecord={editingRecord}
+            setEditingRecord={setEditingRecord}
+            field={field}
+            months={months}
+            years={years}
+            categories={categories}
+            hasCategory={hasCategory}
+          />
+          <div className="flex justify-end mt-8 space-x-3">
+            <button
+              onClick={() => setIsEditing(false)}
+              className="bg-gray-300 hover:bg-gray-400 text-gray-800 rounded px-4 py-2"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={async () => {
+                await handleEdit(editingRecord);
+                setIsEditing(false);
+              }}
+              className="bg-green-600 hover:bg-green-700 text-white rounded px-4 py-2"
+            >
+              Save
+            </button>
+          </div>
+        </>
+      )}
       {/* Delete confirm */}
       {isConfirmingDelete && (
         <div className="space-y-6">

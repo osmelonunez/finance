@@ -1,3 +1,5 @@
+// useHandleAdd.js
+
 export default function useHandleAdd({
   endpoint,
   field,
@@ -6,43 +8,78 @@ export default function useHandleAdd({
   newRecord,
   setNewRecord,
   setShowAddModal,
+  setError,
   setRecords,
   showNotification,
-  afterSuccess, // <--- Nuevo parámetro
+  afterSuccess,
 }) {
-  return async () => {
-    if (!newRecord.name || !newRecord[field]) {
-      showNotification({ type: 'error', message: 'All fields are required.' }, 2000);
-      return;
-    }
-    if (isExpenses && !newRecord.category_id) {
-      showNotification({ type: 'error', message: 'Category is required.' }, 2000);
-      return;
+  return async function handleAdd(record) {
+    // Convert numerical fields just in case
+    const cost = record.cost !== undefined ? Number(record.cost) : undefined;
+    const month_id = record.month_id !== undefined ? Number(record.month_id) : undefined;
+    const year_id = record.year_id !== undefined ? Number(record.year_id) : undefined;
+    const category_id = record.category_id !== undefined ? Number(record.category_id) : undefined;
+
+    // Debug: log the incoming record
+    console.log("Checking new record in handleAdd:", record);
+
+    // Check each field and log missing ones
+    if (!record.name)      console.error("Missing field: name", record.name);
+    if (!cost)             console.error("Missing or invalid field: cost", cost);
+    if (!month_id)         console.error("Missing or invalid field: month_id", month_id);
+    if (!year_id)          console.error("Missing or invalid field: year_id", year_id);
+    if (!category_id)      console.error("Missing or invalid field: category_id", category_id);
+    if (!record.source)    console.error("Missing field: source", record.source);
+
+    if (
+      !record.name ||
+      !cost ||
+      !month_id ||
+      !year_id ||
+      !category_id ||
+      !record.source
+    ) {
+      showNotification && showNotification("All fields are required.", "error");
+      return false;
     }
 
     try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
+      const response = await fetch(endpoint, {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(newRecord),
+        body: JSON.stringify({
+          ...record,
+          cost,
+          month_id,
+          year_id,
+          category_id
+        })
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        setRecords(data);
-        setShowAddModal(false);
-        setNewRecord({ name: '', [field]: '', month_id: '', year_id: '', ...(isExpenses && { category_id: '' }) });
-        showNotification({ type: 'success', message: 'Record added successfully.' }, 2000);
-        if (afterSuccess) afterSuccess(); // <--- Aquí refrescas datos
-      } else {
-        const data = await res.json();
-        showNotification({ type: 'error', message: data.error || 'Failed to add record.' }, 2000);
+      if (!response.ok) {
+        const errorMsg = await response.text();
+        setError && setError(errorMsg || "Error adding record.");
+        showNotification && showNotification("Error adding record.", "error");
+        return false;
       }
-    } catch (err) {
-      showNotification({ type: 'error', message: 'Network error.' }, 2000);
+
+      const added = await response.json();
+      setRecords && setRecords(prev => [added, ...prev]);
+      setNewRecord && setNewRecord({});
+      setShowAddModal && setShowAddModal(false);
+      setError && setError("");
+      showNotification && showNotification("Record added successfully.", "success");
+      afterSuccess && afterSuccess();
+
+      return true;
+    } catch (error) {
+      setError && setError(error.message || "Unknown error adding record.");
+      showNotification && showNotification("Unknown error adding record.", "error");
+      console.error(error);
+      return false;
     }
   };
 }

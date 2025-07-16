@@ -182,6 +182,8 @@ const handleEditAndRefreshView = async (updatedRecord) => {
           categories={categories}
           handleEdit={handleEditAndRefreshView}
           handleDelete={handleDelete}
+          handleAdd={handleAdd}
+          records={records}
         />
       )}
 

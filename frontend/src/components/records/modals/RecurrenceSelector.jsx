@@ -7,42 +7,34 @@ export default function RecurrenceSelector({
   onSave,
   onCancel
 }) {
-  // State for selected type and options
   const [type, setType] = useState(""); // 'years' or 'months'
   const [selected, setSelected] = useState([]);
 
-  // Use the year from the record as the minimum for future years
-    const recordYear = Number(record?.year_value) || new Date().getFullYear();
+  // Get future years from record year (as before)
+  const recordYear = Number(record?.year_value) || new Date().getFullYear();
+  const futureYears = years.filter(y => Number(y.value) >= recordYear);
 
-
-console.log('Record:', record);              // Ver todo el registro
-console.log('Record year:', recordYear);     // El año base que se usará
-console.log('All years:', years);            // El array completo de años
-
-    const futureYears = years.filter(y => Number(y.value) >= recordYear);
-console.log('Filtered future years:', futureYears); // Los años que realmente se muestran
-
-  // Render the available options (years or months) as toggle buttons
+  // Render options as toggle buttons, using name for months and value for years
   const renderOptions = (options) => (
     <div className="flex gap-3 flex-wrap mt-2">
       {options.map(opt => (
         <button
-          key={opt.id || opt.value}
+          key={opt.id}
           type="button"
           className={`px-3 py-1 rounded border ${
-            selected.includes(opt.value || opt.id)
+            selected.includes(opt.id)
               ? 'bg-teal-500 text-white'
               : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
           }`}
           onClick={() => {
             setSelected(prev =>
-              prev.includes(opt.value || opt.id)
-                ? prev.filter(val => val !== (opt.value || opt.id))
-                : [...prev, (opt.value || opt.id)]
+              prev.includes(opt.id)
+                ? prev.filter(val => val !== opt.id)
+                : [...prev, opt.id]
             );
           }}
         >
-          {opt.name || opt.value}
+          {type === "years" ? opt.value : opt.name}
         </button>
       ))}
     </div>
@@ -82,6 +74,27 @@ console.log('Filtered future years:', futureYears); // Los años que realmente s
             ? renderOptions(months)
             : null}
       </div>
+
+      {/* Preview the records to be created */}
+      {type && selected.length > 0 && (
+        <div className="bg-gray-100 border border-gray-300 rounded p-4 mb-3">
+          <div className="font-semibold mb-2">Records to be created:</div>
+            <ul className="list-disc ml-6 text-sm">
+              {type === 'years' && selected.length > 0 && selected.map(sel =>
+                months.map(m => (
+                  <li key={`${sel}-${m.id}`}>
+                    {`Year: ${years.find(y => y.id === sel)?.value || sel}, Month: ${m.name}`}
+                  </li>
+                ))
+              )}
+              {type === 'months' && selected.length > 0 && selected.map(sel => (
+                <li key={sel}>
+                  {`Month: ${months.find(m => m.id === sel)?.name || sel}, Year: ${years.find(y => y.id === record?.year_id)?.value || record?.year_id}`}
+                </li>
+              ))}
+            </ul>
+        </div>
+      )}
 
       <div className="flex justify-end gap-3 mt-2">
         <button
