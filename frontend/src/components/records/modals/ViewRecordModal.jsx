@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import SimpleModal from './SimpleModal';
 import RecordInfoContent from './RecordInfoContent';
 import RecordEditForm from './RecordEditForm';
+import RecurrenceSelector from './RecurrenceSelector';
 import { Wrench, Trash2, RefreshCw } from 'lucide-react';
 
 export default function ViewRecordModal({
@@ -38,7 +39,7 @@ useEffect(() => {
 
   let mainTitle = title;
   if (mainTitle && mainTitle.endsWith('s')) mainTitle = mainTitle.slice(0, -1);
-  const detailsTitle = `${mainTitle} details`;
+  const detailsTitle = `${mainTitle} ${record?.name ? record.name + " " : ""}details`;
 
   // Save recurrence (calls handleEdit with recurrence fields)
   const saveRecurrentConfig = async () => {
@@ -89,49 +90,19 @@ useEffect(() => {
       )}
 
       {/* Recurrence config view */}
-      {showRecurrentConfig && (
-        <div className="flex flex-col gap-4">
-          <h3 className="text-lg font-bold">Recurrence Settings</h3>
-          <div>
-            <label className="font-semibold mr-2">Recurrence type:</label>
-            <select
-              value={recurrenceType}
-              onChange={e => setRecurrenceType(e.target.value)}
-              className="border rounded px-2 py-1"
-            >
-              <option value="months">By months</option>
-              <option value="years">By years</option>
-            </select>
-          </div>
-          <div>
-            <label className="font-semibold mr-2">
-              {recurrenceType === "months" ? "Number of months:" : "Number of years:"}
-            </label>
-            <input
-              type="number"
-              min="1"
-              value={recurrenceCount}
-              onChange={e => setRecurrenceCount(Number(e.target.value))}
-              className="border rounded px-2 py-1 w-24"
-            />
-          </div>
-          <div className="flex justify-end gap-3 mt-2">
-            <button
-              onClick={() => setShowRecurrentConfig(false)}
-              className="bg-gray-300 hover:bg-gray-400 text-gray-800 rounded px-4 py-2"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={saveRecurrentConfig}
-              className="bg-green-600 hover:bg-green-700 text-white rounded px-4 py-2"
-            >
-              Save
-            </button>
-          </div>
-        </div>
-      )}
-
+{showRecurrentConfig && (
+  <RecurrenceSelector
+    record={record}
+    years={years}
+    months={months}
+    onSave={({ type, selected }) => {
+      // lógica para usar el resultado
+      setShowRecurrentConfig(false);
+      // Aquí puedes llamar a handleEdit o handleAdd, etc.
+    }}
+    onCancel={() => setShowRecurrentConfig(false)}
+  />
+)}
       {/* Edit mode (stays as you had it) */}
 {isEditing && (
   <>
