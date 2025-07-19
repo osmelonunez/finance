@@ -1,21 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    if (
+      isAuthenticated &&
+      localStorage.getItem('token') &&
+      location.pathname === '/login'
+    ) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate, location]);
+
   const [form, setForm] = useState({ username: '', password: '' });
+  const [error, setError] = useState('');
 
-  const from = location.state?.from?.pathname || '/';
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (login(form.username, form.password)) {
-      navigate(from, { replace: true });
+    const result = await login(form.username, form.password);
+    if (result === true) {
+      navigate('/dashboard', { replace: true }); // <-- redirige siempre a dashboard
     } else {
-      alert('Incorrect credentials');
+      setError(result);
     }
   };
 
@@ -46,6 +57,14 @@ export default function LoginPage() {
           Return
         </button>
       </div>
+      <p className="text-sm text-gray-600">
+        Don't have an account? <a href="/register" className="text-blue-600 hover:underline">Create new account</a>
+      </p>
+      {error && (
+        <div className="bg-red-100 text-red-700 p-2 rounded text-sm border border-red-300">
+          {error}
+        </div>
+      )}
     </form>
   );
 }

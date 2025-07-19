@@ -1,68 +1,173 @@
 import { useEffect, useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from 'recharts';
+import {
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, BarChart, Bar, Legend
+} from 'recharts';
 
 export default function DashboardPage() {
   const [incomes, setIncomes] = useState([]);
   const [expenses, setExpenses] = useState([]);
-  const [filters, setFilters] = useState({ month: '', year: '' });
+  const [savings, setSavings] = useState([]);
+  const [months, setMonths] = useState([]);
+  const [years, setYears] = useState([]);
+  const [filters, setFilters] = useState({ month_id: '', year_id: '' });
 
   useEffect(() => {
     async function fetchData() {
-      const resIncomes = await fetch('/api/incomes');
-      const resExpenses = await fetch('/api/expenses');
-      const incomesData = await resIncomes.json();
-      const expensesData = await resExpenses.json();
+      const [resIncomes, resExpenses, resSavings, resMonths, resYears] = await Promise.all([
+        fetch('/api/incomes', {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        }),
+        fetch('/api/expenses', {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        }),
+        fetch('/api/savings', {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        }),
+        fetch('/api/months', {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        }),
+        fetch('/api/years', {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        })
+      ]);
+      const [incomesData, expensesData, savingsData, monthsData, yearsData] = await Promise.all([
+        resIncomes.json(),
+        resExpenses.json(),
+        resSavings.json(),
+        resMonths.json(),
+        resYears.json()
+      ]);
       setIncomes(incomesData);
       setExpenses(expensesData);
+      setSavings(savingsData);
+      setMonths(monthsData);
+      setYears(yearsData);
     }
     fetchData();
   }, []);
 
-  const filteredIncomes = incomes.filter(i => (!filters.month || parseInt(i.month) === parseInt(filters.month)) && (!filters.year || parseInt(i.year) === parseInt(filters.year)));
-  const filteredExpenses = expenses.filter(e => (!filters.month || parseInt(e.month) === parseInt(filters.month)) && (!filters.year || parseInt(e.year) === parseInt(filters.year)));
+  const filteredIncomes = incomes.filter(i =>
+    (!filters.month_id || i.month_id === parseInt(filters.month_id)) &&
+    (!filters.year_id || i.year_id === parseInt(filters.year_id))
+  );
+  const filteredExpenses = expenses.filter(e =>
+    (!filters.month_id || e.month_id === parseInt(filters.month_id)) &&
+    (!filters.year_id || e.year_id === parseInt(filters.year_id))
+  );
+  const filteredSavings = savings.filter(s =>
+    (!filters.month_id || s.month_id === parseInt(filters.month_id)) &&
+    (!filters.year_id || s.year_id === parseInt(filters.year_id))
+  );
+
+  // SOLO expenses que NO son de general_savings (para totales y gráficos)
+  const filteredExpensesNoSavings = filteredExpenses.filter(e => e.source !== "general_savings");
+
+  // 1. Suma total ahorros
+  const totalSavingsRaw = filteredSavings.reduce((sum, s) => sum + parseFloat(s.amount), 0);
+  // 2. Suma gastos desde ahorros generales
+  const generalSavingsExpenses = filteredExpenses
+    .filter(e => e.source === "general_savings")
+    .reduce((sum, e) => sum + parseFloat(e.cost), 0);
+  // 3. Nuevo total savings
+  const totalSavings = totalSavingsRaw - generalSavingsExpenses;
 
   const totalIncome = filteredIncomes.reduce((sum, i) => sum + parseFloat(i.amount), 0);
-  const totalExpenses = filteredExpenses.reduce((sum, e) => sum + parseFloat(e.cost), 0);
-  const balance = totalIncome - totalExpenses;
+  const totalExpenses = filteredExpensesNoSavings.reduce((sum, e) => sum + parseFloat(e.cost), 0);
+  const balance = totalIncome - totalExpenses - totalSavings;
 
-  const groupedData = Array.from({ length: 12 }, (_, month) => {
-    const incomeMonth = incomes.filter(i => parseInt(i.month) === month + 1 && (!filters.year || parseInt(i.year) === parseInt(filters.year))).reduce((sum, i) => sum + parseFloat(i.amount), 0);
-    const expenseMonth = expenses.filter(e => parseInt(e.month) === month + 1 && (!filters.year || parseInt(e.year) === parseInt(filters.year))).reduce((sum, e) => sum + parseFloat(e.cost), 0);
+  // --- Agrupado por mes (como ya tenías) ---
+  const groupedData = months.map(m => {
+    const incomeMonth = incomes
+      .filter(i => i.month_id === m.id && (!filters.year_id || i.year_id === parseInt(filters.year_id)))
+      .reduce((sum, i) => sum + parseFloat(i.amount), 0);
+    // Solo expenses que NO son de general_savings para los gráficos
+    const expenseMonth = expenses
+      .filter(e => e.month_id === m.id && (!filters.year_id || e.year_id === parseInt(filters.year_id)) && e.source !== "general_savings")
+      .reduce((sum, e) => sum + parseFloat(e.cost), 0);
+    const savingMonth = savings
+      .filter(s => s.month_id === m.id && (!filters.year_id || s.year_id === parseInt(filters.year_id)))
+      .reduce((sum, s) => sum + parseFloat(s.amount), 0);
     return {
-      name: new Date(0, month).toLocaleString('en', { month: 'short' }),
-      income: incomeMonth,
-      expense: expenseMonth,
-      balance: incomeMonth - expenseMonth
+      name: m.name.substring(0, 3),
+      income: parseFloat(incomeMonth.toFixed(2)),
+      expense: parseFloat(expenseMonth.toFixed(2)),
+      saving: parseFloat(savingMonth.toFixed(2)),
+      balance: parseFloat((incomeMonth - expenseMonth - savingMonth).toFixed(2))
     };
   });
 
-  const COLORS = ['#3b82f6', '#ef4444', '#10b981'];
+  // --- NUEVO: Agrupado por año ---
+  const groupedDataByYear = years.map(y => {
+    const incomeYear = incomes
+      .filter(i => i.year_id === y.id)
+      .reduce((sum, i) => sum + parseFloat(i.amount), 0);
+
+    const expenseYear = expenses
+      .filter(e => e.year_id === y.id && e.source !== "general_savings")
+      .reduce((sum, e) => sum + parseFloat(e.cost), 0);
+
+    // Suma savings y resta general_savings expenses para savings reales
+    const savingYearRaw = savings
+      .filter(s => s.year_id === y.id)
+      .reduce((sum, s) => sum + parseFloat(s.amount), 0);
+    const generalSavingsExpenseYear = expenses
+      .filter(e => e.year_id === y.id && e.source === "general_savings")
+      .reduce((sum, e) => sum + parseFloat(e.cost), 0);
+    const savingYear = savingYearRaw - generalSavingsExpenseYear;
+
+    return {
+      name: y.value,
+      income: parseFloat(incomeYear.toFixed(2)),
+      expense: parseFloat(expenseYear.toFixed(2)),
+      saving: parseFloat(savingYear.toFixed(2)),
+      balance: parseFloat((incomeYear - expenseYear - savingYear).toFixed(2))
+    };
+  });
+
+  const COLORS = ['#10b981', '#ef4444', '#fbbf24', '#3b82f6'];
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-wrap gap-4 mb-4">
-        <select name="month" onChange={(e) => setFilters(prev => ({ ...prev, month: e.target.value }))} className="border px-4 py-2 rounded">
+        <select name="month_id" onChange={(e) => setFilters(prev => ({ ...prev, month_id: e.target.value }))} className="border px-4 py-2 rounded">
           <option value="">All Months</option>
-          {[...Array(12)].map((_, i) => (
-            <option key={i + 1} value={i + 1}>{new Date(0, i).toLocaleString('en', { month: 'long' })}</option>
+          {months.map(m => (
+            <option key={m.id} value={m.id}>{m.name}</option>
           ))}
         </select>
-        <select name="year" onChange={(e) => setFilters(prev => ({ ...prev, year: e.target.value }))} className="border px-4 py-2 rounded">
+        <select name="year_id" onChange={(e) => setFilters(prev => ({ ...prev, year_id: e.target.value }))} className="border px-4 py-2 rounded">
           <option value="">All Years</option>
-          {Array.from({ length: 6 }, (_, i) => 2025 + i).map(y => <option key={y}>{y}</option>)}
+          {years.map(y => (
+            <option key={y.id} value={y.id}>{y.value}</option>
+          ))}
         </select>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-4 rounded shadow text-center">
-          <h3 className="text-sm text-gray-500">Total Income</h3>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white p-2 rounded shadow text-center text-sm">
+          <h3 className="text-sm text-gray-500">Total Incomes</h3>
           <p className="text-xl text-green-600 font-bold">{totalIncome.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
         </div>
-        <div className="bg-white p-4 rounded shadow text-center">
+        <div className="bg-white p-2 rounded shadow text-center text-sm">
           <h3 className="text-sm text-gray-500">Total Expenses</h3>
           <p className="text-xl text-red-600 font-bold">{totalExpenses.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
         </div>
-        <div className="bg-white p-4 rounded shadow text-center">
+        <div className="bg-white p-2 rounded shadow text-center text-sm">
+          <h3 className="text-sm text-gray-500">Savings</h3>
+          <p className="text-xl text-amber-600 font-bold">{totalSavings.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
+        </div>
+        <div className="bg-white p-2 rounded shadow text-center text-sm">
           <h3 className="text-sm text-gray-500">Balance</h3>
           <p className="text-xl text-blue-600 font-bold">{balance.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
         </div>
@@ -78,6 +183,7 @@ export default function DashboardPage() {
               <Tooltip />
               <Line type="monotone" dataKey="income" stroke="#10b981" strokeWidth={2} />
               <Line type="monotone" dataKey="expense" stroke="#ef4444" strokeWidth={2} />
+              <Line type="monotone" dataKey="saving" stroke="#fbbf24" strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -88,11 +194,16 @@ export default function DashboardPage() {
             <PieChart>
               <Pie
                 dataKey="value"
-                data={[{ name: 'Incomes', value: totalIncome }, { name: 'Expenses', value: totalExpenses }, { name: 'Balance', value: balance }]}
+                data={[
+                  { name: 'Incomes', value: totalIncome },
+                  { name: 'Expenses', value: totalExpenses },
+                  { name: 'Savings', value: totalSavings },
+                  { name: 'Balance', value: balance }
+                ]}
                 cx="50%"
                 cy="50%"
                 outerRadius={90}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(2)}%`}
               >
                 {COLORS.map((color, index) => (
                   <Cell key={index} fill={color} />
@@ -104,7 +215,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="bg-white p-4 rounded shadow">
-        <h3 className="text-sm text-gray-600 mb-2">Income vs. Expenses vs. Balance (Bar)</h3>
+        <h3 className="text-sm text-gray-600 mb-2">Income vs. Expenses vs. Savings vs. Balance (Bar by Month)</h3>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={groupedData}>
             <XAxis dataKey="name" />
@@ -113,6 +224,24 @@ export default function DashboardPage() {
             <Legend />
             <Bar dataKey="income" fill="#10b981" name="Incomes" />
             <Bar dataKey="expense" fill="#ef4444" name="Expenses" />
+            <Bar dataKey="saving" fill="#fbbf24" name="Savings" />
+            <Bar dataKey="balance" fill="#3b82f6" name="Balance" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* NUEVO: Gráfico de barras por año */}
+      <div className="bg-white p-4 rounded shadow">
+        <h3 className="text-sm text-gray-600 mb-2">Income vs. Expenses vs. Savings vs. Balance (Bar by Year)</h3>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={groupedDataByYear}>
+            <XAxis dataKey="name" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="income" fill="#10b981" name="Incomes" />
+            <Bar dataKey="expense" fill="#ef4444" name="Expenses" />
+            <Bar dataKey="saving" fill="#fbbf24" name="Savings" />
             <Bar dataKey="balance" fill="#3b82f6" name="Balance" />
           </BarChart>
         </ResponsiveContainer>

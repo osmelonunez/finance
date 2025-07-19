@@ -1,24 +1,52 @@
-#version: '3.8'
-
 services:
+  haproxy:
+    image: haproxy:2.9
+    container_name: finance-haproxy
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - ./haproxy/ssl/:/usr/local/etc/haproxy/ssl/
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+      - frontend
+
   backend:
-    build: ./backend
-    image: finance-backend:1
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: finance-backend:${BACKEND_TAG}
     container_name: finance-backend
+    volumes:
+      - backend:/app/config
+      - backend:/app/backups
     env_file:
-      - ./backend/.env
-    networks:
-      - public
+      - .env
+    depends_on:
+      - postgres
 
   frontend:
     build: ./frontend
-    image: finance-frontend:1
+    image: finance-frontend:${FRONTEND_TAG}
     container_name: finance-frontend
-    ports:
-      - "5173:5173"
-    networks:
-      - public
+    expose:
+      - "5173"
+    depends_on:
+      - backend
 
-networks:
-  public:
-    external: true
+  postgres:
+    image: postgres:14
+    container_name: finance-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    ports:
+      - "5439:5432"
+
+volumes:
+  postgres:
+  backend:

@@ -1,12 +1,12 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import path from 'path'; // <- AÑADIDO
+import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'), // <- AÑADIDO
+      '@': path.resolve(__dirname, './src'),
     },
   },
   server: {
@@ -15,6 +15,6 @@ export default defineConfig({
     proxy: {
       '/api': 'http://backend:3001',
     },
-    allowedHosts: ['finance'], // 👈 Agrega esto
+    allowedHosts: ['finance.home', 'devfinance.home'],
   },
 });

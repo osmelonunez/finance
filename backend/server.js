@@ -1,66 +1,47 @@
+require('./db'); // fuerza ejecución de inicialización de la BD
 const express = require('express');
 const cors = require('cors');
-const pool = require('./db');
 require('dotenv').config();
+
+const expensesRoutes = require('./routes/expenses');
+const incomeRoutes = require('./routes/income');
+const categoryRoutes = require('./routes/category');
+const savingsRoutes = require('./routes/savings');
+const monthsRoutes = require('./routes/months');
+const yearsRoutes = require('./routes/years');
+const authRoutes = require('./routes/auth');
+const registerRoutes = require('./routes/register');
+const emailsRoutes = require('./routes/emails');
+const usersRoutes = require('./routes/users');
+const rolesRoutes = require('./routes/roles');
+const devRoutes = require('./routes/dev');
+const backupRoutes = require('./routes/backup');
+const alertRoutes = require('./routes/alert');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.get('/api/expenses', async (req, res) => {
-  const result = await pool.query('SELECT * FROM expenses');
-  res.json(result.rows);
+app.use('/api/expenses', expensesRoutes);
+app.use('/api/incomes', incomeRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/savings', savingsRoutes);
+app.use('/api/months', monthsRoutes);
+app.use('/api/years', yearsRoutes);
+app.use('/api', authRoutes);        // /api/login, /api/me
+app.use('/api/register', registerRoutes);
+app.use('/api/emails', emailsRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/roles', rolesRoutes);
+app.use('/api/dev', devRoutes);
+app.use('/api/backup', backupRoutes);
+app.use('/api/alerts', alertRoutes);
+
+const { scheduleBackupJob } = require('./controllers/backupController');
+scheduleBackupJob();
+
+
+app.listen(process.env.BACKEND_PORT, '0.0.0.0', () => {
+  console.log(`Backend listening on port ${process.env.BACKEND_PORT}`);
 });
 
-app.post('/api/expenses', async (req, res) => {
-  const { name, cost, month, year } = req.body;
-  await pool.query('INSERT INTO expenses (name, cost, month, year) VALUES ($1, $2, $3, $4)', [name, cost, month, year]);
-  const result = await pool.query('SELECT * FROM expenses');
-  res.json(result.rows);
-});
-
-app.put('/api/expenses/:id', async (req, res) => {
-  const { id } = req.params;
-  const { name, cost, month, year } = req.body;
-  await pool.query('UPDATE expenses SET name=$1, cost=$2, month=$3, year=$4 WHERE id=$5', [name, cost, month, year, id]);
-  const result = await pool.query('SELECT * FROM expenses');
-  res.json(result.rows);
-});
-
-app.delete('/api/expenses/:id', async (req, res) => {
-  const { id } = req.params;
-  await pool.query('DELETE FROM expenses WHERE id=$1', [id]);
-  const result = await pool.query('SELECT * FROM expenses');
-  res.json(result.rows);
-});
-
-app.post('/api/incomes', async (req, res) => {
-  const { name, amount, month, year } = req.body;
-  await pool.query('INSERT INTO incomes (name, amount, month, year) VALUES ($1, $2, $3, $4)', [name, amount, month, year]);
-  const result = await pool.query('SELECT * FROM incomes');
-  res.json(result.rows);
-});
-
-app.put('/api/incomes/:id', async (req, res) => {
-  const { id } = req.params;
-  const { name, amount, month, year } = req.body;
-  await pool.query('UPDATE incomes SET name=$1, amount=$2, month=$3, year=$4 WHERE id=$5', [name, amount, month, year, id]);
-  const result = await pool.query('SELECT * FROM incomes');
-  res.json(result.rows);
-});
-
-app.delete('/api/incomes/:id', async (req, res) => {
-  const { id } = req.params;
-  await pool.query('DELETE FROM incomes WHERE id=$1', [id]);
-  const result = await pool.query('SELECT * FROM incomes');
-  res.json(result.rows);
-});
-
-app.get('/api/incomes', async (req, res) => {
-  const result = await pool.query('SELECT * FROM incomes');
-  res.json(result.rows);
-});
-
-app.listen(process.env.PORT, '0.0.0.0', () => {
-  console.log(`Backend listening on port ${process.env.PORT}`);
-});
