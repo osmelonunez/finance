@@ -27,7 +27,7 @@ export default function RecordsModals({
           categories={categories}
           isOpen={showAddModal}
           onClose={() => setShowAddModal(false)}
-          onConfirm={() => handleAdd(newRecord)}
+          onConfirm={handleAdd}
           record={newRecord}
           onChange={e => setNewRecord({ ...newRecord, [e.target.name]: e.target.value })}
           months={months}
