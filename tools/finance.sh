@@ -50,7 +50,9 @@ case "$ACTION" in
     printf "${BLUE}💾 Guardando cambios...${NC}\n"
     cd "$PROJECT_DIR" || exit 1
     git add .
-    git commit -m "save changes"
+    printf "📝 Ingresa el comentario para el commit: "
+    read commit_message
+    git commit -m "$commit_message"
     git push
     printf "${GREEN}✅ Cambios guardados y enviados a remoto.${NC}\n"
     ;;
