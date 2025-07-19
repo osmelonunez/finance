@@ -40,6 +40,25 @@ export default function RecurrenceSelector({
     </div>
   );
 
+  // --- Generar la lista de registros a mostrar ---
+  let recordsPreview = [];
+  if (type === "years" && selected.length > 0) {
+    recordsPreview = selected.flatMap(sel =>
+      months.map(m => ({
+        year: years.find(y => y.id === sel)?.value || sel,
+        month: m.name,
+        key: `${sel}-${m.id}`
+      }))
+    );
+  }
+  if (type === "months" && selected.length > 0) {
+    recordsPreview = selected.map(sel => ({
+      month: months.find(m => m.id === sel)?.name || sel,
+      year: years.find(y => y.id === record?.year_id)?.value || record?.year_id,
+      key: sel
+    }));
+  }
+
   return (
     <div className="flex flex-col gap-5">
       {/* Radio buttons for recurrence type */}
@@ -79,20 +98,23 @@ export default function RecurrenceSelector({
       {type && selected.length > 0 && (
         <div className="bg-gray-100 border border-gray-300 rounded p-4 mb-3">
           <div className="font-semibold mb-2">Records to be created:</div>
+          <div
+            className="max-h-24 overflow-y-auto border border-gray-200 rounded"
+            style={{ minHeight: '2.5rem' }}
+          >
             <ul className="list-disc ml-6 text-sm">
-              {type === 'years' && selected.length > 0 && selected.map(sel =>
-                months.map(m => (
-                  <li key={`${sel}-${m.id}`}>
-                    {`Year: ${years.find(y => y.id === sel)?.value || sel}, Month: ${m.name}`}
-                  </li>
-                ))
-              )}
-              {type === 'months' && selected.length > 0 && selected.map(sel => (
-                <li key={sel}>
-                  {`Month: ${months.find(m => m.id === sel)?.name || sel}, Year: ${years.find(y => y.id === record?.year_id)?.value || record?.year_id}`}
+              {recordsPreview.map((r, idx) => (
+                <li key={r.key}>
+                  Year: {r.year}, Month: {r.month}
                 </li>
               ))}
             </ul>
+          </div>
+          {recordsPreview.length > 5 && (
+            <div className="text-xs text-gray-500 mt-1">
+              Scroll to see more ({recordsPreview.length} total)
+            </div>
+          )}
         </div>
       )}
 
