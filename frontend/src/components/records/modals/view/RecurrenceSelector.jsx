@@ -95,20 +95,24 @@ export default function RecurrenceSelector({
       </div>
 
       {/* Preview the records to be created */}
-      {type && selected.length > 0 && (
+      {type && (
         <div className="bg-gray-100 border border-gray-300 rounded p-4 mb-3">
           <div className="font-semibold mb-2">Records to be created:</div>
           <div
             className="max-h-24 overflow-y-auto border border-gray-200 rounded"
             style={{ minHeight: '2.5rem' }}
           >
-            <ul className="list-disc ml-6 text-sm">
-              {recordsPreview.map((r, idx) => (
-                <li key={r.key}>
-                  Year: {r.year}, Month: {r.month}
-                </li>
-              ))}
-            </ul>
+            {recordsPreview.length === 0 ? (
+              <div className="text-gray-400 italic text-sm px-2 py-1">No records selected yet.</div>
+            ) : (
+              <ul className="list-disc ml-6 text-sm">
+                {recordsPreview.map((r, idx) => (
+                  <li key={r.key}>
+                    Year: {r.year}, Month: {r.month}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
           {recordsPreview.length > 5 && (
             <div className="text-xs text-gray-500 mt-1">
