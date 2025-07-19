@@ -10,10 +10,21 @@ export default function RecordTable({
   onAlert = () => {},
   recordType,
   alerts = [],
-  onView, // <--- NUEVO: acepta las alertas como prop
+  onView,
 }) {
   const sortedRecords = records;
   const navigate = useNavigate();
+
+  // Depura registros incompletos antes de renderizar la tabla
+  const filteredRecords = sortedRecords.filter(
+    r => r.id || (r.name && r.month_id && r.year_id)
+  );
+
+  // Log para ver si tienes registros incompletos
+  const incomplete = sortedRecords.filter(
+    r => !r.id && (!r.name || !r.month_id || !r.year_id)
+  );
+  if (incomplete.length) console.warn("Incomplete records:", incomplete);
 
   return (
     <div className="overflow-x-auto border rounded-lg">
@@ -31,29 +42,33 @@ export default function RecordTable({
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-100">
-          {sortedRecords.map((record) => {
-            // NUEVO: Verifica si este registro tiene alerta activa
+          {filteredRecords.map((record, idx) => {
             const hasAlert = alerts.some(
               alert =>
                 alert.record_id === record.id &&
                 alert.record_type === recordType &&
-                !alert.resolved // Solo activas
+                !alert.resolved
             );
 
+            const fallbackKey = `${record.name || "no-name"}-${record.month_id || "no-month"}-${record.year_id || "no-year"}`;
+
             return (
-              <tr key={record.id} className="text-base">
-              <td className="px-4 py-2">
-                <span
-                  className="text-gray-800 cursor-pointer hover:underline"
-                  onClick={() => onView(record)}
-                  title="Ver detalles"
-                  tabIndex={0}
-                  onKeyDown={e => { if (e.key === 'Enter') onView(record); }}
-                  role="button"
-                >
-                  {record.name}
-                </span>
-              </td>
+              <tr
+                key={record.id || fallbackKey || `temp-key-${idx}`}
+                className="text-base"
+              >
+                <td className="px-4 py-2">
+                  <span
+                    className="text-gray-800 cursor-pointer hover:underline"
+                    onClick={() => onView(record)}
+                    title="Ver detalles"
+                    tabIndex={0}
+                    onKeyDown={e => { if (e.key === 'Enter') onView(record); }}
+                    role="button"
+                  >
+                    {record.name}
+                  </span>
+                </td>
                 <td className="px-4 py-2 text-green-700 font-semibold">
                   {parseFloat(record[field]).toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
                 </td>
@@ -63,23 +78,22 @@ export default function RecordTable({
                   <td className="px-4 py-2 text-gray-800">{record.category_name || record.category_id}</td>
                 )}
                 <td className="px-4 py-2 text-gray-800 text-right space-x-2">
-                  {/* === Botón ALERTA ACTUALIZADO === */}
                   {!isViewer && (
-                  <button
-                    onClick={() =>
-                      hasAlert
-                        ? navigate("/alerts")
-                        : onAlert({ ...record, record_type: recordType })
-                    }
-                    className={
-                      hasAlert
-                        ? "bg-orange-200 hover:bg-orange-300 text-orange-700 px-2 py-1 rounded"
-                        : "bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded"
-                    }
-                    title={hasAlert ? "See alerts" : "Add alert"}
-                  >
-                    <Bell size={16} />
-                  </button>
+                    <button
+                      onClick={() =>
+                        hasAlert
+                          ? navigate("/alerts")
+                          : onAlert({ ...record, record_type: recordType })
+                      }
+                      className={
+                        hasAlert
+                          ? "bg-orange-200 hover:bg-orange-300 text-orange-700 px-2 py-1 rounded"
+                          : "bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded"
+                      }
+                      title={hasAlert ? "See alerts" : "Add alert"}
+                    >
+                      <Bell size={16} />
+                    </button>
                   )}
                   {!isViewer && (
                     <button

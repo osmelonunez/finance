@@ -1,5 +1,5 @@
-import AddRecordModal from './modals/AddRecordModal';
-import AlertModal from './modals/AlertModal';
+import AddRecordModal from './modals/add/AddRecordModal';
+import AlertModal from './modals/alert/AlertModal';
 
 export default function RecordsModals({
   showAddModal,
@@ -14,6 +14,7 @@ export default function RecordsModals({
   type,
   categories,
   hasCategory,
+  title,
 
   alertRecord,
   setAlertRecord
@@ -25,8 +26,7 @@ export default function RecordsModals({
           type={type}
           categories={categories}
           isOpen={showAddModal}
-          onCancel={() => setShowAddModal(false)}
-          //onConfirm={handleAdd}
+          onClose={() => setShowAddModal(false)}
           onConfirm={() => handleAdd(newRecord)}
           record={newRecord}
           onChange={e => setNewRecord({ ...newRecord, [e.target.name]: e.target.value })}
@@ -37,9 +37,9 @@ export default function RecordsModals({
           hasCategory={hasCategory}
           newRecord={newRecord}
           setNewRecord={setNewRecord}
+          title={title}
         />
       )}
-
       {alertRecord && (
         <AlertModal
           record={alertRecord}

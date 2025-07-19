@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Bell } from "lucide-react";
-import Modal from "../../common/Modal";
+import Modal from "../../../common/Modal";
 
 export default function AlertModal({ record, onClose }) {
   const [message, setMessage] = useState("");

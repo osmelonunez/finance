@@ -18,7 +18,7 @@ import RecordTable from './RecordTable';
 import RecordsModals from './RecordsModals';
 import TotalDisplay from './TotalDisplay';
 import Pagination from './Pagination';
-import ViewRecordModal from './modals/ViewRecordModal';
+import ViewRecordModal from './modals/view/ViewRecordModal';
 import { showNotification } from '../utils/showNotification'; // Importa la función global
 
 export default function RecordsPageTemplate({
@@ -69,6 +69,13 @@ export default function RecordsPageTemplate({
   const [alerts, setAlerts] = useState([]);
   const [viewRecord, setViewRecord] = useState(null);
 
+useEffect(() => {
+  if (viewRecord && records && Array.isArray(records)) {
+    const updated = records.find(r => r.id === viewRecord.id);
+    if (updated) setViewRecord(updated);
+  }
+}, [records]);
+
   useEffect(() => {
     const fetchAlerts = async () => {
       try {
@@ -96,7 +103,12 @@ export default function RecordsPageTemplate({
 const handleEditAndRefreshView = async (updatedRecord) => {
   const result = await handleEdit(updatedRecord);
   if (result !== false) {
-    setViewRecord(updatedRecord);
+    // Aquí asegúrate de refrescar los datos antes si fetchData es asíncrono.
+    await fetchData();
+    const updated = records.find(r => r.id === updatedRecord.id);
+    if (updated) {
+      setViewRecord(updated); // <-- Esto actualiza el modal de detalles
+    }
   }
   return result;
 };
@@ -164,6 +176,7 @@ const handleEditAndRefreshView = async (updatedRecord) => {
         type={type}
         categories={categories}
         hasCategory={hasCategory}
+        title={title}
 
         alertRecord={alertRecord}
         setAlertRecord={setAlertRecord}

@@ -98,7 +98,7 @@ useEffect(() => {
         years={years}
         months={months}
         onSave={async ({ type, selected }) => {
-          // Crear varios registros para años seleccionados
+          // Copia a todos los meses del año seleccionado
           if (type === "years") {
             for (const yearId of selected) {
               for (const month of months) {
@@ -111,27 +111,19 @@ useEffect(() => {
                 if (!exists) {
                   const newRecord = {
                     name: record.name,
-                    cost: Number(record.cost),
+                    [field]: Number(record[field]),   // field: cost, amount, etc.
                     month_id: Number(month.id),
                     year_id: Number(yearId),
-                    category_id: Number(record.category_id),
+                    ...(record.category_id ? { category_id: Number(record.category_id) } : {}),
                     source: record.source,
                   };
                   if ('id' in newRecord) delete newRecord.id;
-                  //console.log("Creating new record (by year & month):", newRecord);
                   await handleAdd(newRecord);
-                } else {
-                  //console.log("Duplicate skipped:", {
-                  //  name: record.name,
-                  //  category_id: record.category_id,
-                  //  month_id: month.id,
-                  //  year_id: yearId
-                  //});
                 }
               }
             }
           }
-          // Crear registros para meses seleccionados (del año actual del registro)
+          // Copia solo a los meses seleccionados
           if (type === "months") {
             for (const monthId of selected) {
               const exists = records.some(r =>
@@ -143,22 +135,14 @@ useEffect(() => {
               if (!exists) {
                 const newRecord = {
                   name: record.name,
-                  cost: Number(record.cost),
+                  [field]: Number(record[field]),   // field: cost, amount, etc.
                   month_id: Number(monthId),
-                  year_id: Number(record.year_id), // año actual del registro
-                  category_id: Number(record.category_id),
+                  year_id: Number(record.year_id),
+                  ...(record.category_id ? { category_id: Number(record.category_id) } : {}),
                   source: record.source,
                 };
                 if ('id' in newRecord) delete newRecord.id;
-                //console.log("Creating new record (by month):", newRecord);
                 await handleAdd(newRecord);
-              } else {
-                //console.log("Duplicate skipped:", {
-                //  name: record.name,
-                //  category_id: record.category_id,
-                //  month_id: monthId,
-                //  year_id: record.year_id
-                //});
               }
             }
           }

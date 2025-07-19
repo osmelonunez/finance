@@ -1,5 +1,3 @@
-// useHandleAdd.js
-
 export default function useHandleAdd({
   endpoint,
   field,
@@ -14,30 +12,32 @@ export default function useHandleAdd({
   afterSuccess,
 }) {
   return async function handleAdd(record) {
-    // Convert numerical fields just in case
-    const cost = record.cost !== undefined ? Number(record.cost) : undefined;
+    const valueField = field || "cost";
+    const value = record[valueField] !== undefined ? Number(record[valueField]) : undefined;
     const month_id = record.month_id !== undefined ? Number(record.month_id) : undefined;
     const year_id = record.year_id !== undefined ? Number(record.year_id) : undefined;
     const category_id = record.category_id !== undefined ? Number(record.category_id) : undefined;
 
-    // Debug: log the incoming record
     console.log("Checking new record in handleAdd:", record);
 
-    // Check each field and log missing ones
-    if (!record.name)      console.error("Missing field: name", record.name);
-    if (!cost)             console.error("Missing or invalid field: cost", cost);
-    if (!month_id)         console.error("Missing or invalid field: month_id", month_id);
-    if (!year_id)          console.error("Missing or invalid field: year_id", year_id);
-    if (!category_id)      console.error("Missing or invalid field: category_id", category_id);
-    if (!record.source)    console.error("Missing field: source", record.source);
+    if (!record.name) console.error("Missing field: name", record.name);
+    if (!value) console.error(`Missing or invalid field: ${valueField}`, value);
+    if (!month_id) console.error("Missing or invalid field: month_id", month_id);
+    if (!year_id) console.error("Missing or invalid field: year_id", year_id);
+
+    // Solo valida category_id si existe
+    if ('category_id' in record && !category_id) {
+      console.error("Missing or invalid field: category_id", category_id);
+      showNotification && showNotification("All fields are required.", "error");
+      return false;
+    }
 
     if (
       !record.name ||
-      !cost ||
+      !value ||
       !month_id ||
       !year_id ||
-      !category_id ||
-      !record.source
+      (('category_id' in record) && !category_id)
     ) {
       showNotification && showNotification("All fields are required.", "error");
       return false;
@@ -52,10 +52,10 @@ export default function useHandleAdd({
         },
         body: JSON.stringify({
           ...record,
-          cost,
+          [valueField]: value,
           month_id,
           year_id,
-          category_id
+          ...(category_id ? { category_id } : {})
         })
       });
 
@@ -66,8 +66,8 @@ export default function useHandleAdd({
         return false;
       }
 
-      const added = await response.json();
-      setRecords && setRecords(prev => [added, ...prev]);
+      const addedRecords = await response.json();
+      setRecords && setRecords([...addedRecords]);
       setNewRecord && setNewRecord({});
       setShowAddModal && setShowAddModal(false);
       setError && setError("");
