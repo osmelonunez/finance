@@ -231,8 +231,7 @@ async function initializeDatabase() {
       ('Personal', 'Ropa, calzado, peluquería, barbería'),
       ('Deporte', 'Gimnasio, yoga, natación'),
       ('Salud', 'Seguros de salud, medicamentos'),
-      ('Suscripciones', 'Netflix, iCloud, Spotify, Amazon Prime'),
-      ('Finanzas y deudas', 'Pagos aplazados, préstamos')
+      ('Suscripciones', 'Netflix, iCloud, Spotify, Amazon Prime')
     ON CONFLICT DO NOTHING;
   `);
 
