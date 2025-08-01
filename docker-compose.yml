@@ -23,6 +23,8 @@ services:
       - backend:/app/backups
     env_file:
       - .env
+    #expose:
+    #  - "3001"
     depends_on:
       - postgres
 
@@ -30,8 +32,6 @@ services:
     build: ./frontend
     image: finance-frontend:${FRONTEND_TAG}
     container_name: finance-frontend
-    expose:
-      - "5173"
     depends_on:
       - backend
 
