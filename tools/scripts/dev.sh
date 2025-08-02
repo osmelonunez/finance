@@ -2,7 +2,8 @@
 
 ACTION="$1"
 WORKSPACE="$HOME/git"
-PROJECT_DIR="$WORKSPACE/finance"
+PROJECT_FOLDER="$WORKSPACE/finance/"
+PROJECT_DIR="$WORKSPACE/finance/tools/docker-dev/"
 
 
 # Colores ANSI
@@ -13,9 +14,9 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No color
 
 # Validar argumento
-if [[ -z "$ACTION" || ! "$ACTION" =~ ^(init|update|save|delete|status)$ ]]; then
+if [[ -z "$ACTION" || ! "$ACTION" =~ ^(init|update|save|delete|status|stop)$ ]]; then
   printf "${RED}❌ Comando no válido o no proporcionado.${NC}\n"
-  printf "${CYAN}👉 Comandos válidos: $0 {init|update|save|delete|status}${NC}\n"
+  printf "${CYAN}👉 Comandos válidos: $0 {init|update|save|delete|status|stop}${NC}\n"
   exit 1
 fi
 
@@ -48,7 +49,7 @@ case "$ACTION" in
     ;;
   save)
     printf "${BLUE}💾 Guardando cambios...${NC}\n"
-    cd "$PROJECT_DIR" || exit 1
+    cd "$PROJECT_FOLDER" || exit 1
     git add .
     printf "📝 Ingresa el comentario para el commit: "
     read commit_message
@@ -60,24 +61,24 @@ case "$ACTION" in
     printf "${RED}⚠️  Eliminando proyecto y limpiando Docker...${NC}\n"
     cd "$PROJECT_DIR" || exit 1
     docker-compose down
-    docker volume rm $(docker volume ls -q | grep -v '^finance_postgres$') > /dev/null 2>&1
+    docker volume rm $(docker volume ls -q | grep -v '^docker-dev_postgres$') > /dev/null 2>&1
     docker rmi -f $(docker images -q | grep -v c0aab7962b2 | grep -v 815066284948) > /dev/null 2>&1
     docker builder prune -a --force
     cd "$WORKSPACE" || exit 1
-    rm -rf "$PROJECT_DIR"
+    rm -rf "$PROJECT_FOLDER"
     clear
     printf "${GREEN}🗑️  Proyecto eliminado completamente.${NC}\n"
     ;;
   status)
     printf "${BLUE}🔎 Verificando estado del proyecto...${NC}\n"
 
-    if [[ ! -d "$PROJECT_DIR" ]]; then
+    if [[ ! -d "$PROJECT_FOLDER" ]]; then
       printf "${RED}🚫 El proyecto no está desplegado en ${PROJECT_DIR}.${NC}\n"
       printf "${CYAN}👉 Ejecuta 'finance init' para clonarlo y desplegarlo.${NC}\n"
       exit 1
     fi
 
-    cd "$PROJECT_DIR" || exit 1
+    cd "$PROJECT_FOLDER" || exit 1
 
     # Verificar cambios pendientes
     if [[ -n $(git status --porcelain) ]]; then
@@ -97,6 +98,12 @@ case "$ACTION" in
     else
       printf "${GREEN}✅ Total: $count contenedor(es) activo(s).${NC}\n"
     fi
+    ;;
+  stop)
+    printf "${RED}⚠️  Eliminando contenedores...${NC}\n"
+    cd "$PROJECT_DIR" || exit 1
+    docker-compose down
+    printf "${GREEN}🗑️  Contenedores eliminados...${NC}\n"
     ;;
 esac
 
