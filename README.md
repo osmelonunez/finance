@@ -1,8 +1,10 @@
 # 💰 Finance – Personal Finance Application
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/osmelonunez/finance)
+![License](https://img.shields.io/github/license/osmelonunez/finance)
+![Repo size](https://img.shields.io/github/repo-size/osmelonunez/finance)
 
-Finance is a personal and household finance management web application. It consists of two components:
+📊 Finance is a personal and household finance management web application. It consists of two components:
 - `finance-ui`: A modern frontend built with Vite and Node.js 20
 - `finance-api`: A secure REST API built with Node.js 20
 
