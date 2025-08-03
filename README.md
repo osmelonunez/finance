@@ -27,47 +27,6 @@ This project is prepared for both development and production environments using 
 
 ---
 
-### 🧪 Development environment setup
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/osmelonunez/finance.git
-cd finance
-```
-
-2. Configure environment variables:
-
-Edit the file `tools/docker-dev/.env` and define at least the following:
-
-```env
-UI_TAG=X.X.X
-API_TAG=X.X.X
-```
-
-You may modify other variables if needed.
-
-3. Start the development environment:
-
-```bash
-tools/scripts/dev.sh
-```
-
-This script will launch the services using `tools/docker-dev/docker-compose.yml`.
-
-4. Publish a stable image to Docker Hub:
-
-Use the following script, passing the version tag you want to publish:
-
-```bash
-tools/scripts/tag-and-push.sh X.X.X
-```
-
-Replace `X.X.X` with the version tag for your image.
-
----
-
-
 ### 🚀 Run in production
 
 This project uses Docker Compose to manage the frontend, backend, database, and proxy services.
@@ -145,6 +104,46 @@ You will be prompted with options:
 1. Stop all containers (profiles: `db`, `proxy`)
 2. Stop containers from frontend/backend only setup (uses override)
 3. Stop and remove volumes (delete all data)
+
+---
+
+### 🧪 Development environment setup
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/osmelonunez/finance.git
+cd finance
+```
+
+2. Configure environment variables:
+
+Edit the file `tools/docker-dev/.env` and define at least the following:
+
+```env
+UI_TAG=X.X.X
+API_TAG=X.X.X
+```
+
+You may modify other variables if needed.
+
+3. Start the development environment:
+
+```bash
+tools/scripts/dev.sh
+```
+
+This script will launch the services using `tools/docker-dev/docker-compose.yml`.
+
+4. Publish a stable image to Docker Hub:
+
+Use the following script, passing the version tag you want to publish:
+
+```bash
+tools/scripts/tag-and-push.sh X.X.X
+```
+
+Replace `X.X.X` with the version tag for your image.
 
 ---
 
