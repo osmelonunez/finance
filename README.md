@@ -67,18 +67,84 @@ Replace `X.X.X` with the version tag for your image.
 
 ---
 
+
 ### 🚀 Run in production
 
-For detailed production setup instructions, see:
+This project uses Docker Compose to manage the frontend, backend, database, and proxy services.
 
-📄 [`tools/docker-prod/README.md`](tools/docker-prod/README.md)
+## 📦 Services Overview
 
-That guide includes:
+| Service   | Description                        | Enabled by Default |
+|-----------|------------------------------------|---------------------|
+| backend   | Node.js API service                | ✅ Yes              |
+| frontend  | React/Vite app                     | ✅ Yes              |
+| postgres  | PostgreSQL database                | 🔁 Optional (`db`)  |
+| haproxy   | Reverse proxy for frontend/backend | 🔁 Optional (`proxy`) |
 
-- How to configure environment variables
-- How to start the services
-- How to stop the services
+---
 
+## 🚀 Quick Start
+
+### ▶️ Run App
+
+```bash
+sh start.sh
+```
+
+You will be prompted with options:
+
+1. Full stack (Backend + Frontend + PostgreSQL + HAProxy)
+2. Backend + Frontend only (uses external network `public`)
+3. Backend + Frontend + PostgreSQL
+4. Backend + Frontend + HAProxy
+
+> If you choose option 2, make sure the external Docker network `public` exists:
+
+```bash
+docker network create public
+```
+
+---
+
+## ⚙️ Environment Variables
+
+You can configure database connection and other values using the `.env` file.
+
+Example:
+
+```env
+DB_HOST=postgres
+DB_PORT=5432
+DB_NAME=finance
+DB_USER=finance
+DB_PASSWORD=yourpassword
+```
+
+> Make sure `.env` exists in the root of the project when starting containers.
+
+---
+
+## 📌 Notes
+
+- Make sure Docker and Docker Compose are installed.
+- Logs can be viewed using:
+  ```bash
+  docker compose logs -f
+  ```
+
+---
+
+## 🧹 Stop and clean everything
+
+```bash
+sh stop.sh
+```
+
+You will be prompted with options:
+
+1. Stop all containers (profiles: `db`, `proxy`)
+2. Stop containers from frontend/backend only setup (uses override)
+3. Stop and remove volumes (delete all data)
 
 ---
 

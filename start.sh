@@ -21,8 +21,8 @@ case "$CHOICE" in
     docker compose --profile db --profile proxy up -d
     ;;
   2)
-    echo "▶️ Starting backend + frontend..."
-    docker compose up -d
+    echo "▶️ Starting backend + frontend with external network 'public'..."
+    docker compose -f docker-compose.yml -f docker-compose.override-ext.yml up -d
     ;;
   3)
     echo "▶️ Starting backend + frontend + postgres..."

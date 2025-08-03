@@ -1,0 +1,14 @@
+#version: "3.9"
+
+services:
+  backend:
+    networks:
+      - public
+
+  frontend:
+    networks:
+      - public
+
+networks:
+  public:
+    external: true
