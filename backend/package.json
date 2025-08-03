@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "init-db": "node backend/db.js",
-    "start": "node backend/db.js && node backend/server.js"
+    "init-db": "node db.js",
+    "start": "node db.js && node server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

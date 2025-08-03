@@ -41,7 +41,7 @@ const { scheduleBackupJob } = require('./controllers/backupController');
 scheduleBackupJob();
 
 
-app.listen(process.env.BACKEND_PORT, '0.0.0.0', () => {
-  console.log(`Backend listening on port ${process.env.BACKEND_PORT}`);
+app.listen(process.env.API_PORT, '0.0.0.0', () => {
+  console.log(`Backend listening on port ${process.env.API_PORT}`);
 });
 

@@ -1,12 +1,10 @@
-#version: "3.9"
 services:
   haproxy:
     image: haproxy:2.9
     container_name: finance-haproxy
-    profiles: [proxy]  # 🔁 solo se lanza si activas el perfil
     volumes:
-      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
-      - ./haproxy/ssl/:/usr/local/etc/haproxy/ssl/
+      - ../../haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - ../..//haproxy/ssl/:/usr/local/etc/haproxy/ssl/
     ports:
       - "80:80"
       - "443:443"
@@ -15,18 +13,24 @@ services:
       - frontend
 
   backend:
-    image: f1nanc3/finance-api
+    build:
+      context: ../../
+      dockerfile: backend/Dockerfile
+    image: f1nanc3/finance-api:${API_TAG}
     container_name: finance-api
     volumes:
-      - backend:/app/config
-      - backend:/app/backups
+      - api:/app/config
+      - api:/app/backups
     env_file:
       - .env
     #expose:
     #  - "3001"
+    depends_on:
+      - postgres
 
   frontend:
-    image: f1nanc3/finance-ui
+    build: ../../frontend
+    image: f1nanc3/finance-ui:${UI_TAG}
     container_name: finance-ui
     depends_on:
       - backend
@@ -34,16 +38,15 @@ services:
   postgres:
     image: postgres:14
     container_name: finance-psql
-    profiles: [db]  # 🔁 solo se lanza si activas el perfil
     environment:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres:/var/lib/postgresql/data
-    #ports:
-    #  - "5432:5432"
+    ports:
+      - "5432:5432"
 
 volumes:
   postgres:
-  backend:
+  api:
