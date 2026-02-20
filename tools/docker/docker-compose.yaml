@@ -1,0 +1,48 @@
+services:
+  finance:
+    build:
+      context: ../../
+      dockerfile: tools/docker/Dockerfile
+    image: finance:latest
+    pull_policy: never
+    container_name: finance
+    ports:
+      - "3000:5000"
+    environment:
+      # Runtime mode (development/production).
+      APP_ENV: development
+      # Path where app stores database connection configuration.
+      APP_CONFIG_PATH: /config/.app_config.json
+      # Directory used to store generated backup files.
+      BACKUP_DIR: /backups
+      # User session lifetime in hours.
+      SESSION_LIFETIME_HOURS: "12"
+      # Flask session signing secret.
+      SECRET_KEY: "dev-secret"
+      # Key used to encrypt/decrypt SMTP password at rest.
+      SMTP_ENCRYPTION_KEY: "change-this-smtp-key"
+      # Key used to encrypt/decrypt database URL stored in /config/.app_config.json.
+      DB_CONFIG_ENCRYPTION_KEY: "change-this-db-config-key"
+      # Public app URL used in email links.
+      APP_PUBLIC_URL: "https://devfinance.home"
+      # In-memory limiter backend (sufficient for single-instance domestic use).
+      RATELIMIT_STORAGE_URI: "memory://"
+      # Rate limits for auth endpoints.
+      RATE_LIMIT_LOGIN_IP: "10 per minute;60 per hour"
+      RATE_LIMIT_LOGIN_ID: "5 per minute;30 per hour"
+      RATE_LIMIT_REGISTER_IP: "5 per 10 minutes;20 per hour"
+      RATE_LIMIT_PASSWORD_CHANGE: "5 per 15 minutes"
+      # Ajuste ligero para Raspberry (1-2 usuarios concurrentes).
+      # workers = procesos, threads = hilos por proceso.
+      GUNICORN_WORKERS: "1"
+      GUNICORN_THREADS: "2"
+      GUNICORN_TIMEOUT: "120"
+    volumes:
+      - ../../backups:/backups
+      - ../../config:/config
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "7"
+    restart: unless-stopped

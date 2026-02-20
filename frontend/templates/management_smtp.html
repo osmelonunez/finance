@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .mg-shell { max-width: 900px; }
+  .mg-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+  .mg-tabs a { padding: 6px 10px; border: 1px solid #d9e3ee; border-radius: 9px; text-decoration: none; color: #4a5a6b; }
+  .mg-tabs a.active { background: #eef4fb; color: #2f3b47; font-weight: 600; }
+  .panel { border: 1px solid #dfe7f0; border-radius: 12px; background: #fbfcfe; padding: 14px; }
+</style>
+
+<div class="mg-shell">
+  <h4 class="mb-3">{{ t('Management') }}</h4>
+  <div class="mg-tabs">
+    <a href="/management/users">{{ t('Users') }}</a>
+    <a href="/management/database">{{ t('Database') }}</a>
+    <a href="/management/backups">{{ t('Backups') }}</a>
+    <a class="active" href="/management/smtp">{{ t('SMTP') }}</a>
+    <a href="/categories">{{ t('Categories') }}</a>
+    <a href="/management/system">{{ t('System') }}</a>
+    <a href="/management/payment-methods">{{ t('Accounts & Cards') }}</a>
+  </div>
+
+  {% if message %}<div class="alert alert-success py-2">{{ t(message) }}</div>{% endif %}
+  {% if error %}<div class="alert alert-danger py-2">{{ t(error) }}</div>{% endif %}
+
+  {% if is_admin %}
+    <div class="panel">
+      <div class="fw-semibold mb-1">{{ t('SMTP') }}</div>
+      <div class="text-muted small mb-3">{{ t('Use Gmail app password. Credentials are stored encrypted.') }}</div>
+      <form method="post" action="/management/smtp/save">
+        <div class="row g-2">
+          <div class="col-md-4">
+            <label class="form-label">{{ t('Server') }}</label>
+            <input class="form-control form-control-sm" name="smtp_host" value="{{ smtp.host }}" placeholder="smtp.gmail.com">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">{{ t('Port') }}</label>
+            <input class="form-control form-control-sm" name="smtp_port" value="{{ smtp.port }}">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">{{ t('User') }}</label>
+            <input class="form-control form-control-sm" name="smtp_user" value="{{ smtp.username }}">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">{{ t('Sender name') }}</label>
+            <input class="form-control form-control-sm" name="smtp_from_name" value="{{ smtp.from_name }}" placeholder="Finance Home">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">{{ t('From email') }}</label>
+            <input class="form-control form-control-sm" name="smtp_from" value="{{ smtp.from_email }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">{{ t('Password') }}</label>
+            <input type="password" class="form-control form-control-sm" name="smtp_password" placeholder="{{ '••••••••' if has_password else '' }}">
+          </div>
+          <div class="col-md-2 d-flex align-items-end">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="smtpTls" name="smtp_use_tls" value="1" {% if smtp.use_tls %}checked{% endif %}>
+              <label class="form-check-label" for="smtpTls">{{ t('TLS') }}</label>
+            </div>
+          </div>
+          <div class="col-md-2 d-flex align-items-end">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="smtpEnabled" name="smtp_enabled" value="1" {% if smtp.enabled %}checked{% endif %}>
+              <label class="form-check-label" for="smtpEnabled">{{ t('Enabled') }}</label>
+            </div>
+          </div>
+          <div class="col-md-4 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary btn-sm">{{ t('Save') }}</button>
+          </div>
+        </div>
+      </form>
+
+      <hr class="my-3">
+
+      <form method="post" action="/management/smtp/test" class="row g-2 align-items-end">
+        <input type="hidden" name="smtp_host" value="{{ smtp.host }}">
+        <input type="hidden" name="smtp_port" value="{{ smtp.port }}">
+        <input type="hidden" name="smtp_user" value="{{ smtp.username }}">
+        <input type="hidden" name="smtp_from" value="{{ smtp.from_email }}">
+        <input type="hidden" name="smtp_use_tls" value="{{ '1' if smtp.use_tls else '0' }}">
+        <div class="col-md-5">
+          <label class="form-label">{{ t('Test email to') }}</label>
+          <input class="form-control form-control-sm" name="smtp_test_to" value="{{ session.get('user_email') or '' }}">
+        </div>
+        <div class="col-md-5">
+          <label class="form-label">{{ t('Password') }} ({{ t('Optional') }})</label>
+          <input type="password" class="form-control form-control-sm" name="smtp_password" placeholder="{{ t('Use saved password if empty') }}">
+        </div>
+        <div class="col-md-2 d-grid">
+          <button class="btn btn-outline-primary btn-sm" type="submit">{{ t('Test connection') }}</button>
+        </div>
+      </form>
+    </div>
+  {% endif %}
+
+  <div class="panel mt-3">
+    <div class="fw-semibold mb-1">{{ t('Email reports') }}</div>
+    <div class="text-muted small mb-3">{{ t('Monthly and yearly balance emails for active users.') }}</div>
+    <form method="post" action="/management/email-reports/save">
+      <div class="d-flex flex-wrap gap-4 align-items-center">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="monthlyEnabled" name="monthly_enabled" value="1" {% if report_cfg.monthly_enabled %}checked{% endif %}>
+          <label class="form-check-label" for="monthlyEnabled">{{ t('Enable monthly report') }}</label>
+        </div>
+        <div>
+          <label class="form-label mb-1 small">{{ t('Monthly template') }}</label>
+          <select class="form-select form-select-sm" name="monthly_template_version">
+            <option value="v1" {% if report_cfg.monthly_template_version == 'v1' %}selected{% endif %}>v1</option>
+          </select>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="yearlyEnabled" name="yearly_enabled" value="1" {% if report_cfg.yearly_enabled %}checked{% endif %}>
+          <label class="form-check-label" for="yearlyEnabled">{{ t('Enable yearly report') }}</label>
+        </div>
+        <div>
+          <label class="form-label mb-1 small">{{ t('Yearly template') }}</label>
+          <select class="form-select form-select-sm" name="yearly_template_version">
+            <option value="v1" {% if report_cfg.yearly_template_version == 'v1' %}selected{% endif %}>v1</option>
+          </select>
+        </div>
+        <button class="btn btn-primary btn-sm" type="submit">{{ t('Save') }}</button>
+      </div>
+    </form>
+
+    <div class="d-flex flex-wrap gap-2 mt-3">
+      <form method="post" action="/management/email-reports/test-monthly">
+        <button class="btn btn-outline-primary btn-sm" type="submit">{{ t('Send test monthly') }}</button>
+      </form>
+      <form method="post" action="/management/email-reports/test-yearly">
+        <button class="btn btn-outline-primary btn-sm" type="submit">{{ t('Send test yearly') }}</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

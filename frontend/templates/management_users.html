@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .mg-shell { max-width: 900px; }
+  .mg-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+  .mg-tabs a { padding: 6px 10px; border: 1px solid #d9e3ee; border-radius: 9px; text-decoration: none; color: #4a5a6b; }
+  .mg-tabs a.active { background: #eef4fb; color: #2f3b47; font-weight: 600; }
+  .panel { border: 1px solid #dfe7f0; border-radius: 12px; background: #fbfcfe; padding: 14px; }
+</style>
+
+<div class="mg-shell">
+  <h4 class="mb-3">{{ t('Management') }}</h4>
+  <div class="mg-tabs">
+    <a class="active" href="/management/users">{{ t('Users') }}</a>
+    <a href="/management/database">{{ t('Database') }}</a>
+    <a href="/management/backups">{{ t('Backups') }}</a>
+    <a href="/management/smtp">{{ t('SMTP') }}</a>
+    <a href="/categories">{{ t('Categories') }}</a>
+    <a href="/management/system">{{ t('System') }}</a>
+    <a href="/management/payment-methods">{{ t('Accounts & Cards') }}</a>
+  </div>
+
+  {% if message %}<div class="alert alert-success py-2">{{ t(message) }}</div>{% endif %}
+  {% if error %}<div class="alert alert-danger py-2">{{ t(error) }}</div>{% endif %}
+
+  <div class="panel table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead>
+        <tr>
+          <th>{{ t('Username') }}</th>
+          <th>{{ t('Email') }}</th>
+          <th>{{ t('Role') }}</th>
+          <th>{{ t('Status') }}</th>
+          <th class="text-end">{{ t('Action') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for u in users %}
+        {% set is_self = (u[0] == session.get('user_id')) %}
+        <tr>
+          <td>{{ u[5] or '-' }}</td>
+          <td>{{ u[1] }}</td>
+          <td>
+            <form method="post" action="/management/users/{{ u[0] }}/role" class="d-flex align-items-center gap-2">
+              <select name="role" class="form-select form-select-sm" style="max-width: 140px;" {% if not is_self %}onchange="this.form.submit()"{% endif %} {% if is_self %}disabled{% endif %}>
+                <option value="user" {% if u[6] == 'user' %}selected{% endif %}>{{ t('User') }}</option>
+                <option value="editor" {% if u[6] == 'editor' %}selected{% endif %}>Editor</option>
+                <option value="admin" {% if u[6] == 'admin' %}selected{% endif %}>Admin</option>
+              </select>
+              {% if is_self %}<span class="text-muted small">{{ t('Current') }}</span>{% endif %}
+            </form>
+          </td>
+          <td>
+            {% if u[2] %}<span class="badge bg-success">{{ t('Active') }}</span>{% else %}<span class="badge bg-secondary">{{ t('Pending') }}</span>{% endif %}
+          </td>
+          <td class="text-end">
+            {% if u[0] != session.get('user_id') %}
+              <form method="post" action="/management/users/{{ u[0] }}/toggle">
+                <button class="btn btn-sm {{ 'btn-outline-danger' if u[2] else 'btn-outline-success' }}">
+                  {% if u[2] %}{{ t('Disable') }}{% elif u[4] %}{{ t('Activate') }}{% else %}{{ t('Approve') }}{% endif %}
+                </button>
+              </form>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

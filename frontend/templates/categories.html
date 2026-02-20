@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}Categories{% endblock %}
+{% block content %}
+
+<style>
+    .categories-shell {
+        max-width: 900px;
+    }
+    .categories-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+    }
+    .categories-card {
+        padding: 14px 18px 18px;
+        border: 1px solid #e3e9f0;
+        border-radius: 12px;
+        background: #fbfcfe;
+        box-shadow: 0 6px 14px rgba(24, 54, 88, 0.05);
+    }
+    .categories-card .table {
+        background: #fbfcfe;
+    }
+    .categories-card .table thead th,
+    .categories-card .table tbody td,
+    .categories-card .table > :not(caption) > * > * {
+        background: #fbfcfe;
+    }
+    .categories-card .table > :not(caption) > * > * {
+        border-bottom-color: transparent;
+    }
+    .categories-card .table thead th {
+        border-bottom-color: transparent;
+    }
+    .categories-card .table input.form-control {
+        background: #fbfcfe;
+        border-color: #d7dee6;
+        box-shadow: none;
+    }
+    .categories-card .table input.form-control:disabled {
+        background: #fbfcfe;
+        color: #2f3b47;
+        opacity: 1;
+        border-color: transparent;
+    }
+    .categories-table {
+        table-layout: fixed;
+        width: 100%;
+    }
+    .categories-table .col-name {
+        width: 180px;
+    }
+    .categories-table .col-actions {
+        width: 110px;
+    }
+    .category-actions {
+        opacity: 0;
+        transition: opacity 0.15s ease;
+    }
+    .categories-table tbody tr:hover .category-actions {
+        opacity: 1;
+    }
+    .icon-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #d7dee6;
+        background: #fbfcfe;
+        color: #425466;
+        font-size: 0.85rem;
+    }
+    .icon-btn:hover {
+        background: #f1f5f9;
+        color: #2f3b47;
+    }
+    .icon-btn-danger {
+        border-color: #f2c9c9;
+        color: #cc3d3d;
+    }
+    .icon-btn-danger:hover {
+        background: #fdecec;
+        color: #b63030;
+    }
+    .categories-card + .categories-card {
+        margin-top: 12px;
+    }
+    .category-title {
+        font-weight: 700;
+        color: #2f3b47;
+    }
+    .category-desc {
+        color: #5a6b7b;
+        font-size: 0.9rem;
+    }
+    .mg-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+    .mg-tabs a {
+        padding: 6px 10px;
+        border: 1px solid #d9e3ee;
+        border-radius: 9px;
+        text-decoration: none;
+        color: #4a5a6b;
+    }
+    .mg-tabs a.active {
+        background: #eef4fb;
+        color: #2f3b47;
+        font-weight: 600;
+    }
+</style>
+
+<div class="categories-shell">
+    <h4 class="mb-3">{{ t('Management') }}</h4>
+    <div class="mg-tabs">
+        {% if session.get('role') == 'admin' %}
+        <a href="/management/users">{{ t('Users') }}</a>
+        <a href="/management/database">{{ t('Database') }}</a>
+        <a href="/management/backups">{{ t('Backups') }}</a>
+        <a href="/management/smtp">{{ t('SMTP') }}</a>
+        {% endif %}
+        <a class="active" href="/categories">{{ t('Categories') }}</a>
+        <a href="/management/system">{{ t('System') }}</a>
+        <a href="/management/payment-methods">{{ t('Accounts & Cards') }}</a>
+    </div>
+    <div class="categories-header">
+        <div></div>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-warning mt-3">{{ t(error) }}</div>
+    {% endif %}
+
+    <div class="categories-card">
+        <form method="post" action="/categories/add" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">{{ t('Category') }}</label>
+                <input class="form-control" name="name" placeholder="{{ t('New category') }}" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">{{ t('Description') }}</label>
+                <input class="form-control" name="description" placeholder="{{ t('Optional') }}">
+            </div>
+            <div class="col-md-2 d-flex">
+                <button class="btn btn-soft w-100">{{ t('Add') }}</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="categories-card">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0 categories-table">
+                <thead>
+                    <tr>
+                        <th class="col-name">{{ t('Name') }}</th>
+                        <th class="col-desc">{{ t('Description') }}</th>
+                        <th class="text-end col-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for c in categories %}
+                    <tr>
+                        <form method="post" action="/categories/{{ c[0] }}/update">
+                            <td>
+                                <span class="cat-view">{{ cat_name(c[1]) }}</span>
+                                <input class="form-control form-control-sm d-none cat-input" name="name" value="{{ c[1] }}" required disabled>
+                            </td>
+                            <td>
+                                <span class="cat-view">{{ cat_desc(c[1], c[2]) }}</span>
+                                <input class="form-control form-control-sm d-none cat-input" name="description" value="{{ c[2] or '' }}" disabled>
+                            </td>
+                            <td class="text-end">
+                                <div class="d-flex gap-2 justify-content-end category-actions">
+                                    <button class="icon-btn category-edit" type="button" title="{{ t('Edit') }}">✎</button>
+                                    <button class="icon-btn category-save d-none" title="{{ t('Save') }}">✔</button>
+                                    <button class="icon-btn icon-btn-danger" formaction="/categories/{{ c[0] }}/delete" title="{{ t('Delete') }}">🗑</button>
+                                </div>
+                            </td>
+                        </form>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    document.querySelectorAll('.category-edit').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const row = btn.closest('tr');
+            row.querySelectorAll('.cat-view').forEach((el) => el.classList.add('d-none'));
+            const inputs = row.querySelectorAll('.cat-input');
+            inputs.forEach((input) => {
+                input.classList.remove('d-none');
+                input.disabled = false;
+            });
+            row.querySelector('.category-save').classList.remove('d-none');
+            btn.classList.add('d-none');
+        });
+    });
+</script>
+{% endblock %}
+
+{% endblock %}

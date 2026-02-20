@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .mg-shell { max-width: 900px; }
+  .mg-tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .mg-tabs a { padding: 6px 10px; border: 1px solid #d9e3ee; border-radius: 9px; text-decoration: none; color: #4a5a6b; }
+  .mg-tabs a.active { background: #eef4fb; color: #2f3b47; font-weight: 600; }
+  .panel { border: 1px solid #dfe7f0; border-radius: 12px; background: #fbfcfe; padding: 14px; margin-bottom: 12px; }
+  .pm-field:disabled {
+    background: #ffffff !important;
+    color: #2f3b47 !important;
+    opacity: 1 !important;
+  }
+  .pm-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+  }
+  .pm-table {
+    table-layout: fixed;
+    width: 100%;
+  }
+</style>
+
+<div class="mg-shell">
+  <h4 class="mb-3">{{ t('Management') }}</h4>
+  <div class="mg-tabs">
+    {% if is_admin %}
+    <a href="/management/users">{{ t('Users') }}</a>
+    <a href="/management/database">{{ t('Database') }}</a>
+    <a href="/management/backups">{{ t('Backups') }}</a>
+    <a href="/management/smtp">{{ t('SMTP') }}</a>
+    {% endif %}
+    <a href="/categories">{{ t('Categories') }}</a>
+    <a href="/management/system">{{ t('System') }}</a>
+    <a class="active" href="/management/payment-methods">{{ t('Accounts & Cards') }}</a>
+  </div>
+
+  {% if message %}<div class="alert alert-success py-2">{{ t(message) }}</div>{% endif %}
+  {% if error %}<div class="alert alert-danger py-2">{{ t(error) }}</div>{% endif %}
+
+  <div class="panel">
+    <div class="fw-semibold mb-2">{{ t('Add account or card') }}</div>
+    <form method="post" action="/management/payment-methods/add" class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label">{{ t('Name') }}</label>
+        <input class="form-control" name="name" required>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">{{ t('Type') }}</label>
+        <select class="form-select" name="kind">
+          <option value="card">{{ t('Card') }}</option>
+          <option value="bank_account">{{ t('Bank account') }}</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">{{ t('Bank') }}</label>
+        <input class="form-control" name="bank_name">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">{{ t('Account/Card number (optional)') }}</label>
+        <input class="form-control" name="account_ref">
+      </div>
+      <div class="col-md-1">
+        <label class="form-label">{{ t('Status') }}</label>
+        <select class="form-select" name="is_active">
+          <option value="1">{{ t('Active') }}</option>
+          <option value="0">{{ t('Inactive') }}</option>
+        </select>
+      </div>
+      <div class="col-md-1 d-grid">
+        <button class="btn btn-soft" type="submit">{{ t('Add') }}</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="panel table-responsive">
+    <table class="table table-sm align-middle mb-0 pm-table">
+      <colgroup>
+        <col style="width: 22%;">
+        <col style="width: 18%;">
+        <col style="width: 12%;">
+        <col style="width: 24%;">
+        <col style="width: 10%;">
+        <col style="width: 14%;">
+      </colgroup>
+      <thead>
+        <tr class="pm-row">
+          <th>{{ t('Name') }}</th>
+          <th>{{ t('Type') }}</th>
+          <th>{{ t('Bank') }}</th>
+          <th>{{ t('Account/Card number (optional)') }}</th>
+          <th>{{ t('Status') }}</th>
+          <th class="text-end">{{ t('Action') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for m in payment_methods %}
+        <tr>
+          <td><input class="form-control form-control-sm pm-field" form="pm-update-{{ m[0] }}" name="name" value="{{ m[1] }}" data-original="{{ m[1] }}" disabled required></td>
+          <td>
+            <select class="form-select form-select-sm pm-field" form="pm-update-{{ m[0] }}" name="kind" data-original="{{ m[2] }}" disabled>
+              <option value="card" {% if m[2]=='card' %}selected{% endif %}>{{ t('Card') }}</option>
+              <option value="bank_account" {% if m[2]=='bank_account' %}selected{% endif %}>{{ t('Bank account') }}</option>
+            </select>
+          </td>
+          <td><input class="form-control form-control-sm pm-field" form="pm-update-{{ m[0] }}" name="bank_name" value="{{ m[3] or '' }}" data-original="{{ m[3] or '' }}" disabled></td>
+          <td><input class="form-control form-control-sm pm-field" form="pm-update-{{ m[0] }}" name="account_ref" value="{{ m[4] or '' }}" data-original="{{ m[4] or '' }}" disabled></td>
+          <td>
+            <select class="form-select form-select-sm pm-field" form="pm-update-{{ m[0] }}" name="is_active" data-original="{{ '1' if m[5] else '0' }}" disabled>
+              <option value="1" {% if m[5] %}selected{% endif %}>{{ t('Active') }}</option>
+              <option value="0" {% if not m[5] %}selected{% endif %}>{{ t('Inactive') }}</option>
+            </select>
+          </td>
+          <td class="text-end">
+            <div class="pm-actions">
+              <button class="btn btn-sm btn-outline-secondary pm-edit-btn" type="button">{{ t('Edit') }}</button>
+              <button class="btn btn-sm btn-light d-none pm-cancel-btn" type="button">{{ t('Cancel') }}</button>
+              <button class="btn btn-sm btn-outline-primary d-none pm-save-btn" type="submit" form="pm-update-{{ m[0] }}">{{ t('Save') }}</button>
+              <button class="btn btn-sm btn-outline-danger d-none pm-delete-btn" type="button" data-delete-action="/management/payment-methods/{{ m[0] }}/delete" data-delete-name="{{ m[1] }}">{{ t('Delete') }}</button>
+            </div>
+            <form id="pm-update-{{ m[0] }}" method="post" action="/management/payment-methods/{{ m[0] }}/update"></form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="text-muted">{{ t('No records found.') }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal fade" id="deletePaymentMethodModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-danger">{{ t('Delete') }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">{{ t('Delete this record?') }}</div>
+        <div class="alert alert-warning py-2 mb-0">
+          <strong id="pmDeleteName">-</strong>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ t('Cancel') }}</button>
+        <form method="post" id="pmDeleteForm">
+          <button type="submit" class="btn btn-danger">{{ t('Delete') }}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+  (function () {
+    const deleteModalEl = document.getElementById("deletePaymentMethodModal");
+    const deleteModal = (deleteModalEl && window.bootstrap) ? new window.bootstrap.Modal(deleteModalEl) : null;
+    const deleteForm = document.getElementById("pmDeleteForm");
+    const deleteName = document.getElementById("pmDeleteName");
+
+    function setEditMode(row, on) {
+      const fields = row.querySelectorAll(".pm-field");
+      const editBtn = row.querySelector(".pm-edit-btn");
+      const cancelBtn = row.querySelector(".pm-cancel-btn");
+      const saveBtn = row.querySelector(".pm-save-btn");
+      const deleteBtn = row.querySelector(".pm-delete-btn");
+      fields.forEach((f) => { f.disabled = !on; });
+      if (editBtn) editBtn.classList.toggle("d-none", on);
+      if (cancelBtn) cancelBtn.classList.toggle("d-none", !on);
+      if (saveBtn) saveBtn.classList.toggle("d-none", !on);
+      if (deleteBtn) deleteBtn.classList.toggle("d-none", !on);
+      if (on && fields.length) fields[0].focus();
+    }
+
+    document.addEventListener("click", (event) => {
+      const editBtn = event.target.closest(".pm-edit-btn");
+      if (editBtn) {
+        const row = editBtn.closest("tr");
+        if (row) setEditMode(row, true);
+        return;
+      }
+
+      const deleteBtn = event.target.closest(".pm-delete-btn");
+      if (deleteBtn) {
+        if (!deleteModal || !deleteForm || !deleteName) return;
+        deleteForm.setAttribute("action", deleteBtn.getAttribute("data-delete-action") || "");
+        deleteName.textContent = deleteBtn.getAttribute("data-delete-name") || "-";
+        deleteModal.show();
+        return;
+      }
+
+      const cancelBtn = event.target.closest(".pm-cancel-btn");
+      if (cancelBtn) {
+        const row = cancelBtn.closest("tr");
+        if (!row) return;
+        row.querySelectorAll(".pm-field").forEach((f) => {
+          const original = f.dataset.original;
+          if (original !== undefined) f.value = original;
+        });
+        setEditMode(row, false);
+      }
+    });
+  })();
+</script>
+{% endblock %}
+{% endblock %}

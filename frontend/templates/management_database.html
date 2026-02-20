@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .mg-shell { max-width: 900px; }
+  .mg-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+  .mg-tabs a { padding: 6px 10px; border: 1px solid #d9e3ee; border-radius: 9px; text-decoration: none; color: #4a5a6b; }
+  .mg-tabs a.active { background: #eef4fb; color: #2f3b47; font-weight: 600; }
+  .panel { border: 1px solid #dfe7f0; border-radius: 12px; background: #fbfcfe; padding: 14px; }
+</style>
+
+<div class="mg-shell">
+  <h4 class="mb-3">{{ t('Management') }}</h4>
+  <div class="mg-tabs">
+    <a href="/management/users">{{ t('Users') }}</a>
+    <a class="active" href="/management/database">{{ t('Database') }}</a>
+    <a href="/management/backups">{{ t('Backups') }}</a>
+    <a href="/management/smtp">{{ t('SMTP') }}</a>
+    <a href="/categories">{{ t('Categories') }}</a>
+    <a href="/management/system">{{ t('System') }}</a>
+    <a href="/management/payment-methods">{{ t('Accounts & Cards') }}</a>
+  </div>
+
+  {% if message %}<div class="alert alert-success py-2">{{ t(message) }}</div>{% endif %}
+  {% if error %}<div class="alert alert-danger py-2">{{ t(error) }}</div>{% endif %}
+
+  <div class="panel">
+    <div class="fw-semibold mb-1">{{ t('Database connection') }}</div>
+    <div class="text-muted small mb-3">{{ t('Test before save. Save stores rollback connection automatically.') }}</div>
+    {% if using_env_database_url %}
+      <div class="alert alert-warning py-2 mb-2">{{ t('DATABASE_URL env is active. Update that variable to change database connection.') }}</div>
+    {% endif %}
+    <form method="post">
+      <div class="row g-2">
+        <div class="col-md-4">
+          <label class="form-label">{{ t('Server') }}</label>
+          <input class="form-control form-control-sm" name="db_host" value="{{ db_form.db_host }}" required {% if using_env_database_url %}disabled{% endif %}>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">{{ t('Port') }}</label>
+          <input class="form-control form-control-sm" name="db_port" value="{{ db_form.db_port }}" required {% if using_env_database_url %}disabled{% endif %}>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">{{ t('Database') }}</label>
+          <input class="form-control form-control-sm" name="db_name" value="{{ db_form.db_name }}" required {% if using_env_database_url %}disabled{% endif %}>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">{{ t('User') }}</label>
+          <input class="form-control form-control-sm" name="db_user" value="{{ db_form.db_user }}" required {% if using_env_database_url %}disabled{% endif %}>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">{{ t('Password') }}</label>
+          <input type="password" class="form-control form-control-sm" name="db_password" value="{{ db_form.db_password or '' }}" placeholder="{{ t('Required to test/save') }}" {% if using_env_database_url %}disabled{% endif %}>
+        </div>
+        <div class="col-md-8 d-flex align-items-end gap-2">
+          <button type="submit" formaction="/management/db-connection/test" class="btn btn-outline-primary btn-sm" {% if using_env_database_url %}disabled{% endif %}>{{ t('Test connection') }}</button>
+          <button type="submit" formaction="/management/db-connection/save" class="btn btn-primary btn-sm" {% if using_env_database_url %}disabled{% endif %}>{{ t('Save connection') }}</button>
+        </div>
+      </div>
+    </form>
+    <form method="post" action="/management/db-connection/rollback" class="mt-2">
+      <button class="btn btn-outline-secondary btn-sm" {% if using_env_database_url or not has_previous_database_url %}disabled{% endif %}>{{ t('Rollback previous connection') }}</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

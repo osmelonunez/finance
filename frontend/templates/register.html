@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block extra_css %}
+<style>
+    .password-rules {
+        list-style: none;
+        padding-left: 0;
+        margin: 0.5rem 0 0;
+        font-size: 0.875rem;
+    }
+    .password-rules li {
+        color: #6c757d;
+        transition: color 0.15s ease;
+    }
+    .password-rules li.valid {
+        color: #198754;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+{% block content %}
+
+<div class="mx-auto" style="max-width: 420px;">
+    <div class="card p-4">
+        <h4 class="mb-3">{{ t('Register') }}</h4>
+        {% if error %}
+            <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+        <form method="post">
+            <div class="mb-3">
+                <label class="form-label">{{ t('Email') }}</label>
+                <input type="email" class="form-control" name="email" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">{{ t('Username') }}</label>
+                <input type="text"
+                       class="form-control"
+                       name="username"
+                       minlength="3"
+                       maxlength="30"
+                       pattern="[A-Za-z0-9._-]{3,30}"
+                       title="Use 3-30 chars: letters, numbers, dot, underscore or dash."
+                       required>
+                <div class="form-text">This is the name shown on record details.</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">{{ t('Password') }}</label>
+                <input type="password"
+                       id="registerPassword"
+                       class="form-control"
+                       name="password"
+                       minlength="8"
+                       pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}"
+                       title="{{ t('At least 8 characters') }}"
+                       required>
+                <ul class="password-rules" id="registerPasswordRules">
+                    <li id="registerRuleLength">{{ t('At least 8 characters') }}</li>
+                    <li id="registerRuleUpper">{{ t('At least one uppercase letter') }}</li>
+                    <li id="registerRuleLower">{{ t('At least one lowercase letter') }}</li>
+                    <li id="registerRuleDigit">{{ t('At least one number') }}</li>
+                </ul>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">{{ t('Confirm password') }}</label>
+                <input type="password" id="registerConfirmPassword" class="form-control" name="confirm" required>
+            </div>
+            <p class="text-muted mt-2 mb-3" id="registerPasswordMatchHint">{{ t('Passwords must match.') }}</p>
+            <button class="btn btn-primary w-100">{{ t('Create account') }}</button>
+        </form>
+        <div class="text-center mt-3">
+            <a href="/login">{{ t('Back to login') }}</a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+    const registerPassword = document.getElementById("registerPassword");
+    const registerConfirmPassword = document.getElementById("registerConfirmPassword");
+    const registerPasswordMatchHint = document.getElementById("registerPasswordMatchHint");
+
+    function setRegisterRuleValid(ruleId, valid) {
+        const el = document.getElementById(ruleId);
+        if (!el) return;
+        el.classList.toggle("valid", !!valid);
+    }
+
+    function validateRegisterPasswordRules() {
+        const value = registerPassword ? registerPassword.value : "";
+        setRegisterRuleValid("registerRuleLength", value.length >= 8);
+        setRegisterRuleValid("registerRuleUpper", /[A-Z]/.test(value));
+        setRegisterRuleValid("registerRuleLower", /[a-z]/.test(value));
+        setRegisterRuleValid("registerRuleDigit", /\d/.test(value));
+    }
+
+    function validateRegisterPasswordMatch() {
+        if (!registerPassword || !registerConfirmPassword || !registerPasswordMatchHint) return;
+        const pass = registerPassword.value;
+        const confirm = registerConfirmPassword.value;
+        if (!confirm) {
+            registerPasswordMatchHint.classList.remove("text-success");
+            registerPasswordMatchHint.classList.add("text-muted");
+            registerPasswordMatchHint.textContent = {{ t('Passwords must match.')|tojson }};
+            return;
+        }
+        if (pass === confirm) {
+            registerPasswordMatchHint.classList.remove("text-muted");
+            registerPasswordMatchHint.classList.add("text-success");
+            registerPasswordMatchHint.textContent = {{ t('Passwords match.')|tojson }};
+        } else {
+            registerPasswordMatchHint.classList.remove("text-success");
+            registerPasswordMatchHint.classList.add("text-muted");
+            registerPasswordMatchHint.textContent = {{ t('Passwords must match.')|tojson }};
+        }
+    }
+
+    if (registerPassword) {
+        registerPassword.addEventListener("input", () => {
+            validateRegisterPasswordRules();
+            validateRegisterPasswordMatch();
+        });
+    }
+    if (registerConfirmPassword) {
+        registerConfirmPassword.addEventListener("input", validateRegisterPasswordMatch);
+    }
+
+    validateRegisterPasswordRules();
+    validateRegisterPasswordMatch();
+</script>
+{% endblock %}

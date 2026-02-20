@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .mg-shell { max-width: 900px; }
+  .mg-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+  .mg-tabs a { padding: 6px 10px; border: 1px solid #d9e3ee; border-radius: 9px; text-decoration: none; color: #4a5a6b; }
+  .mg-tabs a.active { background: #eef4fb; color: #2f3b47; font-weight: 600; }
+  .panel { border: 1px solid #dfe7f0; border-radius: 12px; background: #fbfcfe; padding: 14px; margin-bottom: 12px; }
+</style>
+
+<div class="mg-shell">
+  <h4 class="mb-3">{{ t('Management') }}</h4>
+  <div class="mg-tabs">
+    {% if is_admin %}
+    <a href="/management/users">{{ t('Users') }}</a>
+    <a href="/management/database">{{ t('Database') }}</a>
+    <a href="/management/backups">{{ t('Backups') }}</a>
+    <a href="/management/smtp">{{ t('SMTP') }}</a>
+    {% endif %}
+    <a href="/categories">{{ t('Categories') }}</a>
+    <a class="active" href="/management/system">{{ t('System') }}</a>
+    <a href="/management/payment-methods">{{ t('Accounts & Cards') }}</a>
+  </div>
+
+  {% if message %}<div class="alert alert-success py-2">{{ t(message) }}</div>{% endif %}
+  {% if error %}<div class="alert alert-danger py-2">{{ t(error) }}</div>{% endif %}
+
+  <div class="panel">
+    <div class="fw-semibold mb-2">{{ t('Initial saving') }}</div>
+    <form method="post" action="/management/initial-saving" class="d-flex gap-2">
+      <div class="input-group" style="max-width: 320px;">
+        <span class="input-group-text">$</span>
+        <input type="number" step="0.01" min="0" name="initial_saving" class="form-control" value="{{ '%.2f'|format(initial_saving) }}">
+      </div>
+      <button class="btn btn-primary">{{ t('Save') }}</button>
+    </form>
+  </div>
+
+  <div class="panel">
+    <div class="fw-semibold mb-2">{{ t('Records years window') }}</div>
+    <form method="post" action="/management/records-years" class="d-flex align-items-center gap-2">
+      <input type="number" class="form-control" name="records_years" min="1" max="10" value="{{ records_years }}" style="max-width: 140px;">
+      <button class="btn btn-primary">{{ t('Save') }}</button>
+    </form>
+  </div>
+
+  <div class="panel">
+    <div class="fw-semibold mb-2">{{ t('Demo data') }}</div>
+    <div class="d-flex gap-2">
+      <form method="post" action="/management/demo-data/seed">
+        <button class="btn btn-outline-primary btn-sm">{{ t('Insert demo data') }}</button>
+      </form>
+      <form method="post" action="/management/demo-data/clear">
+        <button class="btn btn-outline-danger btn-sm">{{ t('Delete demo data') }}</button>
+      </form>
+    </div>
+  </div>
+
+  {% if is_admin %}
+  <div class="panel border-danger">
+    <div class="fw-semibold text-danger mb-2">{{ t('Reset database') }}</div>
+    <div class="text-muted small mb-2">{{ t('Delete all records in table records.') }}</div>
+    <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#resetDbModal">{{ t('Reset DB') }}</button>
+  </div>
+  {% endif %}
+</div>
+
+{% if is_admin %}
+<div class="modal fade" id="resetDbModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-danger">{{ t('Reset database') }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">{{ t('This will delete all records. Continue?') }}</div>
+      <div class="modal-footer">
+        <a href="/management/system" class="btn btn-light">{{ t('Cancel') }}</a>
+        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#resetDbModal2">{{ t('Continue') }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="resetDbModal2" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-danger">{{ t('Final confirmation') }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">{{ t('Are you absolutely sure you want to reset the database?') }}</div>
+      <div class="modal-footer">
+        <a href="/management/system" class="btn btn-light">{{ t('Cancel') }}</a>
+        <form method="post" action="/management/reset-db">
+          <button type="submit" class="btn btn-danger">{{ t('Yes, delete all') }}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

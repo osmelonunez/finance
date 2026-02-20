@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .profile-shell { max-width: 760px; }
+  .profile-card {
+    border: 1px solid #dfe7f0;
+    border-radius: 12px;
+    background: #fbfcfe;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .profile-edit-input:disabled {
+    background: #f3f6fa;
+    color: #5c6d7e;
+    cursor: not-allowed;
+  }
+</style>
+
+<div class="profile-shell">
+  <h4 class="mb-3">{{ t('Profile') }}</h4>
+  {% if success %}<div class="alert alert-success py-2">{{ success }}</div>{% endif %}
+  {% if error %}<div class="alert alert-danger py-2">{{ error }}</div>{% endif %}
+
+  <div class="profile-card">
+    <div class="fw-semibold mb-2">{{ t('Account') }}</div>
+    <form method="post" action="/profile/username" class="mb-3 profile-inline-edit">
+      <input type="hidden" name="next" value="/profile">
+      <label class="form-label">{{ t('Username') }}</label>
+      <div class="input-group">
+        <input class="form-control profile-edit-input" name="username" value="{{ session.get('user_name') or '' }}" data-original="{{ session.get('user_name') or '' }}" disabled required>
+        <button class="btn btn-outline-secondary profile-edit-open" type="button">{{ t('Change') }}</button>
+        <button class="btn btn-soft d-none profile-edit-save" type="submit">{{ t('Save') }}</button>
+        <button class="btn btn-light d-none profile-edit-cancel" type="button">{{ t('Cancel') }}</button>
+      </div>
+    </form>
+
+    <form method="post" action="/profile/email" class="profile-inline-edit">
+      <input type="hidden" name="next" value="/profile">
+      <label class="form-label">{{ t('Email') }}</label>
+      <div class="input-group">
+        <input class="form-control profile-edit-input" name="email" value="{{ session.get('user_email') or '' }}" data-original="{{ session.get('user_email') or '' }}" disabled required>
+        <button class="btn btn-outline-secondary profile-edit-open" type="button">{{ t('Change') }}</button>
+        <button class="btn btn-soft d-none profile-edit-save" type="submit">{{ t('Save') }}</button>
+        <button class="btn btn-light d-none profile-edit-cancel" type="button">{{ t('Cancel') }}</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="profile-card">
+    <div class="fw-semibold mb-2">{{ t('Security') }}</div>
+    <form method="post" action="/profile/password">
+      <input type="hidden" name="next" value="/profile">
+      <button class="btn btn-outline-secondary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#passwordFormFields" aria-expanded="false" aria-controls="passwordFormFields">{{ t('Change password') }}</button>
+      <div id="passwordFormFields" class="collapse" style="max-width: 420px;">
+        <input class="form-control mb-2" type="password" name="current_password" placeholder="{{ t('Current password') }}" required>
+        <input class="form-control mb-2" type="password" name="new_password" placeholder="{{ t('New password') }}" required>
+        <input class="form-control mb-2" type="password" name="confirm_password" placeholder="{{ t('Confirm new password') }}" required>
+        <button class="btn btn-outline-secondary" type="submit">{{ t('Change') }}</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="profile-card">
+    <div class="fw-semibold mb-2">{{ t('Preferences') }}</div>
+    <form method="post" action="/profile/language" class="mb-3">
+      <input type="hidden" name="next" value="/profile">
+      <label class="form-label">{{ t('Language') }}</label>
+      <div class="input-group" style="max-width: 240px;">
+        <select class="form-select" name="language">
+          <option value="en" {% if session.get('lang','en') == 'en' %}selected{% endif %}>{{ t('English') }}</option>
+          <option value="es" {% if session.get('lang','en') == 'es' %}selected{% endif %}>{{ t('Spanish') }}</option>
+        </select>
+        <button class="btn btn-outline-secondary" type="submit">{{ t('Update') }}</button>
+      </div>
+    </form>
+    <form method="post" action="/profile/per-page">
+      <input type="hidden" name="next" value="/profile">
+      <label class="form-label">{{ t('Rows per page') }}</label>
+      <div class="input-group" style="max-width: 220px;">
+        <input class="form-control" type="number" min="5" max="100" name="per_page" value="{{ session.get('per_page', 15) }}">
+        <button class="btn btn-outline-secondary" type="submit">{{ t('Update') }}</button>
+      </div>
+    </form>
+    <form method="post" action="/profile/email-notifications" class="mt-3">
+      <input type="hidden" name="next" value="/profile">
+      <label class="form-label">{{ t('Email notifications') }}</label>
+      <div class="d-flex align-items-center gap-2">
+        <div class="form-check m-0">
+          <input class="form-check-input" type="checkbox" id="emailNotifications" name="email_notifications" value="1" {% if email_notifications %}checked{% endif %}>
+          <label class="form-check-label" for="emailNotifications">{{ t('Receive emails') }}</label>
+        </div>
+        <button class="btn btn-outline-secondary btn-sm" type="submit">{{ t('Update') }}</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% block extra_js %}
+<script>
+  (function () {
+    document.querySelectorAll(".profile-inline-edit").forEach((form) => {
+      const input = form.querySelector(".profile-edit-input");
+      const openBtn = form.querySelector(".profile-edit-open");
+      const saveBtn = form.querySelector(".profile-edit-save");
+      const cancelBtn = form.querySelector(".profile-edit-cancel");
+      if (!input || !openBtn || !saveBtn || !cancelBtn) return;
+
+      function setEditing(isEditing) {
+        input.disabled = !isEditing;
+        openBtn.classList.toggle("d-none", isEditing);
+        saveBtn.classList.toggle("d-none", !isEditing);
+        cancelBtn.classList.toggle("d-none", !isEditing);
+        if (isEditing) input.focus();
+      }
+
+      openBtn.addEventListener("click", () => setEditing(true));
+      cancelBtn.addEventListener("click", () => {
+        input.value = input.dataset.original || "";
+        setEditing(false);
+      });
+    });
+  })();
+</script>
+{% endblock %}
+{% endblock %}

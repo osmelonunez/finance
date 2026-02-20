@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .mg-shell { max-width: 900px; }
+  .mg-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .mg-card { border: 1px solid #dfe7f0; border-radius: 12px; background: #fbfcfe; padding: 14px; text-decoration: none; color: inherit; }
+  .mg-card:hover { background: #f4f8fc; }
+  .mg-title { font-weight: 700; color: #2f3b47; margin-bottom: 4px; }
+  .mg-help { color: #5a6b7b; font-size: 0.9rem; margin-bottom: 0; }
+</style>
+
+<div class="mg-shell">
+  <h4 class="mb-3">{{ t('Management') }}</h4>
+  <div class="mg-grid">
+    {% if is_admin %}
+      <a class="mg-card" href="/management/users">
+        <div class="mg-title">{{ t('Users') }}</div>
+        <p class="mg-help">{{ t('Approve accounts, enable/disable users and assign roles.') }}</p>
+      </a>
+      <a class="mg-card" href="/management/database">
+        <div class="mg-title">{{ t('Database') }}</div>
+        <p class="mg-help">{{ t('Test, save and rollback database connection.') }}</p>
+      </a>
+      <a class="mg-card" href="/management/backups">
+        <div class="mg-title">{{ t('Backups') }}</div>
+        <p class="mg-help">{{ t('Schedule, run and restore backups.') }}</p>
+      </a>
+      <a class="mg-card" href="/management/smtp">
+        <div class="mg-title">{{ t('SMTP') }}</div>
+        <p class="mg-help">{{ t('Configure SMTP and send test email.') }}</p>
+      </a>
+    {% endif %}
+    <a class="mg-card" href="/management/system">
+      <div class="mg-title">{{ t('System') }}</div>
+      <p class="mg-help">{{ t('Initial saving, years window and demo data, plus reset.' if is_admin else 'Initial saving, years window and demo data.') }}</p>
+    </a>
+    <a class="mg-card" href="/management/categories">
+      <div class="mg-title">{{ t('Categories') }}</div>
+      <p class="mg-help">{{ t('Manage expense categories.') }}</p>
+    </a>
+    <a class="mg-card" href="/management/payment-methods">
+      <div class="mg-title">{{ t('Accounts & Cards') }}</div>
+      <p class="mg-help">{{ t('Manage bank accounts and cards for future assignment.') }}</p>
+    </a>
+  </div>
+</div>
+{% endblock %}

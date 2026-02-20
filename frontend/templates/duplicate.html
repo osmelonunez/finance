@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block extra_css %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.10.0/dist/css/bootstrap-datepicker.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+
+<h2>
+    {% if expense[4] %}
+        {{ t('Duplicate') }} {% if expense[4] == 'expense' %}{{ t('Expense') }}{% elif expense[4] == 'income' %}{{ t('Income') }}{% else %}{{ t('Saving') }}{% endif %}
+    {% else %}
+        {{ t('Duplicate') }}
+    {% endif %}
+</h2>
+
+{% if error %}
+<div class="alert alert-danger py-2">{{ t(error) }}</div>
+{% endif %}
+
+<style>
+    .duplicate-date {
+        width: 96px;
+    }
+</style>
+
+<form method="post" class="row g-3">
+    <input type="hidden" name="from" value="{{ from_page }}">
+
+    <div class="col-md-2">
+        <label class="form-label">{{ t('Concept') }}</label>
+        <input class="form-control" name="concept" value="{{ expense[1] }}" required>
+    </div>
+
+    {% if expense[4] == 'expense' %}
+    <div class="col-md-8">
+        <div class="d-flex gap-3 align-items-start">
+            <div>
+                <label class="form-label">{{ t('Category') }}</label>
+                <select class="form-control" name="category">
+                    <option value="">{{ t('Select') }}</option>
+                    {% for c in categories %}
+                    <option value="{{ c }}" {{ 'selected' if expense[7] == c else '' }}>{{ cat_name(c) }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label">{{ t('Amount') }}</label>
+                <input class="form-control amount-input" name="amount" type="number" step="0.01" value="{{ expense[2] }}" required>
+            </div>
+            <div class="position-relative" data-date-wrapper>
+                <label class="form-label">{{ t('Date') }}</label>
+                <input class="form-control text-center duplicate-date"
+                       data-date-input="1"
+                       name="date"
+                       value="{{ expense[3] }}">
+            </div>
+            <div id="sourceField">
+                <label class="form-label">{{ t('Source') }}</label>
+                <select class="form-control" name="source" id="sourceSelect">
+                    <option value="">-</option>
+                    <option value="monthly" {{ 'selected' if expense[5]=='monthly' else '' }}>{{ t('Monthly') }}</option>
+                    <option value="saving" {{ 'selected' if expense[5]=='saving' else '' }}>{{ t('Saving') }}</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label">{{ t('Account/Card') }}</label>
+                <select class="form-control" name="payment_method_id">
+                    <option value="">{{ t('Select') }}</option>
+                    {% for pm in payment_methods %}
+                    <option value="{{ pm[0] }}" {{ 'selected' if expense[13] == pm[0] else '' }}>
+                        {{ pm[1] }}{% if not pm[2] %} ({{ t('Inactive') }}){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <div class="form-check mt-4">
+                    <input class="form-check-input" type="checkbox" id="deferredCheckDuplicate" name="is_deferred" value="1">
+                    <label class="form-check-label" for="deferredCheckDuplicate">{{ t('Deferred payment') }}</label>
+                </div>
+                <div class="form-check mt-2">
+                    <input class="form-check-input" type="checkbox" id="financedCheckDuplicate" name="is_financed" value="1" {{ 'checked' if expense[16] else '' }}>
+                    <label class="form-check-label" for="financedCheckDuplicate">{{ t('Financed') }}</label>
+                </div>
+                <div class="mt-2" id="deferredTotalWrapDuplicate" style="display:none;">
+                    <label class="form-label mb-1">{{ t('Installments') }}</label>
+                    <input class="form-control form-control-sm" type="number" min="2" max="60" name="deferred_total" value="{{ expense[15] if expense[15] and expense[15] > 1 else 3 }}">
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-md-8">
+        <div class="d-flex gap-3 align-items-start">
+            <div>
+                <label class="form-label">{{ t('Amount') }}</label>
+                <input class="form-control amount-input" name="amount" type="number" step="0.01" value="{{ expense[2] }}" required>
+            </div>
+            <div class="position-relative" data-date-wrapper>
+                <label class="form-label">{{ t('Date') }}</label>
+                <input class="form-control text-center duplicate-date"
+                       data-date-input="1"
+                       name="date"
+                       value="{{ expense[3] }}">
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <input type="hidden" name="type" value="{{ expense[4] }}">
+
+    <div class="col-12">
+        <label class="form-label">{{ t('Duplicate to months') }}</label>
+        <div class="d-flex flex-wrap gap-3">
+            {% set original = expense[3] %}
+            {% for year in years %}
+                <div class="border rounded p-2" style="min-width: 220px;">
+                    <div class="fw-bold mb-2">{{ year }}</div>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% set month_names = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'] %}
+                        {% for month in range(1,13) %}
+                            {% set ym = "%04d-%02d"|format(year, month) %}
+                            <label class="form-check-label me-2">
+                                <input class="form-check-input me-1" type="checkbox" name="months" value="{{ ym }}"
+                                       {{ 'checked' if ym == original else '' }}>
+                                {{ month_names[month - 1] }}
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="form-text">{{ t('If you leave all unchecked, it will use the original date.') }}</div>
+    </div>
+
+    <div class="col-12">
+        <label class="form-label">{{ t('Comment') }}</label>
+        <textarea class="form-control" name="comment" rows="2" placeholder="{{ t('Optional') }}">{{ expense[6] or '' }}</textarea>
+    </div>
+
+    <div class="col-12">
+        <button class="btn btn-secondary">{{ t('Create duplicate') }}</button>
+        <a href="/records/{{ expense[0] }}?from={{ from_page }}" class="btn btn-secondary ms-2">{{ t('Cancel') }}</a>
+    </div>
+
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.10.0/dist/js/bootstrap-datepicker.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.10.0/dist/locales/bootstrap-datepicker.es.min.js"></script>
+<script>
+const sourceField = document.getElementById('sourceField');
+const deferredCheckDuplicate = document.getElementById('deferredCheckDuplicate');
+const deferredTotalWrapDuplicate = document.getElementById('deferredTotalWrapDuplicate');
+const duplicateDateWrappers = document.querySelectorAll('[data-date-wrapper]');
+const duplicateMonthsBlock = document.querySelector('input[name="months"]')?.closest('.col-12');
+
+function toggleSourceField() {
+    const isExpense = "{{ expense[4] }}" === 'expense';
+    sourceField.style.display = isExpense ? '' : 'none';
+    if (!isExpense) {
+        document.getElementById('sourceSelect').value = '';
+    }
+}
+toggleSourceField();
+
+if (deferredCheckDuplicate) {
+    deferredCheckDuplicate.addEventListener('change', () => {
+        deferredTotalWrapDuplicate.style.display = deferredCheckDuplicate.checked ? '' : 'none';
+        duplicateDateWrappers.forEach((el) => {
+            el.style.display = deferredCheckDuplicate.checked ? '' : '';
+        });
+        if (duplicateMonthsBlock) {
+            duplicateMonthsBlock.style.display = deferredCheckDuplicate.checked ? 'none' : '';
+        }
+    });
+}
+
+const dateInputs = document.querySelectorAll('[data-date-input]');
+dateInputs.forEach((el) => {
+    const wrapper = el.closest('[data-date-wrapper]');
+    $(el).datepicker({
+        format: "yyyy-mm",
+        startView: 1,
+        minViewMode: 1,
+        autoclose: true,
+        language: {{ ('es' if current_lang == 'es' else 'en') | tojson }},
+        container: wrapper || 'body'
+    });
+});
+</script>
+
+{% endblock %}

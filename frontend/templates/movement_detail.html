@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    .detail-card {
+        border: 1px solid #d7dee6;
+        border-radius: 14px;
+        padding: 18px;
+        background: #ffffff;
+        box-shadow: 0 8px 18px rgba(24, 54, 88, 0.08);
+    }
+    .detail-label {
+        font-size: 0.75rem;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+        color: #5a6b7b;
+    }
+    .detail-value {
+        font-weight: 600;
+        font-size: 1rem;
+        color: #2f3b47;
+    }
+</style>
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h2 class="mb-0">
+        {% if expense[4] %}
+            {% if expense[4] == 'expense' %}{{ t('Expense') }}{% elif expense[4] == 'income' %}{{ t('Income') }}{% else %}{{ t('Saving') }}{% endif %} {{ t('Details')|lower }}
+        {% else %}
+            {{ t('Details') }}
+        {% endif %}
+    </h2>
+    <a href="{{ return_to or '/records/' ~ from_page }}" class="btn btn-light">{{ t('Back') }}</a>
+</div>
+
+{% if error %}
+<div class="alert alert-danger py-2">{{ t(error) }}</div>
+{% endif %}
+
+<div class="detail-card" style="max-width: 680px;">
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="detail-label">{{ t('Concept') }}</div>
+            <div class="detail-value">{{ expense[1] }}</div>
+        </div>
+        <div class="col-md-2">
+            <div class="detail-label">{{ t('Amount') }}</div>
+            <div class="detail-value">{{ "%.2f"|format(expense[2]) }}</div>
+        </div>
+        <div class="col-md-2">
+            <div class="detail-label">{{ t('Date') }}</div>
+            <div class="detail-value">{{ expense[3] }}</div>
+        </div>
+        {% if expense[4] == 'expense' %}
+        <div class="col-md-4">
+            <div class="detail-label">{{ t('Category') }}</div>
+            <div class="detail-value">{{ cat_name(expense[7]) if expense[7] else '-' }}</div>
+        </div>
+        {% endif %}
+        {% if expense[4] == 'expense' %}
+        <div class="col-md-4">
+            <div class="detail-label">{{ t('Source') }}</div>
+            <div class="detail-value">{{ expense[5] or '-' }}</div>
+        </div>
+        {% endif %}
+        {% if expense[4] == 'expense' %}
+        <div class="col-md-4">
+            <div class="detail-label">{{ t('Account/Card') }}</div>
+            <div class="detail-value">{{ expense[13] or '-' }}</div>
+        </div>
+        {% endif %}
+        {% if expense[4] == 'expense' %}
+        <div class="col-md-4">
+            <div class="detail-label">{{ t('Financed') }}</div>
+            <div class="detail-value">{{ t('Yes') if expense[16] else t('No') }}</div>
+        </div>
+        {% endif %}
+        <div class="col-md-12">
+            <div class="detail-label">{{ t('Comment') }}</div>
+            <div class="detail-value">{{ expense[6] or '-' }}</div>
+        </div>
+        <div class="col-md-6">
+            <div class="detail-label">{{ t('Created') }}</div>
+            <div class="detail-value">
+                {{ expense[8] or '-' }}
+                {% if expense[9] %}
+                    · {{ expense[9].strftime("%Y-%m-%d %H:%M") }}
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="detail-label">{{ t('Edited') }}</div>
+            <div class="detail-value">
+                {{ expense[11] or '-' }}
+                {% if expense[10] %}
+                    · {{ expense[10].strftime("%Y-%m-%d %H:%M") }}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+        <a href="/edit/{{ expense[0] }}?from={{ from_page }}" class="btn btn-soft">{{ t('Edit') }}</a>
+        {% if not (expense[15] and expense[15] > 1) %}
+        <a href="/duplicate/{{ expense[0] }}?from={{ from_page }}" class="btn btn-outline-secondary">{{ t('Duplicate') }}</a>
+        {% endif %}
+        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteConfirmModal">
+            {{ t('Delete') }}
+        </button>
+    </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">{{ t('Delete record') }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        {{ t('This action cannot be undone. Delete this record?') }}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ t('Cancel') }}</button>
+        <a href="/delete/{{ expense[0] }}?from={{ current_page }}{% if return_to %}&return_to={{ return_to|urlencode }}{% endif %}" class="btn btn-danger">{{ t('Delete') }}</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% block extra_js %}{% endblock %}
+
+{% endblock %}

@@ -1,0 +1,386 @@
+{% extends "base.html" %}
+{% block title %}Backups{% endblock %}
+{% block content %}
+<style>
+  .backup-page {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .backup-shell {
+    width: 100%;
+    max-width: 900px;
+  }
+  .backup-section {
+    padding: 14px 18px;
+    background: #fbfcfe;
+    border: 1px solid #dfe7f0;
+    border-radius: 12px;
+    box-shadow: 0 6px 14px rgba(24, 54, 88, 0.05);
+  }
+  .backup-section + .backup-section { margin-top: 12px; }
+  .backup-title { font-weight: 700; color: #2f3b47; }
+  .muted { color: #5a6b7b; font-size: 0.9rem; }
+  .backup-aside {
+    flex: 0 0 320px;
+    position: sticky;
+    top: 6px;
+    align-self: flex-start;
+  }
+  .backup-toast-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 320px;
+  }
+  .backup-toast {
+    box-shadow: 0 8px 20px rgba(24, 54, 88, 0.14);
+    border: 1px solid #d7e2ee;
+    border-radius: 10px;
+    padding-right: 14px;
+    cursor: pointer;
+    margin: 0;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  .backup-toast.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .runs-scroll {
+    max-height: 452px; /* header + 10 rows; scroll starts at row 11 */
+    overflow-y: auto;
+  }
+  .backup-action-btn {
+    border: 1px solid #d4dde7;
+    background: #ffffff;
+    color: #3c4d5e;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+  .backup-action-btn:hover {
+    transform: translateY(-1px);
+  }
+  .backup-action-btn.download {
+    border-color: #4aa56b;
+    color: #2f7d4c;
+  }
+  .backup-action-btn.download:hover {
+    border-color: #318f53;
+    color: #266a40;
+    background: #f2fbf6;
+  }
+  .backup-action-btn.restore {
+    border-color: #d9a441;
+    color: #8a6418;
+  }
+  .backup-action-btn.restore:hover {
+    border-color: #c48f2f;
+    color: #7a5614;
+    background: #fff9ef;
+  }
+  .backup-action-btn.delete {
+    border-color: #dc5b5b;
+    color: #b92f2f;
+  }
+  .backup-action-btn.delete:hover {
+    border-color: #c74242;
+    color: #a62222;
+    background: #fff5f5;
+  }
+  .mg-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .mg-tabs a {
+    padding: 6px 10px;
+    border: 1px solid #d9e3ee;
+    border-radius: 9px;
+    text-decoration: none;
+    color: #4a5a6b;
+  }
+  .mg-tabs a.active {
+    background: #eef4fb;
+    color: #2f3b47;
+    font-weight: 600;
+  }
+  @media (max-width: 1200px) {
+    .backup-page {
+      display: block;
+    }
+    .backup-aside {
+      position: static;
+      margin-top: 10px;
+    }
+  }
+</style>
+
+<div class="backup-page">
+  <div class="backup-shell">
+  <h4 class="mb-3">{{ t('Management') }}</h4>
+  <div class="mg-tabs">
+    <a href="/management/users">{{ t('Users') }}</a>
+    <a href="/management/database">{{ t('Database') }}</a>
+    <a class="active" href="/management/backups">{{ t('Backups') }}</a>
+    <a href="/management/smtp">{{ t('SMTP') }}</a>
+    <a href="/categories">{{ t('Categories') }}</a>
+    <a href="/management/system">{{ t('System') }}</a>
+    <a href="/management/payment-methods">{{ t('Accounts & Cards') }}</a>
+  </div>
+  <div class="backup-section">
+    <div class="backup-title mb-1">{{ t('Backup schedule') }}</div>
+    <div class="muted mb-3">{{ t('Configure automatic backups and retention policy. Scheduled backups run at 00:00.') }}</div>
+    <form method="post" action="/management/backups/config" class="row g-3 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label">{{ t('Frequency') }}</label>
+        <select class="form-select" name="frequency" id="frequency">
+          <option value="daily" {% if config.frequency == 'daily' %}selected{% endif %}>{{ t('Every day') }}</option>
+          <option value="weekly" {% if config.frequency == 'weekly' %}selected{% endif %}>{{ t('Once a week') }}</option>
+          <option value="monthly_last_day" {% if config.frequency == 'monthly_last_day' %}selected{% endif %}>{{ t('Last day of month') }}</option>
+        </select>
+      </div>
+      <div class="col-md-4" id="weeklyDayWrap">
+        <label class="form-label">{{ t('Week day') }}</label>
+        <select class="form-select" name="weekly_day">
+          {% for day_num, day_name in week_days.items() %}
+            <option value="{{ day_num }}" {% if config.weekly_day|string == day_num %}selected{% endif %}>{{ day_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">{{ t('Keep') }}</label>
+        <input type="number" min="1" max="365" name="retain_count" class="form-control" value="{{ config.retain_count }}">
+      </div>
+      <div class="col-md-2 d-grid">
+        <button class="btn btn-soft" type="submit">{{ t('Save') }}</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="backup-section">
+    <div class="backup-title mb-1">{{ t('Manual backup') }}</div>
+    <div class="muted mb-3">{{ t('Create a backup now. Download/restore is available per row below.') }}</div>
+    <div class="d-flex gap-2">
+      <form method="post" action="/management/backups/run-now">
+        <button class="btn btn-soft" type="submit">{{ t('Run backup now') }}</button>
+      </form>
+    </div>
+    {% if latest %}
+      <div class="mt-2 muted">{{ t('Latest') }}: {{ latest[0] }} ({{ latest[2].strftime('%Y-%m-%d %H:%M') if latest[2] else '-' }})</div>
+    {% endif %}
+  </div>
+
+  <div class="backup-section">
+    <div class="backup-title mb-2">{{ t('Recent runs') }}</div>
+    <div class="table-responsive runs-scroll">
+      <table class="table table-sm align-middle mb-0">
+        <thead>
+          <tr>
+            <th>{{ t('Date') }}</th>
+            <th>{{ t('Trigger') }}</th>
+            <th>{{ t('Status') }}</th>
+            <th>{{ t('File') }}</th>
+            <th class="text-end">{{ t('Size') }}</th>
+            <th class="text-end"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in runs %}
+          <tr>
+            <td>{{ r[7].strftime('%Y-%m-%d %H:%M') if r[7] else '-' }}</td>
+            <td>{{ r[1] }}</td>
+            <td>
+              <span class="badge {{ 'bg-success' if r[4] == 'success' else 'bg-danger' }}">{{ r[4] }}</span>
+            </td>
+            <td>{{ r[2] or (r[5] or '-') }}</td>
+            <td class="text-end">{{ ('%.1f MB'|format((r[3] or 0) / 1048576)) if r[3] else '-' }}</td>
+            <td class="text-end">
+              {% if r[4] == 'success' and r[2] %}
+                <a href="/management/backups/download/{{ r[0] }}" class="backup-action-btn download" title="{{ t('Download backup') }}" aria-label="{{ t('Download backup') }}">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M8 2V10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                    <path d="M4.8 7.5L8 10.9L11.2 7.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M3 13H13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                  </svg>
+                </a>
+                <button
+                  type="button"
+                  class="backup-action-btn restore ms-1"
+                  data-bs-toggle="modal"
+                  data-bs-target="#restoreBackupModal"
+                  data-restore-url="/management/backups/restore/{{ r[0] }}"
+                  data-file-name="{{ r[2] }}"
+                  title="{{ t('Restore backup') }}"
+                  aria-label="{{ t('Restore backup') }}">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M3.2 5.2V2.8M3.2 2.8H5.6M3.2 2.8L6.1 5.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M3.7 7.4C4.1 5.3 5.9 3.8 8.1 3.8C10.7 3.8 12.8 5.9 12.8 8.5C12.8 11.1 10.7 13.2 8.1 13.2C6.1 13.2 4.4 12 3.8 10.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                  </svg>
+                </button>
+                <form method="post" action="/management/backups/delete/{{ r[0] }}" class="d-inline">
+                  <button
+                    type="button"
+                    class="backup-action-btn delete ms-1"
+                    data-bs-toggle="modal"
+                    data-bs-target="#deleteBackupModal"
+                    data-delete-url="/management/backups/delete/{{ r[0] }}"
+                    data-file-name="{{ r[2] }}"
+                    title="{{ t('Delete backup file') }}"
+                    aria-label="{{ t('Delete backup file') }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M4 4L12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                      <path d="M12 4L4 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                </form>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="text-muted">{{ t('No backup runs yet.') }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+  {% if message or error %}
+  <aside class="backup-aside">
+    <div class="backup-toast-wrap">
+      {% if message %}
+      <div class="alert alert-success py-2 backup-flash backup-toast mb-0">{{ t(message) }}</div>
+      {% endif %}
+      {% if error %}
+      <div class="alert alert-danger py-2 backup-flash backup-toast mb-0">{{ t(error) }}</div>
+      {% endif %}
+    </div>
+  </aside>
+  {% endif %}
+</div>
+
+<div class="modal fade" id="restoreBackupModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-danger">{{ t('Restore backup?') }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">{{ t('Restore backup') }}: <strong id="restoreFileName">-</strong>.</div>
+        <div class="alert alert-warning mb-0">
+          {{ t('This action will restore this backup and delete all data created after that point.') }}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-light" type="button" data-bs-dismiss="modal">{{ t('Cancel') }}</button>
+        <form method="post" id="restoreBackupForm">
+          <button class="btn btn-danger" type="submit">{{ t('Restore') }}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="deleteBackupModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-danger">{{ t('Delete backup file?') }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">{{ t('Delete backup file') }}: <strong id="deleteFileName">-</strong>?</div>
+        <div class="alert alert-warning mb-0">
+          {{ t('This action will delete the selected backup file from disk.') }}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-light" type="button" data-bs-dismiss="modal">{{ t('Cancel') }}</button>
+        <form method="post" id="deleteBackupForm">
+          <button class="btn btn-danger" type="submit">{{ t('Delete') }}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const freq = document.getElementById("frequency");
+    const weekly = document.getElementById("weeklyDayWrap");
+    function sync() {
+      weekly.style.display = (freq.value === "weekly") ? "" : "none";
+    }
+    freq.addEventListener("change", sync);
+    sync();
+  })();
+
+  (function () {
+    const modal = document.getElementById("restoreBackupModal");
+    if (!modal) return;
+    modal.addEventListener("show.bs.modal", function (event) {
+      const btn = event.relatedTarget;
+      if (!btn) return;
+      const action = btn.getAttribute("data-restore-url");
+      const fileName = btn.getAttribute("data-file-name") || "-";
+      document.getElementById("restoreBackupForm").setAttribute("action", action);
+      document.getElementById("restoreFileName").textContent = fileName;
+    });
+  })();
+
+  (function () {
+    const modal = document.getElementById("deleteBackupModal");
+    if (!modal) return;
+    modal.addEventListener("show.bs.modal", function (event) {
+      const btn = event.relatedTarget;
+      if (!btn) return;
+      const action = btn.getAttribute("data-delete-url");
+      const fileName = btn.getAttribute("data-file-name") || "-";
+      document.getElementById("deleteBackupForm").setAttribute("action", action);
+      document.getElementById("deleteFileName").textContent = fileName;
+    });
+  })();
+
+  (function () {
+    const flashes = document.querySelectorAll(".backup-flash");
+    if (!flashes.length) return;
+    setTimeout(() => {
+      flashes.forEach((el) => el.classList.add("is-visible"));
+    }, 40);
+    flashes.forEach((el) => {
+      el.addEventListener("click", () => {
+        el.style.transition = "opacity 0.2s ease, transform 0.2s ease";
+        el.style.opacity = "0";
+        el.style.transform = "translateY(-8px)";
+        setTimeout(() => {
+          const parent = el.closest(".backup-toast-wrap");
+          el.remove();
+          if (parent && parent.children.length === 0) parent.remove();
+        }, 220);
+      });
+    });
+    setTimeout(() => {
+      flashes.forEach((el) => {
+        el.style.transition = "opacity 0.25s ease, transform 0.25s ease";
+        el.style.opacity = "0";
+        el.style.transform = "translateY(-8px)";
+        setTimeout(() => {
+          const parent = el.closest(".backup-toast-wrap");
+          el.remove();
+          if (parent && parent.children.length === 0) parent.remove();
+        }, 260);
+      });
+    }, 3000);
+  })();
+</script>
+{% endblock %}

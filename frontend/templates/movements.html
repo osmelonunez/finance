@@ -1,0 +1,536 @@
+{% extends "base.html" %}
+{% block extra_css %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.10.0/dist/css/bootstrap-datepicker.min.css" rel="stylesheet">
+    <style>
+        .filters-card {
+            background: #f7f9fc;
+            border: 1px solid #e3e9f0;
+            border-radius: 14px;
+            padding: 16px;
+        }
+        .table-shell {
+            border: 1px solid #d7dee6;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 8px 18px rgba(24, 54, 88, 0.08);
+        }
+        .table-clean {
+            margin-bottom: 0;
+        }
+        .table-clean thead th {
+            background: #f0f4f8;
+            border-bottom: 1px solid #d7dee6;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            color: #4a5a6a;
+        }
+        .table-clean tbody tr {
+            border-bottom: 1px solid #edf1f5;
+        }
+        .table-clean tbody tr:nth-child(even) {
+            background: #fafbfd;
+        }
+        .table-clean tbody tr:hover td {
+            background: #eef3f8;
+        }
+        .row-link {
+            cursor: pointer;
+        }
+        .row-link {
+            cursor: pointer;
+        }
+        .table-clean td, .table-clean th {
+            vertical-align: middle;
+        }
+        .col-hidden {
+            display: none;
+        }
+        .table-clean td {
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+        .category-filter {
+            min-width: 145px;
+            max-width: 145px;
+        }
+        .date-filter {
+            width: 96px;
+        }
+        .source-filter {
+            width: 86px;
+        }
+        .filter-pack {
+            display: flex;
+            gap: 0.5rem;
+            align-items: flex-end;
+        }
+        .filter-pack .btn {
+            height: 38px;
+        }
+        .col-desc {
+            width: 30%;
+        }
+        .col-amount {
+            width: 12%;
+        }
+        .col-date {
+            width: 14%;
+        }
+        .col-type {
+            width: 12%;
+        }
+        .col-source {
+            width: 14%;
+        }
+        .col-payment-method {
+            width: 14%;
+        }
+        .col-financed {
+            width: 10%;
+        }
+        .amount-cell {
+            padding-left: 0.25rem;
+        }
+        .total-amount {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 999px;
+            background: #eef3f8;
+            color: #2f3b47;
+            font-weight: 600;
+            border: 1px solid #d7dee6;
+        }
+        .col-category {
+            width: 14%;
+        }
+        .col-gear {
+            width: 0;
+            padding: 0 !important;
+            border: none;
+            position: relative;
+        }
+        .col-gear .dropdown {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .table-clean tbody td.col-gear {
+            display: none;
+        }
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.15rem 0.55rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .pill-income {
+            background: #e6f6ed;
+            color: #1f7a3d;
+        }
+        .pill-expense {
+            background: #fde7ea;
+            color: #b4232c;
+        }
+        .pill-saving {
+            background: #fff2dc;
+            color: #a15d00;
+        }
+        .empty-state {
+            border: 1px dashed #d7dee6;
+            border-radius: 14px;
+            padding: 28px;
+            text-align: center;
+            color: #5a6b7b;
+            background: #fbfcfe;
+        }
+        .pagination {
+            gap: 6px;
+        }
+        .pagination .page-link {
+            border-radius: 10px;
+            border: 1px solid #d7dee6;
+            color: #4a5a6a;
+            padding: 0.35rem 0.75rem;
+            background: #ffffff;
+        }
+        .pagination .page-link:hover {
+            background: #eef3f8;
+            border-color: #c8d3df;
+        }
+        .pagination .page-item.active .page-link {
+            background: #eef3f8;
+            border-color: #c8d3df;
+            color: #2f3b47;
+            font-weight: 600;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+
+<!-- FILTERS -->
+<form method="get" class="filters-card row g-2 mb-3">
+
+    <div class="col-md-2">
+        <label class="form-label">{{ t('Concept') }}</label>
+        <input class="form-control" name="concept" value="{{ f_concept }}">
+    </div>
+
+    {% if not fixed_type %}
+    <div class="col-md-2">
+        <label class="form-label">{{ t('Type') }}</label>
+        <select class="form-control" name="type">
+            <option value="">{{ t('All') }}</option>
+            <option value="expense" {{ 'selected' if f_type=='expense' else '' }}>{{ t('Expense') }}</option>
+            <option value="income" {{ 'selected' if f_type=='income' else '' }}>{{ t('Income') }}</option>
+            <option value="saving" {{ 'selected' if f_type=='saving' else '' }}>{{ t('Saving') }}</option>
+        </select>
+    </div>
+    {% endif %}
+
+    {% if fixed_type == 'expense' %}
+    <div class="col-md-6">
+        <div class="filter-pack">
+            <div>
+                <label class="form-label">{{ t('Category') }}</label>
+                <select class="form-control category-filter" name="category">
+                    <option value="">{{ t('All') }}</option>
+                    {% for c in categories %}
+                    <option value="{{ c }}" {{ 'selected' if f_category == c else '' }}>{{ cat_name(c) }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="position-relative" id="dateFilterWrapper">
+                <label class="form-label">{{ t('Date') }}</label>
+                <input class="form-control text-center date-filter"
+                       id="dateFilter"
+                       name="date"
+                       value="{{ f_date }}"
+                       readonly>
+            </div>
+            <div>
+                <label class="form-label">{{ t('Source') }}</label>
+                <select class="form-control source-filter" name="source">
+                    <option value="">{{ t('All') }}</option>
+                    <option value="monthly" {{ 'selected' if f_source=='monthly' else '' }}>{{ t('Monthly') }}</option>
+                    <option value="saving" {{ 'selected' if f_source=='saving' else '' }}>{{ t('Saving') }}</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label">{{ t('Financed') }}</label>
+                <select class="form-control source-filter" name="financed">
+                    <option value="">{{ t('All') }}</option>
+                    <option value="1" {{ 'selected' if f_financed=='1' else '' }}>{{ t('Yes') }}</option>
+                    <option value="0" {{ 'selected' if f_financed=='0' else '' }}>{{ t('No') }}</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label">{{ t('Account/Card') }}</label>
+                <select class="form-control category-filter" name="payment_method_id">
+                    <option value="">{{ t('All') }}</option>
+                    {% for pm in payment_methods %}
+                    <option value="{{ pm[0] }}" {{ 'selected' if f_payment_method == (pm[0]|string) else '' }}>{{ pm[1] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="d-flex align-items-end">
+                <button class="btn btn-soft" style="min-width: 110px;">{{ t('Filter') }}</button>
+            </div>
+        </div>
+    </div>
+    {% elif fixed_type is none %}
+    <div class="col-md-1 position-relative" id="dateFilterWrapper">
+        <label class="form-label">{{ t('Date') }}</label>
+        <input class="form-control text-center date-filter"
+               id="dateFilter"
+               name="date"
+               value="{{ f_date }}"
+               readonly>
+    </div>
+    <div class="col-md-1">
+        <label class="form-label">{{ t('Source') }}</label>
+        <select class="form-control source-filter" name="source">
+            <option value="">{{ t('All') }}</option>
+            <option value="monthly" {{ 'selected' if f_source=='monthly' else '' }}>{{ t('Monthly') }}</option>
+            <option value="saving" {{ 'selected' if f_source=='saving' else '' }}>{{ t('Saving') }}</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">{{ t('Category') }}</label>
+        <input class="form-control" name="category" value="{{ f_category }}">
+    </div>
+    {% else %}
+    <div class="col-md-1 position-relative" id="dateFilterWrapper">
+        <label class="form-label">{{ t('Date') }}</label>
+        <input class="form-control text-center date-filter"
+               id="dateFilter"
+               name="date"
+               value="{{ f_date }}"
+               readonly>
+    </div>
+    {% endif %}
+
+    {% if fixed_type != 'expense' %}
+    <div class="col-md-2 d-flex align-items-end">
+        <button class="btn btn-soft" style="min-width: 110px;">{{ t('Filter') }}</button>
+    </div>
+    {% endif %}
+    <div class="col-md-3 ms-auto d-flex align-items-end justify-content-end pe-0">
+        <a href="/records/add?from={{ current_page }}" class="btn btn-success" style="height: 38px; min-width: 110px; display: inline-flex; align-items: center; justify-content: center;">{{ t('+ Add') }}</a>
+    </div>
+
+</form>
+
+<!-- TABLE -->
+{% if expenses|length == 0 %}
+<div class="empty-state mb-3">
+    <div class="mb-2 fw-bold">{{ t('No movements yet') }}</div>
+    <div class="mb-3">{{ t('Start by adding your first movement.') }}</div>
+    <a href="/records/add?from={{ current_page }}" class="btn btn-soft">{{ t('+ Add movement') }}</a>
+</div>
+{% else %}
+<form method="post" action="/delete-all" id="bulkDeleteForm">
+<div class="table-shell">
+<table class="table table-clean align-middle">
+<thead>
+<tr>
+    {% if fixed_type == 'expense' %}
+    <th class="col-desc" data-col="concept">{{ t('Concept') }}</th>
+    <th class="col-category" data-col="category">{{ t('Category') }}</th>
+    <th class="col-date" data-col="date">{{ t('Date') }} ↓</th>
+    <th class="col-source" data-col="source">{{ t('Source') }}</th>
+    <th class="col-payment-method" data-col="payment_method">{{ t('Account/Card') }}</th>
+    <th class="col-financed" data-col="financed">{{ t('Financed') }}</th>
+    <th class="col-amount text-end pe-5 amount-cell" data-col="amount">{{ t('Amount') }} ⇅</th>
+    {% else %}
+    <th class="col-desc" data-col="concept">{{ t('Concept') }}</th>
+    <th class="col-date" data-col="date">{{ t('Date') }} ↓</th>
+    {% if fixed_type is none %}
+    <th class="col-category" data-col="category">{{ t('Category') }}</th>
+    {% endif %}
+    {% if fixed_type is none %}
+    <th class="col-source" data-col="source">{{ t('Source') }}</th>
+    {% endif %}
+    <th class="col-amount text-end pe-5 amount-cell" data-col="amount">{{ t('Amount') }} ⇅</th>
+    {% endif %}
+    {% if fixed_type == 'expense' or fixed_type is none %}
+    <th class="col-gear text-end">
+        <div class="dropdown">
+            <button class="btn btn-sm btn-light border" data-bs-toggle="dropdown" aria-expanded="false">⚙</button>
+            <div class="dropdown-menu dropdown-menu-end p-2 shadow" style="min-width: 200px; font-size: 0.8rem;">
+                <div class="mb-1 text-muted">{{ t('Visible columns') }}</div>
+                <label class="form-check">
+                    <input class="form-check-input col-toggle" type="checkbox" value="concept" checked>
+                    <span class="form-check-label">{{ t('Concept') }}</span>
+                </label>
+                <label class="form-check">
+                    <input class="form-check-input col-toggle" type="checkbox" value="amount" checked>
+                    <span class="form-check-label">{{ t('Amount') }}</span>
+                </label>
+                <label class="form-check">
+                    <input class="form-check-input col-toggle" type="checkbox" value="date" checked>
+                    <span class="form-check-label">{{ t('Date') }}</span>
+                </label>
+                <label class="form-check">
+                    <input class="form-check-input col-toggle" type="checkbox" value="source" checked>
+                    <span class="form-check-label">{{ t('Source') }}</span>
+                </label>
+                {% if fixed_type == 'expense' %}
+                <label class="form-check">
+                    <input class="form-check-input col-toggle" type="checkbox" value="payment_method" checked>
+                    <span class="form-check-label">{{ t('Account/Card') }}</span>
+                </label>
+                <label class="form-check">
+                    <input class="form-check-input col-toggle" type="checkbox" value="financed" checked>
+                    <span class="form-check-label">{{ t('Financed') }}</span>
+                </label>
+                {% endif %}
+                {% if fixed_type is none %}
+                <label class="form-check">
+                    <input class="form-check-input col-toggle" type="checkbox" value="category" checked>
+                    <span class="form-check-label">{{ t('Category') }}</span>
+                </label>
+                {% endif %}
+            </div>
+        </div>
+    </th>
+    {% endif %}
+</tr>
+</thead>
+
+<tbody>
+{% for e in expenses %}
+<tr class="row-link" data-href="/records/{{ e[0] }}?from={{ current_page }}&return_to={{ return_to|urlencode }}">
+    {% if fixed_type == 'expense' %}
+    <td data-col="concept">{{ e[1] }}</td>
+    <td data-col="category">{{ cat_name(e[7]) if e[7] else '-' }}</td>
+    <td data-col="date">{{ e[3] }}</td>
+    <td data-col="source">{% if e[5] == 'monthly' %}{{ t('Monthly') }}{% elif e[5] == 'saving' %}{{ t('Saving') }}{% else %}-{% endif %}</td>
+    <td data-col="payment_method">{{ e[8] or '-' }}</td>
+    <td data-col="financed">{{ t('Yes') if e[9] else t('No') }}</td>
+    <td class="text-end pe-5 amount-cell" data-col="amount">{{ "%.2f"|format(e[2]) }}</td>
+    {% else %}
+    <td data-col="concept">{{ e[1] }}</td>
+    <td data-col="date">{{ e[3] }}</td>
+    {% if fixed_type is none %}
+    <td data-col="category">{{ cat_name(e[7]) if e[7] else '-' }}</td>
+    {% endif %}
+    {% if fixed_type is none %}
+    <td data-col="source">{% if e[5] == 'monthly' %}{{ t('Monthly') }}{% elif e[5] == 'saving' %}{{ t('Saving') }}{% else %}-{% endif %}</td>
+    {% endif %}
+    <td class="text-end pe-5 amount-cell" data-col="amount">{{ "%.2f"|format(e[2]) }}</td>
+    {% endif %}
+    {% if fixed_type == 'expense' or fixed_type is none %}
+    <td class="col-gear"></td>
+    {% endif %}
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</form>
+{% endif %}
+
+<!-- BULK DELETE CONFIRM MODAL -->
+<div class="modal fade" id="bulkDeleteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">{{ t('Reset database') }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        {{ t('This action cannot be undone. Delete all records?') }}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ t('Cancel') }}</button>
+        <button type="submit" form="bulkDeleteForm" class="btn btn-danger">{{ t('Delete all') }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER BAR -->
+<div class="d-flex align-items-center mt-3">
+    <nav>
+        <ul class="pagination pagination-sm mb-0">
+            <li class="page-item {{ 'disabled' if page <= 1 }}">
+                <a class="page-link" href="?page={{ page - 1 }}{% if page_query %}&{{ page_query }}{% endif %}">{{ t('Previous') }}</a>
+            </li>
+            <li class="page-item active">
+                <span class="page-link">{{ t('Page') }} {{ page }} {{ t('of') }} {{ total_pages }}</span>
+            </li>
+            <li class="page-item {{ 'disabled' if page >= total_pages }}">
+                <a class="page-link" href="?page={{ page + 1 }}{% if page_query %}&{{ page_query }}{% endif %}">{{ t('Next') }}</a>
+            </li>
+        </ul>
+    </nav>
+    <div class="text-muted ms-3" style="font-size: 0.8rem;">
+        {{ t('Showing') }} {{ showing_from }}–{{ showing_to }} {{ t('of') }} {{ total }}
+    </div>
+    <div class="ms-auto text-muted" style="font-size: 0.8rem;">
+        <span class="total-amount">{{ t('Total amount') }}: {{ "%.2f"|format(total_amount) }}</span>
+    </div>
+</div>
+
+<!-- JS -->
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.10.0/dist/js/bootstrap-datepicker.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.10.0/dist/locales/bootstrap-datepicker.es.min.js"></script>
+
+<script>
+$('#dateFilter').datepicker({
+    format: "yyyy-mm",
+    startView: 1,
+    minViewMode: 1,
+    autoclose: true,
+    language: "es",
+    container: '#dateFilterWrapper'
+});
+
+const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+const bulkForm = document.getElementById('bulkDeleteForm');
+const bulkDeleteModal = document.getElementById('bulkDeleteModal')
+    ? new bootstrap.Modal(document.getElementById('bulkDeleteModal'))
+    : null;
+
+document.querySelectorAll('.row-link').forEach((row) => {
+    row.addEventListener('click', () => {
+        const href = row.getAttribute('data-href');
+        if (href) {
+            window.location.href = href;
+        }
+    });
+});
+
+const colToggles = Array.from(document.querySelectorAll('.col-toggle'));
+const fixedType = "{{ fixed_type or '' }}";
+const COL_STORAGE_KEY = `movements.columns.${fixedType || 'all'}`;
+
+function applyColumnVisibility(cols) {
+    const allCols = ['concept', 'amount', 'date', 'source', 'category', 'payment_method', 'financed'];
+    allCols.forEach((col) => {
+        const show = cols.includes(col);
+        document.querySelectorAll(`[data-col="${col}"]`).forEach((el) => {
+            el.classList.toggle('col-hidden', !show);
+        });
+    });
+}
+
+function loadColumns() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(COL_STORAGE_KEY) || '[]');
+        if (Array.isArray(saved) && saved.length) {
+            colToggles.forEach((c) => { c.checked = saved.includes(c.value); });
+            applyColumnVisibility(saved);
+            if (fixedType === 'expense') {
+                document.querySelectorAll(`[data-col="category"]`).forEach((el) => {
+                    el.classList.remove('col-hidden');
+                });
+            }
+            return;
+        }
+    } catch (e) {}
+    applyColumnVisibility(colToggles.map((c) => c.value));
+    if (fixedType === 'expense') {
+        document.querySelectorAll(`[data-col="category"]`).forEach((el) => {
+            el.classList.remove('col-hidden');
+        });
+    }
+}
+
+if (fixedType === '' || fixedType === 'expense') {
+    colToggles.forEach((c) => {
+        c.addEventListener('change', () => {
+            let selected = colToggles.filter((x) => x.checked).map((x) => x.value);
+            if (fixedType === 'expense' && !selected.includes('category')) {
+                selected = [...selected, 'category'];
+            }
+            localStorage.setItem(COL_STORAGE_KEY, JSON.stringify(selected));
+            applyColumnVisibility(selected);
+        });
+    });
+}
+
+if (bulkDeleteBtn) {
+    bulkDeleteBtn.addEventListener('click', () => {
+        bulkDeleteModal.show();
+    });
+}
+
+if (fixedType === '' || fixedType === 'expense') {
+    loadColumns();
+}
+</script>
+
+{% endblock %}

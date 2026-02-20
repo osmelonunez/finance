@@ -1,163 +1,179 @@
-# 💰 Finance – Personal Finance Application
+# Finance - Personal Finance Application
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/osmelonunez/finance)
 ![License](https://img.shields.io/github/license/osmelonunez/finance)
 ![Repo size](https://img.shields.io/github/repo-size/osmelonunez/finance)
 
-📊 Finance is a personal and household finance management web application. It consists of two components:
-- `finance-ui`: A modern frontend built with Vite and Node.js 20
-- `finance-api`: A secure REST API built with Node.js 20
+Language: English | [Español](./README.es.md)
 
-🔗 GitHub Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
+Finance is a Flask + PostgreSQL web app to manage personal/household finances with role-based access, dashboard analytics, records, backups, and SMTP reports.
 
----
+This application was created with AI assistance. The project ideas and direction come from the author.
 
-## 🚀 Features
+Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
-- Track income, expenses, and manage savings.
-- Visualize financial summaries
-- RESTful API with authentication and budget management
-- Built with modern and scalable Node.js architecture
+## Current Version
 
----
+- Stable version: `3.0.0`
+- Production compose image is pinned to `f1nanc3/finance:3.0.0`
 
-## ⚙️ How to download and work with this project
+## Core Features
 
-This project is prepared for both development and production environments using Docker.
+- Separate views: `Expenses`, `Incomes`, `Savings`
+- Dashboard with monthly and yearly charts
+- Auth with roles: `admin`, `editor`, `user`
+- Rate limiting in auth endpoints
+- Profile preferences per user:
+  - language (`en` / `es`)
+  - rows per page
+  - email notifications on/off
+- Management modules:
+  - users
+  - database connection
+  - backups
+  - SMTP + email reports
+  - categories
+  - system settings
+  - accounts/cards
+- Deferred and financed expenses
+- Localized categories for default list (`en` / `es`)
+- SQL migrations with migration tracking table
+- Gunicorn runtime in Docker, running as non-root user
+- Structured JSON logs + health checks (`/health/live`, `/health/ready`)
 
----
+## Tech Stack
 
-### 🚀 Run in production
+- Backend: Python, Flask, psycopg2
+- Database: PostgreSQL
+- Frontend: Jinja2 templates, Bootstrap, Chart.js
+- Runtime: Docker, Docker Compose, Gunicorn
 
-This project uses Docker Compose to manage the frontend, backend, database, and proxy services.
+## Local Run (Docker)
 
-## 📦 Services Overview
+### Requirements
 
-| Service   | Description                        | Enabled by Default |
-|-----------|------------------------------------|---------------------|
-| backend   | Node.js API service                | ✅ Yes              |
-| frontend  | React/Vite app                     | ✅ Yes              |
-| postgres  | PostgreSQL database                | 🔁 Optional (`db`)  |
-| haproxy   | Reverse proxy for frontend/backend | 🔁 Optional (`proxy`) |
+- Docker + Docker Compose
+- PostgreSQL reachable from the container
 
----
-
-## 🚀 Quick Start
-
-### ▶️ Run App
-
-```bash
-sh start.sh
-```
-
-You will be prompted with options:
-
-1. Full stack (Backend + Frontend + PostgreSQL + HAProxy)
-2. Backend + Frontend only (uses external network `public`)
-3. Backend + Frontend + PostgreSQL
-4. Backend + Frontend + HAProxy
-
-> If you choose option 2, make sure the external Docker network `public` exists:
+### Start
 
 ```bash
-docker network create public
+make up
 ```
 
----
+App URL:
+- [http://localhost:3000](http://localhost:3000)
 
-## ⚙️ Environment Variables
-
-You can configure database connection and other values using the `.env` file.
-
-Example:
-
-```env
-DB_HOST=postgres
-DB_PORT=5432
-DB_NAME=finance
-DB_USER=finance
-DB_PASSWORD=yourpassword
-```
-
-> Make sure `.env` exists in the root of the project when starting containers.
-
----
-
-## 📌 Notes
-
-- Make sure Docker and Docker Compose are installed.
-- Logs can be viewed using:
-  ```bash
-  docker compose logs -f
-  ```
-
----
-
-## 🧹 Stop and clean everything
+Useful commands:
 
 ```bash
-sh stop.sh
+make restart
+make logs
+make down
 ```
 
-You will be prompted with options:
+## First-Time Setup Wizard
 
-1. Stop all containers (profiles: `db`, `proxy`)
-2. Stop containers from frontend/backend only setup (uses override)
-3. Stop and remove volumes (delete all data)
+On first access, app redirects to `/setup`.
 
----
+Options:
+- `Use existing database`
+- `Create new database`
 
-### 🧪 Development environment setup
+Notes:
+- First admin is created from wizard form.
+- No hardcoded `admin/admin`.
+- Database and database user must already exist.
+- DB connection is persisted in `/config/.app_config.json`.
+- If `DB_CONFIG_ENCRYPTION_KEY` is configured, DB URL is stored encrypted.
 
-1. Clone the repository:
+## Production Deploy (Prebuilt Image)
+
+Compose file:
+- `/Users/osmel/git/finance/docker/docker-compose.yaml`
+
+Commands:
 
 ```bash
-git clone https://github.com/osmelonunez/finance.git
-cd finance
+make up-prod
+make logs-prod
+make down-prod
 ```
 
-2. Configure environment variables:
+## 🐳 Docker Image
 
-Edit the file `tools/docker-dev/.env` and define at least the following:
+- [f1nanc3/finance](https://hub.docker.com/r/f1nanc3/finance)
 
-```env
-UI_TAG=X.X.X
-API_TAG=X.X.X
-```
+## Build and Publish
 
-You may modify other variables if needed.
-
-3. Start the development environment:
+Multi-arch build + push (`linux/amd64,linux/arm64`):
 
 ```bash
-tools/scripts/dev.sh
+make build IMAGE=f1nanc3/finance:latest
 ```
 
-This script will launch the services using `tools/docker-dev/docker-compose.yml`.
-
-4. Publish a stable image to Docker Hub:
-
-Use the following script, passing the version tag you want to publish:
+Local build only:
 
 ```bash
-tools/scripts/tag-and-push.sh X.X.X
+make build-local
 ```
 
-Replace `X.X.X` with the version tag for your image.
+Dependency audit:
 
----
+```bash
+make audit-deps
+```
 
-## 🐳 Docker Images
+## Production Environment Variables (Important)
 
-Docker Hub repositories:
+Required in production:
+- `APP_ENV=production`
+- `SECRET_KEY` (must be custom, non-default)
+- `SMTP_ENCRYPTION_KEY` (must be custom, non-default)
+- `DB_CONFIG_ENCRYPTION_KEY` (required when using `/config/.app_config.json` DB config)
 
-- [f1nanc3/finance-ui](https://hub.docker.com/r/f1nanc3/finance-ui)
-- [f1nanc3/finance-api](https://hub.docker.com/r/f1nanc3/finance-api)
+Recommended:
+- `APP_PUBLIC_URL` (links in emails)
+- `SESSION_LIFETIME_HOURS` (default `12`)
+- `LOG_FORMAT=json`
+- `LOG_LEVEL=INFO`
 
----
+Rate limits:
+- `RATE_LIMIT_LOGIN_IP`
+- `RATE_LIMIT_LOGIN_ID`
+- `RATE_LIMIT_REGISTER_IP`
+- `RATE_LIMIT_PASSWORD_CHANGE`
 
-## 📄 License
+## Security and Ops Notes
 
-This project is licensed under the [GNU General Public License v3.0 (GPLv3)](https://www.gnu.org/licenses/gpl-3.0.html).
+- In production, startup fails if required secrets are missing/default.
+- App config file is created with mode `0600`.
+- SMTP credentials are encrypted at rest.
+- DB URL in app config can be encrypted with `DB_CONFIG_ENCRYPTION_KEY`.
+- Container logs are rotated via Compose:
+  - `max-size: 10m`
+  - `max-file: 7`
+- Secrets are redacted from logs (passwords/tokens/URLs with credentials).
 
-See the [LICENSE](./LICENSE) file for full license text and conditions.
+## Backups
+
+- Backup files are stored at `/backups` in the container.
+- Typical mounts:
+  - `./backups -> /backups`
+  - `./config -> /config`
+- Backup schedule/retention/restore/delete from:
+  - `Management -> Backups`
+
+## Email and Reports
+
+- SMTP settings are managed in UI (`Management -> SMTP`).
+- Sender display name is configurable.
+- Monthly/yearly reports are enabled by default.
+- Reports are sent only to users:
+  - active
+  - with email notifications enabled
+- Report template version is configurable (phase 1: `v1`).
+
+## License
+
+This project is licensed under the [MIT License](./LICENSE).

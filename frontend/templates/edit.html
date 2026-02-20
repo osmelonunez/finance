@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% block extra_css %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.10.0/dist/css/bootstrap-datepicker.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+
+<h2>
+    {% if expense[4] %}
+        {{ t('Edit') }} {% if expense[4] == 'expense' %}{{ t('Expense') }}{% elif expense[4] == 'income' %}{{ t('Income') }}{% else %}{{ t('Saving') }}{% endif %}
+    {% else %}
+        {{ t('Edit') }}
+    {% endif %}
+</h2>
+
+{% if error %}
+<div class="alert alert-danger py-2">{{ t(error) }}</div>
+{% endif %}
+
+<style>
+    .edit-category {
+        width: 145px;
+    }
+    .edit-date {
+        width: 96px;
+    }
+    .edit-source {
+        width: 86px;
+    }
+</style>
+
+<form method="post" class="row g-3" id="editForm">
+    <input type="hidden" name="from" value="{{ from_page }}">
+    <input type="hidden" name="deferred_scope" id="deferredScopeInput" value="single">
+
+    <div class="col-md-2">
+        <label class="form-label">{{ t('Concept') }}</label>
+        <input class="form-control" name="concept" value="{{ expense[1] }}" required>
+    </div>
+
+    {% if expense[4] == 'expense' %}
+    <div class="col-md-8">
+        <div class="d-flex gap-3 align-items-start">
+            <div>
+                <label class="form-label">{{ t('Category') }}</label>
+                <select class="form-control edit-category" name="category">
+                    <option value="">{{ t('Select') }}</option>
+                    {% for c in categories %}
+                    <option value="{{ c }}" {{ 'selected' if expense[7] == c else '' }}>{{ cat_name(c) }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label">{{ t('Amount') }}</label>
+                <input class="form-control amount-input" name="amount" type="number" step="0.01" value="{{ expense[2] }}" required>
+            </div>
+            <div class="position-relative" id="dateEditWrapper">
+                <label class="form-label">{{ t('Date') }}</label>
+                <input class="form-control text-center edit-date"
+                       id="dateEdit"
+                       name="date"
+                       value="{{ expense[3] }}"
+                       readonly>
+            </div>
+            <div>
+                <label class="form-label">{{ t('Source') }}</label>
+                <select class="form-control edit-source" name="source">
+                    <option value="">-</option>
+                    <option value="monthly" {{ 'selected' if expense[5]=='monthly' else '' }}>{{ t('Monthly') }}</option>
+                    <option value="saving" {{ 'selected' if expense[5]=='saving' else '' }}>{{ t('Saving') }}</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label">{{ t('Account/Card') }}</label>
+                <select class="form-control edit-category" name="payment_method_id">
+                    <option value="">{{ t('Select') }}</option>
+                    {% for pm in payment_methods %}
+                    <option value="{{ pm[0] }}" {{ 'selected' if expense[13] == pm[0] else '' }}>
+                        {{ pm[1] }}{% if not pm[2] %} ({{ t('Inactive') }}){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <div class="form-check mt-4">
+                    <input class="form-check-input" type="checkbox" id="deferredCheckEdit" name="is_deferred" value="1" {{ 'checked' if expense[15] and expense[15] > 1 else '' }}>
+                    <label class="form-check-label" for="deferredCheckEdit">{{ t('Deferred payment') }}</label>
+                </div>
+                <div class="form-check mt-2">
+                    <input class="form-check-input" type="checkbox" id="financedCheckEdit" name="is_financed" value="1" {{ 'checked' if expense[16] else '' }}>
+                    <label class="form-check-label" for="financedCheckEdit">{{ t('Financed') }}</label>
+                </div>
+                <div class="mt-2" id="deferredTotalWrapEdit" style="{{ '' if expense[15] and expense[15] > 1 else 'display:none;' }}">
+                    <label class="form-label mb-1">{{ t('Installments') }}</label>
+                    <input class="form-control form-control-sm" type="number" min="2" max="60" name="deferred_total" value="{{ expense[15] if expense[15] and expense[15] > 1 else 3 }}">
+                </div>
+            </div>
+        </div>
+    </div>
+    <input type="hidden" name="type" value="expense">
+    {% else %}
+    <input type="hidden" name="type" value="{{ expense[4] }}">
+    <div class="col-md-8">
+        <div class="d-flex gap-3 align-items-start">
+            <div>
+                <label class="form-label">{{ t('Amount') }}</label>
+                <input class="form-control amount-input" name="amount" type="number" step="0.01" value="{{ expense[2] }}" required>
+            </div>
+            <div class="position-relative" id="dateEditWrapper">
+                <label class="form-label">{{ t('Date') }}</label>
+                <input class="form-control text-center edit-date"
+                       id="dateEdit"
+                       name="date"
+                       value="{{ expense[3] }}"
+                       readonly>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="col-12">
+        <label class="form-label">{{ t('Comment') }}</label>
+        <textarea class="form-control" name="comment" rows="2" placeholder="{{ t('Optional') }}">{{ expense[6] or '' }}</textarea>
+    </div>
+
+    <div class="col-12">
+        <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#saveConfirmModal">
+            {{ t('Save changes') }}
+        </button>
+        <a href="/records/{{ expense[0] }}?from={{ from_page }}" class="btn btn-secondary ms-2">{{ t('Cancel') }}</a>
+    </div>
+
+</form>
+
+<!-- SAVE CONFIRM MODAL -->
+<div class="modal fade" id="saveConfirmModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">{{ t('Confirm changes') }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        {{ t('Save the changes to this record?') }}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ t('Cancel') }}</button>
+        <button type="button" id="confirmSaveBtn" class="btn btn-warning">{{ t('Save') }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if expense[4] == 'expense' and expense[15] and expense[15] > 1 %}
+<div class="modal fade" id="deferredScopeModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">{{ t('Deferred payment') }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        {{ t('You are removing deferred payment. Apply change only to this record or to the full deferred series?') }}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ t('Cancel') }}</button>
+        <button type="button" class="btn btn-secondary" id="saveSingleDeferredBtn">{{ t('Only this record') }}</button>
+        <button type="button" class="btn btn-warning" id="saveAllDeferredBtn">{{ t('Entire series') }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.10.0/dist/js/bootstrap-datepicker.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.10.0/dist/locales/bootstrap-datepicker.es.min.js"></script>
+
+<script>
+$('#dateEdit').datepicker({
+    format: "yyyy-mm",
+    startView: 1,
+    minViewMode: 1,
+    autoclose: true,
+    language: {{ ('es' if current_lang == 'es' else 'en') | tojson }},
+    container: '#dateEditWrapper'
+});
+
+</script>
+<script>
+  (function () {
+    const deferredCheck = document.getElementById('deferredCheckEdit');
+    const deferredTotalWrap = document.getElementById('deferredTotalWrapEdit');
+    const form = document.getElementById('editForm');
+    const deferredScopeInput = document.getElementById('deferredScopeInput');
+    const saveBtn = document.getElementById('confirmSaveBtn');
+    const saveConfirmModalEl = document.getElementById('saveConfirmModal');
+    const saveConfirmModal = saveConfirmModalEl ? bootstrap.Modal.getOrCreateInstance(saveConfirmModalEl) : null;
+    const deferredScopeModalEl = document.getElementById('deferredScopeModal');
+    const deferredScopeModal = deferredScopeModalEl ? bootstrap.Modal.getOrCreateInstance(deferredScopeModalEl) : null;
+    const saveSingleDeferredBtn = document.getElementById('saveSingleDeferredBtn');
+    const saveAllDeferredBtn = document.getElementById('saveAllDeferredBtn');
+    const wasDeferredInitially = {{ 'true' if expense[4] == 'expense' and expense[15] and expense[15] > 1 else 'false' }};
+
+    if (!deferredCheck || !deferredTotalWrap) return;
+    deferredCheck.addEventListener('change', () => {
+      deferredTotalWrap.style.display = deferredCheck.checked ? '' : 'none';
+    });
+
+    if (!saveBtn || !form || !deferredScopeInput) return;
+    saveBtn.addEventListener('click', () => {
+      const isRemovingDeferred = wasDeferredInitially && !deferredCheck.checked;
+      if (isRemovingDeferred && deferredScopeModal) {
+        deferredScopeInput.value = 'single';
+        saveConfirmModal?.hide();
+        deferredScopeModal.show();
+        return;
+      }
+      deferredScopeInput.value = 'single';
+      form.submit();
+    });
+
+    if (saveSingleDeferredBtn) {
+      saveSingleDeferredBtn.addEventListener('click', () => {
+        deferredScopeInput.value = 'single';
+        form.submit();
+      });
+    }
+
+    if (saveAllDeferredBtn) {
+      saveAllDeferredBtn.addEventListener('click', () => {
+        deferredScopeInput.value = 'all';
+        form.submit();
+      });
+    }
+  })();
+</script>
+
+{% endblock %}
