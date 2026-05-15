@@ -33,27 +33,28 @@
 
 <form method="post" class="row g-3">
     <input type="hidden" name="from" value="{{ from_page }}">
+    {% set selected_months = form_data.get('months', []) if form_data else [] %}
 
     <div class="col-md-2">
         <label class="form-label">{{ t('Concept') }}</label>
-        <input class="form-control" name="concept" required>
+        <input class="form-control" name="concept" value="{{ form_data.get('concept','') if form_data else '' }}" required>
         <div class="expense-options">
             <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="recurrentCheck">
+                <input class="form-check-input" type="checkbox" id="recurrentCheck" {{ 'checked' if form_data and selected_months else '' }}>
                 <label class="form-check-label" for="recurrentCheck">{{ t('Recurrent') }}</label>
             </div>
         {% if from_page == 'expense' %}
             <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="deferredCheck" name="is_deferred" value="1">
+                <input class="form-check-input" type="checkbox" id="deferredCheck" name="is_deferred" value="1" {{ 'checked' if form_data and form_data.get('is_deferred') == '1' else '' }}>
                 <label class="form-check-label" for="deferredCheck">{{ t('Deferred payment') }}</label>
             </div>
             <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="financedCheck" name="is_financed" value="1">
+                <input class="form-check-input" type="checkbox" id="financedCheck" name="is_financed" value="1" {{ 'checked' if form_data and form_data.get('is_financed') == '1' else '' }}>
                 <label class="form-check-label" for="financedCheck">{{ t('Financed') }}</label>
             </div>
-            <div id="deferredTotalWrap" style="display:none;">
+            <div id="deferredTotalWrap" style="{{ '' if form_data and form_data.get('is_deferred') == '1' else 'display:none;' }}">
                 <label class="form-label mb-1">{{ t('Installments') }}</label>
-                <input class="form-control form-control-sm" type="number" min="2" max="60" name="deferred_total" value="3">
+                <input class="form-control form-control-sm" type="number" min="2" max="60" name="deferred_total" value="{{ form_data.get('deferred_total', '3') if form_data else '3' }}">
             </div>
         {% endif %}
         </div>
@@ -68,26 +69,26 @@
                 <select class="form-control" name="category">
                     <option value="">{{ t('Select') }}</option>
                     {% for c in categories %}
-                    <option value="{{ c }}">{{ cat_name(c) }}</option>
+                    <option value="{{ c }}" {{ 'selected' if form_data and form_data.get('category') == c else '' }}>{{ cat_name(c) }}</option>
                     {% endfor %}
                 </select>
             </div>
             <div>
                 <label class="form-label">{{ t('Amount') }}</label>
-                <input class="form-control amount-input" name="amount" type="number" step="0.01" required>
+                <input class="form-control amount-input" name="amount" type="number" step="0.01" value="{{ form_data.get('amount','') if form_data else '' }}" required>
             </div>
             <div class="position-relative" id="dateAddWrapper">
                 <label class="form-label">{{ t('Date') }}</label>
                 <input class="form-control text-center add-date"
                        id="dateAdd"
                        name="date"
-                       value="{{ current_month }}">
+                       value="{{ form_data.get('date', current_month) if form_data else current_month }}">
             </div>
             <div id="sourceField">
                 <label class="form-label">{{ t('Source') }}</label>
                 <select class="form-control" name="source" id="sourceSelect">
-                    <option value="monthly">{{ t('Monthly') }}</option>
-                    <option value="saving">{{ t('Saving') }}</option>
+                    <option value="monthly" {{ 'selected' if not form_data or form_data.get('source', 'monthly') == 'monthly' else '' }}>{{ t('Monthly') }}</option>
+                    <option value="saving" {{ 'selected' if form_data and form_data.get('source') == 'saving' else '' }}>{{ t('Saving') }}</option>
                 </select>
             </div>
             <div>
@@ -95,7 +96,7 @@
                 <select class="form-control" name="payment_method_id">
                     <option value="">{{ t('Select') }}</option>
                     {% for pm in payment_methods %}
-                    <option value="{{ pm[0] }}">{{ pm[1] }}</option>
+                    <option value="{{ pm[0] }}" {{ 'selected' if form_data and form_data.get('payment_method_id') == (pm[0]|string) else '' }}>{{ pm[1] }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -107,14 +108,14 @@
         <div class="d-flex gap-3 align-items-start">
             <div>
                 <label class="form-label">{{ t('Amount') }}</label>
-                <input class="form-control amount-input" name="amount" type="number" step="0.01" required>
+                <input class="form-control amount-input" name="amount" type="number" step="0.01" value="{{ form_data.get('amount','') if form_data else '' }}" required>
             </div>
             <div class="position-relative" id="dateAddWrapper">
                 <label class="form-label">{{ t('Date') }}</label>
                 <input class="form-control text-center add-date"
                        id="dateAdd"
                        name="date"
-                       value="{{ current_month }}">
+                       value="{{ form_data.get('date', current_month) if form_data else current_month }}">
             </div>
         </div>
     </div>
@@ -143,7 +144,7 @@
                         {% for month in range(1,13) %}
                             {% set ym = "%04d-%02d"|format(year, month) %}
                             <label class="form-check-label me-2">
-                                <input class="form-check-input me-1" type="checkbox" name="months" value="{{ ym }}">
+                                <input class="form-check-input me-1" type="checkbox" name="months" value="{{ ym }}" {{ 'checked' if ym in selected_months else '' }}>
                                 {{ month_names[month - 1] }}
                             </label>
                         {% endfor %}
@@ -156,7 +157,7 @@
 
     <div class="col-12">
         <label class="form-label">{{ t('Comment') }}</label>
-        <textarea class="form-control" name="comment" rows="2" placeholder="{{ t('Optional') }}"></textarea>
+        <textarea class="form-control" name="comment" rows="2" placeholder="{{ t('Optional') }}">{{ form_data.get('comment','') if form_data else '' }}</textarea>
     </div>
 
     <div class="col-12">

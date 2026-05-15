@@ -25,6 +25,7 @@
 
 <form method="post" class="row g-3">
     <input type="hidden" name="from" value="{{ from_page }}">
+    <input type="hidden" name="return_to" value="{{ return_to or '' }}">
 
     <div class="col-md-2">
         <label class="form-label">{{ t('Concept') }}</label>
@@ -140,7 +141,7 @@
 
     <div class="col-12">
         <button class="btn btn-secondary">{{ t('Create duplicate') }}</button>
-        <a href="/records/{{ expense[0] }}?from={{ from_page }}" class="btn btn-secondary ms-2">{{ t('Cancel') }}</a>
+        <a href="/records/{{ expense[0] }}?from={{ from_page }}{% if return_to %}&return_to={{ return_to|urlencode }}{% endif %}" class="btn btn-secondary ms-2">{{ t('Cancel') }}</a>
     </div>
 
 </form>

@@ -269,6 +269,33 @@ def _page_to_url(page):
 @movements_bp.route("/records/add", methods=["GET", "POST"])
 def add_movement():
     from_page = (request.args.get("from") or request.form.get("from") or "expense").strip()
+    year_now = datetime.now().year
+    years = [year_now, year_now + 1]
+    current_month = datetime.now().strftime("%Y-%m")
+
+    def _load_add_dependencies():
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT name FROM categories ORDER BY name")
+                categories = [r[0] for r in cur.fetchall()]
+                cur.execute("SELECT id, name FROM payment_methods WHERE is_active=TRUE ORDER BY name")
+                payment_methods = cur.fetchall()
+        return categories, payment_methods
+
+    def _render_add(error=None, form_data=None):
+        categories, payment_methods = _load_add_dependencies()
+        return render_template(
+            "add_movement.html",
+            current_page=from_page,
+            years=years,
+            from_page=from_page,
+            categories=categories,
+            payment_methods=payment_methods,
+            current_month=current_month,
+            error=error,
+            form_data=form_data or {}
+        )
+
     if request.method == "POST":
         type_ = request.form["type"]
         source = request.form.get("source")
@@ -290,10 +317,16 @@ def add_movement():
 
         concept, concept_error = _validate_concept(request.form.get("concept"))
         if concept_error:
-            return redirect(f"/records/add?from={from_page}&error={quote(concept_error)}")
+            return _render_add(
+                error=concept_error,
+                form_data=request.form.to_dict(flat=True) | {"months": request.form.getlist("months")},
+            )
         amount, amount_error = _validate_amount(request.form.get("amount"))
         if amount_error:
-            return redirect(f"/records/add?from={from_page}&error={quote(amount_error)}")
+            return _render_add(
+                error=amount_error,
+                form_data=request.form.to_dict(flat=True) | {"months": request.form.getlist("months")},
+            )
 
         with get_db() as conn:
             with conn.cursor() as cur:
@@ -342,25 +375,7 @@ def add_movement():
 
         return redirect(_page_to_url(from_page))
 
-    year_now = datetime.now().year
-    years = [year_now, year_now + 1]
-    current_month = datetime.now().strftime("%Y-%m")
-    with get_db() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT name FROM categories ORDER BY name")
-            categories = [r[0] for r in cur.fetchall()]
-            cur.execute("SELECT id, name FROM payment_methods WHERE is_active=TRUE ORDER BY name")
-            payment_methods = cur.fetchall()
-    return render_template(
-        "add_movement.html",
-        current_page=from_page,
-        years=years,
-        from_page=from_page,
-        categories=categories,
-        payment_methods=payment_methods,
-        current_month=current_month,
-        error=request.args.get("error")
-    )
+    return _render_add(error=request.args.get("error"))
 
 
 @movements_bp.route("/records/<int:id>")
@@ -675,6 +690,7 @@ def edit(id):
 @movements_bp.route("/duplicate/<int:id>", methods=["GET", "POST"])
 def duplicate(id):
     from_page = (request.args.get("from") or request.form.get("from") or "expense").strip()
+    return_to = (request.args.get("return_to") or request.form.get("return_to") or "").strip()
     with get_db() as conn:
         with conn.cursor() as cur:
             cur.execute("""
@@ -694,7 +710,10 @@ def duplicate(id):
             is_deferred_record = bool((expense[15] or 0) > 1)
             if is_deferred_record:
                 msg = "Deferred payment records cannot be duplicated."
-                return redirect(f"/records/{id}?from={from_page}&error={quote(msg)}")
+                detail_url = f"/records/{id}?from={from_page}&error={quote(msg)}"
+                if return_to.startswith("/"):
+                    detail_url += f"&return_to={quote(return_to)}"
+                return redirect(detail_url)
 
             if request.method == "POST":
                 type_ = request.form["type"]
@@ -706,10 +725,16 @@ def duplicate(id):
                 months = request.form.getlist("months")
                 concept, concept_error = _validate_concept(request.form.get("concept"))
                 if concept_error:
-                    return redirect(f"/duplicate/{id}?from={from_page}&error={quote(concept_error)}")
+                    duplicate_url = f"/duplicate/{id}?from={from_page}&error={quote(concept_error)}"
+                    if return_to.startswith("/"):
+                        duplicate_url += f"&return_to={quote(return_to)}"
+                    return redirect(duplicate_url)
                 amount, amount_error = _validate_amount(request.form.get("amount"))
                 if amount_error:
-                    return redirect(f"/duplicate/{id}?from={from_page}&error={quote(amount_error)}")
+                    duplicate_url = f"/duplicate/{id}?from={from_page}&error={quote(amount_error)}"
+                    if return_to.startswith("/"):
+                        duplicate_url += f"&return_to={quote(return_to)}"
+                    return redirect(duplicate_url)
                 comment = request.form.get("comment") or None
                 category_name = request.form.get("category") or None
                 category_id = _resolve_category_id(cur, category_name)
@@ -764,6 +789,8 @@ def duplicate(id):
                     len(dates),
                 )
 
+                if return_to.startswith("/"):
+                    return redirect(return_to)
                 return redirect(_page_to_url(from_page))
 
     year_now = datetime.now().year
@@ -780,6 +807,7 @@ def duplicate(id):
         years=years,
         current_page=from_page,
         from_page=from_page,
+        return_to=return_to,
         categories=categories,
         payment_methods=payment_methods,
         error=request.args.get("error")

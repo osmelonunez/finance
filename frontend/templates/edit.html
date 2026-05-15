@@ -205,14 +205,15 @@ $('#dateEdit').datepicker({
     const saveAllDeferredBtn = document.getElementById('saveAllDeferredBtn');
     const wasDeferredInitially = {{ 'true' if expense[4] == 'expense' and expense[15] and expense[15] > 1 else 'false' }};
 
-    if (!deferredCheck || !deferredTotalWrap) return;
-    deferredCheck.addEventListener('change', () => {
-      deferredTotalWrap.style.display = deferredCheck.checked ? '' : 'none';
-    });
+    if (deferredCheck && deferredTotalWrap) {
+      deferredCheck.addEventListener('change', () => {
+        deferredTotalWrap.style.display = deferredCheck.checked ? '' : 'none';
+      });
+    }
 
     if (!saveBtn || !form || !deferredScopeInput) return;
     saveBtn.addEventListener('click', () => {
-      const isRemovingDeferred = wasDeferredInitially && !deferredCheck.checked;
+      const isRemovingDeferred = wasDeferredInitially && deferredCheck && !deferredCheck.checked;
       if (isRemovingDeferred && deferredScopeModal) {
         deferredScopeInput.value = 'single';
         saveConfirmModal?.hide();

@@ -14,8 +14,8 @@ Repositorio: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
 ## Versión Actual
 
-- Versión estable: `3.0.0`
-- El compose de producción usa imagen fijada en `f1nanc3/finance:3.0.0`
+- Versión estable: `3.0.1`
+- El compose de producción usa imagen fijada en `f1nanc3/finance:3.0.1`
 
 ## Funcionalidades Principales
 

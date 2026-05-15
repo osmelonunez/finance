@@ -1,7 +1,7 @@
 COMPOSE=docker compose -f tools/docker/docker-compose.yaml
 COMPOSE_PROD=docker compose -f docker/docker-compose.yaml
 IMAGE_REPO?=f1nanc3/finance
-VERSION?=3.0.0
+VERSION?=3.0.1
 IMAGE?=$(IMAGE_REPO):latest
 PLATFORMS?=linux/amd64,linux/arm64
 
