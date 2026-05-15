@@ -1,18 +1,17 @@
 from datetime import datetime
 import logging
-import re
-from decimal import Decimal, InvalidOperation
 from urllib.parse import quote
 from flask import Blueprint, render_template, request, redirect, session
 
 from db import get_db
+from dashboard_cache import invalidate_dashboard_cache
+from validators import parse_year_month, validate_amount, validate_concept
 
 
 movements_bp = Blueprint("movements", __name__)
 logger = logging.getLogger("finance.movements")
 
 PER_PAGE = 15
-CONCEPT_RE = re.compile(r"^[A-Za-z0-9ÁÉÍÓÚÜÑáéíóúüñ\s\-\.,:/()&'+]+$")
 
 
 def _shift_month(dt, months):
@@ -39,32 +38,6 @@ def _resolve_payment_method_id(cur, raw_id):
     cur.execute("SELECT id FROM payment_methods WHERE id=%s", (pm_id,))
     row = cur.fetchone()
     return row[0] if row else None
-
-
-def _parse_year_month(value, fallback):
-    try:
-        return datetime.strptime(value, "%Y-%m")
-    except Exception:
-        return fallback
-
-
-def _validate_concept(value):
-    concept = (value or "").strip()
-    if not concept:
-        return None, "Concept is required."
-    if not CONCEPT_RE.fullmatch(concept):
-        return None, "Concept contains invalid characters. Allowed: letters, numbers, spaces and . , - / ( ) : & ' +"
-    return concept, None
-
-
-def _validate_amount(value):
-    try:
-        amount = Decimal((value or "").strip())
-    except (InvalidOperation, AttributeError):
-        return None, "Amount must be a valid number."
-    if amount <= 0:
-        return None, "Amount must be greater than 0."
-    return amount, None
 
 
 def _records(fixed_type=None):
@@ -315,13 +288,13 @@ def add_movement():
         if type_ != "expense":
             is_financed = False
 
-        concept, concept_error = _validate_concept(request.form.get("concept"))
+        concept, concept_error = validate_concept(request.form.get("concept"))
         if concept_error:
             return _render_add(
                 error=concept_error,
                 form_data=request.form.to_dict(flat=True) | {"months": request.form.getlist("months")},
             )
-        amount, amount_error = _validate_amount(request.form.get("amount"))
+        amount, amount_error = validate_amount(request.form.get("amount"))
         if amount_error:
             return _render_add(
                 error=amount_error,
@@ -339,7 +312,7 @@ def add_movement():
 
                 deferred_dates = []
                 if type_ == "expense" and is_deferred and deferred_total > 1:
-                    base_dt = _parse_year_month(date_fallback, datetime.now())
+                    base_dt = parse_year_month(date_fallback, datetime.now())
                     deferred_dates = [_shift_month(base_dt, i).strftime("%Y-%m") for i in range(deferred_total)]
                 dates = deferred_dates if deferred_dates else (months if months else [date_fallback])
 
@@ -364,6 +337,7 @@ def add_movement():
                     session.get("user_name")
                 ))
                 conn.commit()
+                invalidate_dashboard_cache()
                 logger.info(
                     "record_create user=%s type=%s from=%s concept=%s count=%s",
                     session.get("user_name"),
@@ -435,10 +409,10 @@ def edit(id):
                     source = None
 
                 concept = request.form["concept"]
-                concept, concept_error = _validate_concept(request.form.get("concept"))
+                concept, concept_error = validate_concept(request.form.get("concept"))
                 if concept_error:
                     return redirect(f"/edit/{id}?from={from_page}&error={quote(concept_error)}")
-                amount, amount_error = _validate_amount(request.form.get("amount"))
+                amount, amount_error = validate_amount(request.form.get("amount"))
                 if amount_error:
                     return redirect(f"/edit/{id}?from={from_page}&error={quote(amount_error)}")
                 comment = request.form.get("comment") or None
@@ -607,7 +581,7 @@ def edit(id):
                     )
 
                 if deferred_index and deferred_total > 1:
-                    base_dt = _parse_year_month(date_value, datetime.now())
+                    base_dt = parse_year_month(date_value, datetime.now())
                     for installment_idx in range(2, deferred_total + 1):
                         next_date = _shift_month(base_dt, installment_idx - 1).strftime("%Y-%m")
                         cur.execute(
@@ -649,6 +623,7 @@ def edit(id):
                             )
 
                 conn.commit()
+                invalidate_dashboard_cache()
                 logger.info(
                     "record_update user=%s id=%s type=%s from=%s concept=%s",
                     session.get("user_name"),
@@ -723,13 +698,13 @@ def duplicate(id):
                     source = None
 
                 months = request.form.getlist("months")
-                concept, concept_error = _validate_concept(request.form.get("concept"))
+                concept, concept_error = validate_concept(request.form.get("concept"))
                 if concept_error:
                     duplicate_url = f"/duplicate/{id}?from={from_page}&error={quote(concept_error)}"
                     if return_to.startswith("/"):
                         duplicate_url += f"&return_to={quote(return_to)}"
                     return redirect(duplicate_url)
-                amount, amount_error = _validate_amount(request.form.get("amount"))
+                amount, amount_error = validate_amount(request.form.get("amount"))
                 if amount_error:
                     duplicate_url = f"/duplicate/{id}?from={from_page}&error={quote(amount_error)}"
                     if return_to.startswith("/"):
@@ -754,7 +729,7 @@ def duplicate(id):
 
                 deferred_dates = []
                 if type_ == "expense" and is_deferred and deferred_total > 1:
-                    base_dt = _parse_year_month(date_fallback, datetime.now())
+                    base_dt = parse_year_month(date_fallback, datetime.now())
                     deferred_dates = [_shift_month(base_dt, i).strftime("%Y-%m") for i in range(deferred_total)]
                 dates = deferred_dates if deferred_dates else (months if months else [date_fallback])
 
@@ -779,6 +754,7 @@ def duplicate(id):
                         session.get("user_name")
                     ))
                 conn.commit()
+                invalidate_dashboard_cache()
                 logger.info(
                     "record_duplicate user=%s source_id=%s type=%s from=%s concept=%s count=%s",
                     session.get("user_name"),
@@ -831,6 +807,7 @@ def delete(id):
             cur.execute("DELETE FROM records WHERE id=%s", (id,))
             deleted = cur.rowcount
             conn.commit()
+            invalidate_dashboard_cache()
             logger.info(
                 "record_delete user=%s id=%s from=%s deleted=%s",
                 session.get("user_name"),
@@ -849,6 +826,7 @@ def delete_all():
             cur.execute("DELETE FROM records")
             deleted = cur.rowcount
             conn.commit()
+            invalidate_dashboard_cache()
             logger.info("records_delete_all user=%s deleted=%s", session.get("user_name"), deleted)
 
     return redirect("/records/expense")

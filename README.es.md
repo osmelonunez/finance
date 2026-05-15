@@ -14,8 +14,8 @@ Repositorio: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
 ## Versión Actual
 
-- Versión estable: `3.0.1`
-- El compose de producción usa imagen fijada en `f1nanc3/finance:3.0.1`
+- Versión estable: `3.1.0`
+- El compose de producción usa imagen fijada en `f1nanc3/finance:3.1.0`
 
 ## Funcionalidades Principales
 
@@ -40,6 +40,22 @@ Repositorio: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 - Migraciones SQL con tabla de control
 - Runtime con Gunicorn en Docker, ejecutando como usuario no root
 - Logs JSON estructurados + health checks (`/health/live`, `/health/ready`)
+- Optimización de consultas de dashboard + caché corto (30s) con invalidación en cambios de datos
+- Capa versionada de plantillas de reportes (`v1`) y módulo común de validaciones
+
+## Capturas de Pantalla
+
+### Dashboard
+![Dashboard](docs/screenshots/dashboard.png)
+
+### Expenses
+![Expenses](docs/screenshots/expenses.png)
+
+### Management
+![Management](docs/screenshots/management.png)
+
+### Profile
+![Profile](docs/screenshots/profile.png)
 
 ## Stack Tecnológico
 

@@ -6,18 +6,10 @@ Este roadmap separa:
 - funcionalidades nuevas a valorar (no comprometidas)
 
 ## Hardening + Operación
-- Rotación de logs Docker (`max-size: 10m`, `max-file: 7`).
-- Redacción de secretos en logs (password, token, URLs con credenciales).
-- Ajustes de seguridad de sesión/cookies y cabeceras HTTP.
-- Endpoints de salud (`/health/live`, `/health/ready`).
-- Mensajes de error genéricos en UI + detalle técnico en logs.
+- Completado en `v3.1.0`.
 
 ## Rendimiento y Mantenibilidad
-- Índices compuestos en `records` según filtros reales.
-- Optimización de queries de dashboard (menos roundtrips a BD).
-- Caché corto de agregados de dashboard (15-60 segundos).
-- Capa versionada de plantillas de reportes (base `v1`).
-- Refactor de validaciones comunes (concepto, importe, fecha).
+- Completado en `v3.1.0`.
 
 ## Robustez de Datos y UX Técnica
 - Límites de longitud en campos de texto (backend + base de datos).

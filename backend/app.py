@@ -6,7 +6,8 @@ import uuid
 import json
 from datetime import datetime, timedelta
 
-from flask import Flask, g, has_request_context, redirect, request, session, url_for
+from flask import Flask, g, has_request_context, redirect, render_template, request, session, url_for
+from werkzeug.exceptions import HTTPException
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from db import get_db, init_db, is_app_initialized
@@ -92,7 +93,7 @@ app = Flask(
     static_url_path="/static"
 )
 app.secret_key = os.environ.get("SECRET_KEY", DEFAULT_SECRET_KEY)
-app.config["APP_VERSION"] = os.environ.get("APP_VERSION", "3.0.1")
+app.config["APP_VERSION"] = os.environ.get("APP_VERSION", "3.1.0")
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -175,7 +176,7 @@ def inject_template_globals():
     lang = get_lang()
     return {
         "current_year": datetime.now().year,
-        "app_version": app.config.get("APP_VERSION", "3.0.1"),
+        "app_version": app.config.get("APP_VERSION", "3.1.0"),
         "current_lang": lang,
         "t": lambda text: t(text, lang),
         "cat_name": lambda name: category_name(name, lang),
@@ -265,6 +266,25 @@ def log_request(response):
 def handle_ratelimit(_err):
     logger.warning("rate_limited path=%s ip=%s", request.path, request.remote_addr)
     return t("Too many attempts. Please wait and try again."), 429
+
+
+@app.errorhandler(Exception)
+def handle_unexpected_error(err):
+    if isinstance(err, HTTPException):
+        return err
+    logger.exception("unhandled_exception")
+    request_id = getattr(g, "request_id", "-")
+    if request.path.startswith("/api/") or request.accept_mimetypes.best == "application/json":
+        return {"error": "Internal server error", "request_id": request_id}, 500
+    return (
+        render_template(
+            "error.html",
+            title=t("Something went wrong"),
+            message=t("An unexpected error occurred. Please try again."),
+            request_id=request_id,
+        ),
+        500,
+    )
 
 
 @app.get("/health/live")

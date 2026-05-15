@@ -319,6 +319,8 @@ TRANSLATIONS = {
         "Yearly report test sent.": "Prueba de reporte anual enviada.",
         "Yearly report test failed": "Falló la prueba de reporte anual",
         "Too many attempts. Please wait and try again.": "Demasiados intentos. Espera e inténtalo de nuevo.",
+        "Something went wrong": "Algo salió mal",
+        "An unexpected error occurred. Please try again.": "Ocurrió un error inesperado. Inténtalo de nuevo.",
     }
 }
 

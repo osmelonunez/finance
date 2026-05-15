@@ -13,6 +13,7 @@ from backup_service import (
     week_day_options,
 )
 from db import get_db
+from dashboard_cache import invalidate_dashboard_cache
 from i18n import t
 
 backups_bp = Blueprint("backups", __name__)
@@ -117,6 +118,7 @@ def backups_restore_run(run_id):
         return redirect(url_for("dashboard.dashboard"))
     ok, message = restore_backup(run_id, restored_by=session.get("user_name"))
     if ok:
+        invalidate_dashboard_cache()
         session["backup_msg"] = t("Backup restored successfully")
     else:
         session["backup_err"] = message

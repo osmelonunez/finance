@@ -1,6 +1,6 @@
 services:
   finance:
-    image: f1nanc3/finance:3.0.1
+    image: f1nanc3/finance:3.1.0
     container_name: finance
     environment:
       # Runtime mode (development/production).

@@ -9,6 +9,7 @@ import psycopg2
 from psycopg2.errors import ForeignKeyViolation
 
 from db import get_db, get_database_url, get_previous_database_url, set_database_url
+from dashboard_cache import invalidate_dashboard_cache
 from i18n import t
 from email_service import notify_user_approved
 from report_service import send_monthly_report, send_yearly_report
@@ -551,6 +552,7 @@ def update_initial_saving():
                 ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value
             """, (value,))
             conn.commit()
+    invalidate_dashboard_cache()
 
     session["management_msg"] = t("Initial saving updated")
     return redirect(url_for("management.management_system"))
@@ -691,6 +693,7 @@ def reset_db():
             cur.execute("DELETE FROM records")
             deleted = cur.rowcount
             conn.commit()
+    invalidate_dashboard_cache()
     logger.info("reset_db user=%s deleted=%s", session.get("user_name"), deleted)
     session["management_msg"] = f"{t('Database reset')}: {deleted} {t('records deleted')}"
 
@@ -708,6 +711,7 @@ def seed_demo_data():
             cur.execute("SELECT management_seed_demo_data()")
             inserted = cur.fetchone()[0]
             conn.commit()
+    invalidate_dashboard_cache()
     logger.info("demo_data_seed user=%s inserted=%s initial_saving=300", session.get("user_name"), inserted)
     session["management_msg"] = f"{t('Demo data inserted')}: {inserted} {t('records')}"
 
@@ -725,6 +729,7 @@ def clear_demo_data():
             cur.execute("SELECT management_clear_demo_data()")
             deleted = cur.fetchone()[0]
             conn.commit()
+    invalidate_dashboard_cache()
     logger.info("demo_data_clear user=%s deleted=%s initial_saving_removed=true", session.get("user_name"), deleted)
     session["management_msg"] = f"{t('Demo data deleted')}: {deleted} {t('records')}"
 
