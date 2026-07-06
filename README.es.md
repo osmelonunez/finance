@@ -55,6 +55,12 @@ Repositorio: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 ### Expenses
 ![Expenses](docs/screenshots/expenses.png)
 
+### Loans
+![Loans](docs/screenshots/loans.png)
+
+### Loan Detail
+![Loan Detail](docs/screenshots/loan-detail.png)
+
 ### Management
 ![Management](docs/screenshots/management.png)
 
