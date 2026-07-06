@@ -40,6 +40,80 @@ def _resolve_payment_method_id(cur, raw_id):
     return row[0] if row else None
 
 
+def _resolve_active_loan_id(cur, raw_id, include_id=None):
+    if not raw_id:
+        return None
+    try:
+        loan_id = int(raw_id)
+    except (TypeError, ValueError):
+        return None
+    if include_id and loan_id == include_id:
+        cur.execute("SELECT id FROM loans WHERE id=%s AND status IN ('active', 'paid')", (loan_id,))
+    else:
+        cur.execute("SELECT id FROM loans WHERE id=%s AND status='active'", (loan_id,))
+    row = cur.fetchone()
+    return row[0] if row else None
+
+
+def _load_active_loans(cur, include_id=None):
+    params = []
+    where = "l.status='active'"
+    if include_id:
+        where = "(l.status='active' OR l.id=%s)"
+        params.append(include_id)
+    cur.execute(
+        f"""
+        SELECT l.id, l.name, COALESCE(b.name, l.bank_name)
+        FROM loans l
+        LEFT JOIN banks b ON l.bank_id = b.id
+        WHERE {where}
+        ORDER BY l.name, COALESCE(b.name, l.bank_name)
+        """,
+        params,
+    )
+    return cur.fetchall()
+
+
+def _sync_loan_statuses(cur, loan_ids):
+    ids = {loan_id for loan_id in loan_ids if loan_id}
+    for loan_id in ids:
+        cur.execute(
+            """
+            WITH paid AS (
+                SELECT COALESCE(SUM(amount), 0) AS paid_amount
+                FROM records
+                WHERE loan_id=%s
+                  AND type='expense'
+                  AND is_loan_payment=TRUE
+            )
+            UPDATE loans l
+            SET status = CASE
+                    WHEN paid.paid_amount >= l.principal_amount THEN 'paid'
+                    WHEN l.status = 'paid' AND paid.paid_amount < l.principal_amount THEN 'active'
+                    ELSE l.status
+                END,
+                updated_at = CASE
+                    WHEN (
+                        (paid.paid_amount >= l.principal_amount AND l.status <> 'paid')
+                        OR (l.status = 'paid' AND paid.paid_amount < l.principal_amount)
+                    ) THEN NOW()
+                    ELSE l.updated_at
+                END,
+                updated_by = CASE
+                    WHEN (
+                        (paid.paid_amount >= l.principal_amount AND l.status <> 'paid')
+                        OR (l.status = 'paid' AND paid.paid_amount < l.principal_amount)
+                    ) THEN %s
+                    ELSE l.updated_by
+                END
+            FROM paid
+            WHERE l.id=%s
+              AND l.status <> 'cancelled'
+            """,
+            (loan_id, session.get("user_name"), loan_id),
+        )
+
+
 def _records(fixed_type=None):
     with get_db() as conn:
         with conn.cursor() as cur:
@@ -60,18 +134,23 @@ def _records(fixed_type=None):
             categories = [r[0] for r in cur.fetchall()]
             cur.execute("SELECT id, name FROM payment_methods ORDER BY name")
             payment_methods = cur.fetchall()
+            loans = _load_active_loans(cur)
 
     f_concept = request.args.get("concept", "")
     f_date = request.args.get("date", "")
     f_type = fixed_type or request.args.get("type", "")
     f_source = request.args.get("source", "")
-    f_financed = request.args.get("financed", "")
     f_category = request.args.get("category", "")
     f_payment_method = request.args.get("payment_method_id", "")
+    f_loan = request.args.get("loan_id", "")
     try:
         f_payment_method_int = int(f_payment_method) if f_payment_method else None
     except ValueError:
         f_payment_method_int = None
+    try:
+        f_loan_int = int(f_loan) if f_loan else None
+    except ValueError:
+        f_loan_int = None
 
     sort = request.args.get("sort", "date")
     order = request.args.get("order", "desc")
@@ -94,6 +173,7 @@ def _records(fixed_type=None):
     FROM records
     LEFT JOIN categories ON records.category_id = categories.id
     LEFT JOIN payment_methods ON records.payment_method_id = payment_methods.id
+    LEFT JOIN loans ON records.loan_id = loans.id
     WHERE 1=1
     """
     params = []
@@ -115,15 +195,15 @@ def _records(fixed_type=None):
     if f_source:
         base += " AND source=%s"
         params.append(f_source)
-    if f_financed in ("1", "0"):
-        base += " AND records.is_financed=%s"
-        params.append(f_financed == "1")
     if f_category:
         base += " AND categories.name ILIKE %s"
         params.append(f"%{f_category}%")
     if f_payment_method_int is not None:
         base += " AND records.payment_method_id=%s"
         params.append(f_payment_method_int)
+    if f_loan_int is not None:
+        base += " AND records.loan_id=%s"
+        params.append(f_loan_int)
 
     with get_db() as conn:
         with conn.cursor() as cur:
@@ -138,7 +218,9 @@ def _records(fixed_type=None):
                        records.amount, records.date, records.type, records.source, records.comment,
                        categories.name AS category_display,
                        payment_methods.name AS payment_method_display,
-                       records.is_financed
+                       records.is_loan_payment,
+                       loans.name AS loan_name,
+                       loans.bank_name AS loan_bank_name
                 {base}
                 ORDER BY {sort_column} {order_sql}
                 LIMIT %s OFFSET %s
@@ -191,9 +273,9 @@ def _records(fixed_type=None):
         f_date=f_date,
         f_type=f_type,
         f_source=f_source,
-        f_financed=f_financed,
         f_category=f_category,
         f_payment_method=str(f_payment_method_int) if f_payment_method_int is not None else "",
+        f_loan=str(f_loan_int) if f_loan_int is not None else "",
         sort=sort,
         order=order,
         page=page,
@@ -212,6 +294,7 @@ def _records(fixed_type=None):
         return_to=request.full_path.rstrip("?"),
         categories=categories,
         payment_methods=payment_methods,
+        loans=loans,
         page_query=page_query
     )
 
@@ -253,10 +336,16 @@ def add_movement():
                 categories = [r[0] for r in cur.fetchall()]
                 cur.execute("SELECT id, name FROM payment_methods WHERE is_active=TRUE ORDER BY name")
                 payment_methods = cur.fetchall()
-        return categories, payment_methods
+                loans = _load_active_loans(cur)
+        return categories, payment_methods, loans
 
     def _render_add(error=None, form_data=None):
-        categories, payment_methods = _load_add_dependencies()
+        categories, payment_methods, loans = _load_add_dependencies()
+        initial_form_data = dict(form_data or {})
+        if request.method == "GET" and request.args.get("loan_id") and not initial_form_data:
+            initial_form_data["loan_id"] = request.args.get("loan_id")
+            initial_form_data["is_loan_payment"] = "1"
+            initial_form_data["source"] = "monthly"
         return render_template(
             "add_movement.html",
             current_page=from_page,
@@ -264,9 +353,10 @@ def add_movement():
             from_page=from_page,
             categories=categories,
             payment_methods=payment_methods,
+            loans=loans,
             current_month=current_month,
             error=error,
-            form_data=form_data or {}
+            form_data=initial_form_data
         )
 
     if request.method == "POST":
@@ -279,14 +369,16 @@ def add_movement():
         months = request.form.getlist("months")
         date_fallback = request.form.get("date") or datetime.now().strftime("%Y-%m")
         is_deferred = (request.form.get("is_deferred") == "1")
-        is_financed = (request.form.get("is_financed") == "1")
+        is_loan_payment = (request.form.get("is_loan_payment") == "1")
         try:
             deferred_total = int(request.form.get("deferred_total") or "1")
         except ValueError:
             deferred_total = 1
         deferred_total = min(max(deferred_total, 1), 60)
         if type_ != "expense":
-            is_financed = False
+            is_loan_payment = False
+        if is_loan_payment:
+            is_deferred = False
 
         concept, concept_error = validate_concept(request.form.get("concept"))
         if concept_error:
@@ -309,6 +401,12 @@ def add_movement():
                 payment_method_id = _resolve_payment_method_id(cur, request.form.get("payment_method_id"))
                 if type_ != "expense":
                     payment_method_id = None
+                loan_id = _resolve_active_loan_id(cur, request.form.get("loan_id")) if is_loan_payment else None
+                if is_loan_payment and loan_id is None:
+                    return _render_add(
+                        error="Select an active loan.",
+                        form_data=request.form.to_dict(flat=True) | {"months": request.form.getlist("months")},
+                    )
 
                 deferred_dates = []
                 if type_ == "expense" and is_deferred and deferred_total > 1:
@@ -320,8 +418,8 @@ def add_movement():
                     deferred_index = idx if deferred_dates else None
                     deferred_total_value = deferred_total if deferred_dates else None
                     cur.execute("""
-                    INSERT INTO records (concept, amount, date, type, source, comment, category_id, payment_method_id, is_financed, deferred_index, deferred_total, created_by, created_at, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                    INSERT INTO records (concept, amount, date, type, source, comment, category_id, payment_method_id, deferred_index, deferred_total, loan_id, is_loan_payment, created_by, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
                 """, (
                     concept,
                     amount,
@@ -331,11 +429,13 @@ def add_movement():
                     comment,
                     category_id,
                     payment_method_id,
-                    is_financed,
                     deferred_index,
                     deferred_total_value,
+                    loan_id,
+                    is_loan_payment,
                     session.get("user_name")
                 ))
+                _sync_loan_statuses(cur, [loan_id])
                 conn.commit()
                 invalidate_dashboard_cache()
                 logger.info(
@@ -363,10 +463,12 @@ def movement_detail(id):
                        c.name AS category_display,
                        e.created_by, e.created_at, e.updated_at, e.updated_by,
                        e.payment_method_id, pm.name AS payment_method_name,
-                       e.deferred_index, e.deferred_total, e.is_financed
+                       e.deferred_index, e.deferred_total,
+                       e.loan_id, e.is_loan_payment, l.name AS loan_name, l.bank_name AS loan_bank_name
                 FROM records e
                 LEFT JOIN categories c ON e.category_id = c.id
                 LEFT JOIN payment_methods pm ON e.payment_method_id = pm.id
+                LEFT JOIN loans l ON e.loan_id = l.id
                 WHERE e.id=%s
             """, (id,))
             expense = cur.fetchone()
@@ -392,7 +494,7 @@ def edit(id):
             if request.method == "POST":
                 cur.execute(
                     """
-                    SELECT concept, amount, source, category_id, payment_method_id, deferred_index, deferred_total, type, is_financed
+                    SELECT concept, amount, source, category_id, payment_method_id, deferred_index, deferred_total, type, loan_id, is_loan_payment
                     FROM records
                     WHERE id=%s
                     """,
@@ -421,10 +523,12 @@ def edit(id):
                 payment_method_id = _resolve_payment_method_id(cur, request.form.get("payment_method_id"))
                 if type_ != "expense":
                     payment_method_id = None
-                is_financed = (request.form.get("is_financed") == "1")
+                is_loan_payment = (request.form.get("is_loan_payment") == "1")
                 if type_ != "expense":
-                    is_financed = False
+                    is_loan_payment = False
                 is_deferred = (request.form.get("is_deferred") == "1")
+                if is_loan_payment:
+                    is_deferred = False
                 try:
                     deferred_total = int(request.form.get("deferred_total") or "1")
                 except ValueError:
@@ -435,7 +539,16 @@ def edit(id):
                 deferred_total_value = deferred_total if deferred_index else None
                 date_value = request.form.get("date") or datetime.now().strftime("%Y-%m")
 
-                prev_concept, prev_amount, prev_source, prev_category_id, prev_payment_method_id, prev_deferred_index, prev_deferred_total, prev_type, prev_is_financed = previous_record
+                prev_concept, prev_amount, prev_source, prev_category_id, prev_payment_method_id, prev_deferred_index, prev_deferred_total, prev_type, prev_loan_id, prev_is_loan_payment = previous_record
+                loan_id = _resolve_active_loan_id(
+                    cur,
+                    request.form.get("loan_id"),
+                    include_id=prev_loan_id,
+                ) if is_loan_payment else None
+                if is_loan_payment and loan_id is None:
+                    msg = "Select an active loan."
+                    return redirect(f"/edit/{id}?from={from_page}&error={quote(msg)}")
+
                 if (
                     prev_type == "expense"
                     and (prev_deferred_total or 0) > 1
@@ -482,7 +595,8 @@ def edit(id):
                 cur.execute("""
                     UPDATE records
                     SET concept=%s, amount=%s, date=%s, type=%s, source=%s, comment=%s,
-                        category_id=%s, payment_method_id=%s, is_financed=%s, deferred_index=%s, deferred_total=%s, updated_at=NOW(), updated_by=%s
+                        category_id=%s, payment_method_id=%s, deferred_index=%s, deferred_total=%s,
+                        loan_id=%s, is_loan_payment=%s, updated_at=NOW(), updated_by=%s
                     WHERE id=%s
                 """, (
                     concept,
@@ -493,9 +607,10 @@ def edit(id):
                     comment,
                     category_id,
                     payment_method_id,
-                    is_financed,
                     deferred_index,
                     deferred_total_value,
+                    loan_id,
+                    is_loan_payment,
                     session.get("user_name"),
                     id
                 ))
@@ -519,7 +634,8 @@ def edit(id):
                           AND source IS NOT DISTINCT FROM %s
                           AND category_id IS NOT DISTINCT FROM %s
                           AND payment_method_id IS NOT DISTINCT FROM %s
-                          AND is_financed IS NOT DISTINCT FROM %s
+                          AND loan_id IS NOT DISTINCT FROM %s
+                          AND is_loan_payment IS NOT DISTINCT FROM %s
                           AND COALESCE(deferred_index, 0) > %s
                         """,
                         (
@@ -529,7 +645,8 @@ def edit(id):
                             prev_source,
                             prev_category_id,
                             prev_payment_method_id,
-                            prev_is_financed,
+                            prev_loan_id,
+                            prev_is_loan_payment,
                             deferred_total,
                         ),
                     )
@@ -544,7 +661,8 @@ def edit(id):
                             comment=%s,
                             category_id=%s,
                             payment_method_id=%s,
-                            is_financed=%s,
+                            loan_id=%s,
+                            is_loan_payment=%s,
                             deferred_total=%s,
                             updated_at=NOW(),
                             updated_by=%s
@@ -557,7 +675,8 @@ def edit(id):
                           AND source IS NOT DISTINCT FROM %s
                           AND category_id IS NOT DISTINCT FROM %s
                           AND payment_method_id IS NOT DISTINCT FROM %s
-                          AND is_financed IS NOT DISTINCT FROM %s
+                          AND loan_id IS NOT DISTINCT FROM %s
+                          AND is_loan_payment IS NOT DISTINCT FROM %s
                         """,
                         (
                             concept,
@@ -566,7 +685,8 @@ def edit(id):
                             comment,
                             category_id,
                             payment_method_id,
-                            is_financed,
+                            loan_id,
+                            is_loan_payment,
                             deferred_total,
                             session.get("user_name"),
                             id,
@@ -576,7 +696,8 @@ def edit(id):
                             prev_source,
                             prev_category_id,
                             prev_payment_method_id,
-                            prev_is_financed,
+                            prev_loan_id,
+                            prev_is_loan_payment,
                         ),
                     )
 
@@ -602,10 +723,10 @@ def edit(id):
                             cur.execute(
                                 """
                                 INSERT INTO records (
-                                    concept, amount, date, type, source, comment, category_id, payment_method_id, is_financed,
-                                    deferred_index, deferred_total, created_by, created_at, updated_at
+                                    concept, amount, date, type, source, comment, category_id, payment_method_id,
+                                    deferred_index, deferred_total, loan_id, is_loan_payment, created_by, created_at, updated_at
                                 )
-                                VALUES (%s, %s, %s, 'expense', %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                                VALUES (%s, %s, %s, 'expense', %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
                                 """,
                                 (
                                     concept,
@@ -615,13 +736,15 @@ def edit(id):
                                     comment,
                                     category_id,
                                     payment_method_id,
-                                    is_financed,
                                     installment_idx,
                                     deferred_total,
+                                    loan_id,
+                                    is_loan_payment,
                                     session.get("user_name"),
                                 ),
                             )
 
+                _sync_loan_statuses(cur, [prev_loan_id, loan_id])
                 conn.commit()
                 invalidate_dashboard_cache()
                 logger.info(
@@ -640,7 +763,8 @@ def edit(id):
                        c.name AS category_display,
                        e.category_id,
                        e.created_by, e.created_at, e.updated_at, e.updated_by,
-                       e.payment_method_id, e.deferred_index, e.deferred_total, e.is_financed
+                       e.payment_method_id, e.deferred_index, e.deferred_total,
+                       e.loan_id, e.is_loan_payment
                 FROM records e
                 LEFT JOIN categories c ON e.category_id = c.id
                 WHERE e.id=%s
@@ -650,6 +774,7 @@ def edit(id):
             categories = [r[0] for r in cur.fetchall()]
             cur.execute("SELECT id, name, is_active FROM payment_methods ORDER BY name")
             payment_methods = cur.fetchall()
+            loans = _load_active_loans(cur, include_id=expense[16] if expense else None)
 
     return render_template(
         "edit.html",
@@ -658,6 +783,7 @@ def edit(id):
         from_page=from_page,
         categories=categories,
         payment_methods=payment_methods,
+        loans=loans,
         error=request.args.get("error")
     )
 
@@ -673,7 +799,8 @@ def duplicate(id):
                        c.name AS category_display,
                        e.category_id,
                        e.created_by, e.created_at, e.updated_at, e.updated_by,
-                       e.payment_method_id, e.deferred_index, e.deferred_total, e.is_financed
+                       e.payment_method_id, e.deferred_index, e.deferred_total,
+                       e.loan_id, e.is_loan_payment
                 FROM records e
                 LEFT JOIN categories c ON e.category_id = c.id
                 WHERE e.id=%s
@@ -716,11 +843,13 @@ def duplicate(id):
                 payment_method_id = _resolve_payment_method_id(cur, request.form.get("payment_method_id"))
                 if type_ != "expense":
                     payment_method_id = None
-                is_financed = (request.form.get("is_financed") == "1")
+                is_loan_payment = (request.form.get("is_loan_payment") == "1")
                 if type_ != "expense":
-                    is_financed = False
+                    is_loan_payment = False
                 date_fallback = request.form.get("date") or datetime.now().strftime("%Y-%m")
                 is_deferred = (request.form.get("is_deferred") == "1")
+                if is_loan_payment:
+                    is_deferred = False
                 try:
                     deferred_total = int(request.form.get("deferred_total") or "1")
                 except ValueError:
@@ -728,6 +857,12 @@ def duplicate(id):
                 deferred_total = min(max(deferred_total, 1), 60)
 
                 deferred_dates = []
+                loan_id = _resolve_active_loan_id(cur, request.form.get("loan_id")) if is_loan_payment else None
+                if is_loan_payment and loan_id is None:
+                    duplicate_url = f"/duplicate/{id}?from={from_page}&error={quote('Select an active loan.')}"
+                    if return_to.startswith("/"):
+                        duplicate_url += f"&return_to={quote(return_to)}"
+                    return redirect(duplicate_url)
                 if type_ == "expense" and is_deferred and deferred_total > 1:
                     base_dt = parse_year_month(date_fallback, datetime.now())
                     deferred_dates = [_shift_month(base_dt, i).strftime("%Y-%m") for i in range(deferred_total)]
@@ -737,8 +872,8 @@ def duplicate(id):
                     deferred_index = idx if deferred_dates else None
                     deferred_total_value = deferred_total if deferred_dates else None
                     cur.execute("""
-                        INSERT INTO records (concept, amount, date, type, source, comment, category_id, payment_method_id, is_financed, deferred_index, deferred_total, created_by, created_at, updated_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                        INSERT INTO records (concept, amount, date, type, source, comment, category_id, payment_method_id, deferred_index, deferred_total, loan_id, is_loan_payment, created_by, created_at, updated_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
                     """, (
                         concept,
                         amount,
@@ -748,11 +883,13 @@ def duplicate(id):
                         comment,
                         category_id,
                         payment_method_id,
-                        is_financed,
                         deferred_index,
                         deferred_total_value,
+                        loan_id,
+                        is_loan_payment,
                         session.get("user_name")
                     ))
+                _sync_loan_statuses(cur, [loan_id])
                 conn.commit()
                 invalidate_dashboard_cache()
                 logger.info(
@@ -777,6 +914,7 @@ def duplicate(id):
             categories = [r[0] for r in cur.fetchall()]
             cur.execute("SELECT id, name, is_active FROM payment_methods ORDER BY name")
             payment_methods = cur.fetchall()
+            loans = _load_active_loans(cur)
     return render_template(
         "duplicate.html",
         expense=expense,
@@ -786,6 +924,7 @@ def duplicate(id):
         return_to=return_to,
         categories=categories,
         payment_methods=payment_methods,
+        loans=loans,
         error=request.args.get("error")
     )
 
@@ -804,8 +943,15 @@ def delete(id):
         target = return_to
     with get_db() as conn:
         with conn.cursor() as cur:
+            cur.execute(
+                "SELECT loan_id FROM records WHERE id=%s AND type='expense' AND is_loan_payment=TRUE",
+                (id,),
+            )
+            row = cur.fetchone()
+            loan_id = row[0] if row else None
             cur.execute("DELETE FROM records WHERE id=%s", (id,))
             deleted = cur.rowcount
+            _sync_loan_statuses(cur, [loan_id])
             conn.commit()
             invalidate_dashboard_cache()
             logger.info(

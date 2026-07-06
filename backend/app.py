@@ -20,9 +20,11 @@ from routes.categories import categories_bp
 from routes.auth import auth_bp
 from routes.backups import backups_bp
 from routes.setup import setup_bp
+from routes.loans import loans_bp
 from i18n import category_description, category_name, get_lang, t
 from security import limiter
 from log_safety import redact_text
+from log_formatting import color_enabled, text_formatter
 
 
 class RequestContextFilter(logging.Filter):
@@ -59,11 +61,6 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(payload, ensure_ascii=False)
 
 
-class RedactingTextFormatter(logging.Formatter):
-    def format(self, record):
-        return redact_text(super().format(record))
-
-
 def configure_logging():
     level_name = os.environ.get("LOG_LEVEL", "INFO").upper()
     log_format = os.environ.get("LOG_FORMAT", "json").strip().lower()
@@ -75,7 +72,12 @@ def configure_logging():
     if log_format == "json":
         handler.setFormatter(JsonFormatter())
     else:
-        handler.setFormatter(RedactingTextFormatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
+        handler.setFormatter(
+            text_formatter(
+                "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+                color_enabled(log_format),
+            )
+        )
     handler.addFilter(RequestContextFilter())
     root.addHandler(handler)
 
@@ -93,7 +95,7 @@ app = Flask(
     static_url_path="/static"
 )
 app.secret_key = os.environ.get("SECRET_KEY", DEFAULT_SECRET_KEY)
-app.config["APP_VERSION"] = os.environ.get("APP_VERSION", "3.1.0")
+app.config["APP_VERSION"] = os.environ.get("APP_VERSION", "3.2.0")
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -168,6 +170,7 @@ app.register_blueprint(categories_bp)
 app.register_blueprint(auth_bp)
 app.register_blueprint(backups_bp)
 app.register_blueprint(setup_bp)
+app.register_blueprint(loans_bp)
 start_report_scheduler()
 
 
@@ -176,7 +179,7 @@ def inject_template_globals():
     lang = get_lang()
     return {
         "current_year": datetime.now().year,
-        "app_version": app.config.get("APP_VERSION", "3.1.0"),
+        "app_version": app.config.get("APP_VERSION", "3.2.0"),
         "current_lang": lang,
         "t": lambda text: t(text, lang),
         "cat_name": lambda name: category_name(name, lang),

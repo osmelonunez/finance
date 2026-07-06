@@ -14,13 +14,14 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
 ## Current Version
 
-- Stable version: `3.1.0`
-- Production compose image is pinned to `f1nanc3/finance:3.1.0`
+- Stable version: `3.2.0`
+- Release: `v3.2.0 - Loans and Banks`
+- Production compose image is pinned to `f1nanc3/finance:3.2.0`
 
 ## Core Features
 
 - Separate views: `Expenses`, `Incomes`, `Savings`
-- Dashboard with monthly and yearly charts
+- Dashboard with monthly and yearly charts, including loan debt indicators
 - Auth with roles: `admin`, `editor`, `user`
 - Rate limiting in auth endpoints
 - Profile preferences per user:
@@ -35,7 +36,10 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
   - categories
   - system settings
   - accounts/cards
-- Deferred and financed expenses
+  - banks
+- Loans with bank, amount, term, monthly payment, description, and payment tracking
+- Loan payments registered from expenses without counting loan requests as income
+- Deferred expenses
 - Localized categories for default list (`en` / `es`)
 - SQL migrations with migration tracking table
 - Gunicorn runtime in Docker, running as non-root user
@@ -125,10 +129,10 @@ make down-prod
 Multi-arch build + push (`linux/amd64,linux/arm64`):
 
 ```bash
-make build IMAGE=f1nanc3/finance:latest
+make build
 ```
 
-Local build only:
+Local build only (`f1nanc3/finance:latest`):
 
 ```bash
 make build-local
@@ -151,7 +155,8 @@ Required in production:
 Recommended:
 - `APP_PUBLIC_URL` (links in emails)
 - `SESSION_LIFETIME_HOURS` (default `12`)
-- `LOG_FORMAT=json`
+- `LOG_FORMAT=text` for colored container logs, or `json` for structured logs
+- `LOG_COLOR=true` to color text logs by level (`INFO` green, `WARNING` yellow, `ERROR` red)
 - `LOG_LEVEL=INFO`
 
 Rate limits:

@@ -23,4 +23,4 @@ EXPOSE 5000
 
 USER finance
 
-CMD ["sh", "-c", "python backend/startup.py && exec gunicorn --chdir backend --bind 0.0.0.0:5000 --workers ${GUNICORN_WORKERS:-2} --threads ${GUNICORN_THREADS:-4} --timeout ${GUNICORN_TIMEOUT:-120} app:app"]
+CMD ["sh", "-c", "cd backend && python startup.py && exec gunicorn -c gunicorn_conf.py --bind 0.0.0.0:5000 --workers ${GUNICORN_WORKERS:-2} --threads ${GUNICORN_THREADS:-4} --timeout ${GUNICORN_TIMEOUT:-120} app:app"]

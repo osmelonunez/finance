@@ -63,6 +63,7 @@
         }
         .filter-pack {
             display: flex;
+            flex-wrap: wrap;
             gap: 0.5rem;
             align-items: flex-end;
         }
@@ -87,8 +88,8 @@
         .col-payment-method {
             width: 14%;
         }
-        .col-financed {
-            width: 10%;
+        .col-loan {
+            width: 14%;
         }
         .amount-cell {
             padding-left: 0.25rem;
@@ -196,7 +197,7 @@
     {% endif %}
 
     {% if fixed_type == 'expense' %}
-    <div class="col-md-6">
+    <div class="col-md-10">
         <div class="filter-pack">
             <div>
                 <label class="form-label">{{ t('Category') }}</label>
@@ -224,14 +225,6 @@
                 </select>
             </div>
             <div>
-                <label class="form-label">{{ t('Financed') }}</label>
-                <select class="form-control source-filter" name="financed">
-                    <option value="">{{ t('All') }}</option>
-                    <option value="1" {{ 'selected' if f_financed=='1' else '' }}>{{ t('Yes') }}</option>
-                    <option value="0" {{ 'selected' if f_financed=='0' else '' }}>{{ t('No') }}</option>
-                </select>
-            </div>
-            <div>
                 <label class="form-label">{{ t('Account/Card') }}</label>
                 <select class="form-control category-filter" name="payment_method_id">
                     <option value="">{{ t('All') }}</option>
@@ -240,8 +233,20 @@
                     {% endfor %}
                 </select>
             </div>
+            <div>
+                <label class="form-label">{{ t('Loan') }}</label>
+                <select class="form-control category-filter" name="loan_id">
+                    <option value="">{{ t('All') }}</option>
+                    {% for loan in loans %}
+                    <option value="{{ loan[0] }}" {{ 'selected' if f_loan == (loan[0]|string) else '' }}>{{ loan[1] }} - {{ loan[2] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
             <div class="d-flex align-items-end">
-                <button class="btn btn-soft" style="min-width: 110px;">{{ t('Filter') }}</button>
+                <button type="submit" class="btn btn-soft" style="min-width: 110px;">{{ t('Filter') }}</button>
+            </div>
+            <div class="d-flex align-items-end ms-auto">
+                <a href="/records/add?from={{ current_page }}" class="btn btn-success" style="height: 38px; min-width: 110px; display: inline-flex; align-items: center; justify-content: center;">{{ t('+ Add') }}</a>
             </div>
         </div>
     </div>
@@ -281,10 +286,10 @@
     <div class="col-md-2 d-flex align-items-end">
         <button class="btn btn-soft" style="min-width: 110px;">{{ t('Filter') }}</button>
     </div>
-    {% endif %}
-    <div class="col-md-3 ms-auto d-flex align-items-end justify-content-end pe-0">
+    <div class="col-md d-flex align-items-end justify-content-end pe-0">
         <a href="/records/add?from={{ current_page }}" class="btn btn-success" style="height: 38px; min-width: 110px; display: inline-flex; align-items: center; justify-content: center;">{{ t('+ Add') }}</a>
     </div>
+    {% endif %}
 
 </form>
 
@@ -307,7 +312,7 @@
     <th class="col-date" data-col="date">{{ t('Date') }} ↓</th>
     <th class="col-source" data-col="source">{{ t('Source') }}</th>
     <th class="col-payment-method" data-col="payment_method">{{ t('Account/Card') }}</th>
-    <th class="col-financed" data-col="financed">{{ t('Financed') }}</th>
+    <th class="col-loan" data-col="loan">{{ t('Loan') }}</th>
     <th class="col-amount text-end pe-5 amount-cell" data-col="amount">{{ t('Amount') }} ⇅</th>
     {% else %}
     <th class="col-desc" data-col="concept">{{ t('Concept') }}</th>
@@ -348,8 +353,8 @@
                     <span class="form-check-label">{{ t('Account/Card') }}</span>
                 </label>
                 <label class="form-check">
-                    <input class="form-check-input col-toggle" type="checkbox" value="financed" checked>
-                    <span class="form-check-label">{{ t('Financed') }}</span>
+                    <input class="form-check-input col-toggle" type="checkbox" value="loan" checked>
+                    <span class="form-check-label">{{ t('Loan') }}</span>
                 </label>
                 {% endif %}
                 {% if fixed_type is none %}
@@ -374,7 +379,7 @@
     <td data-col="date">{{ e[3] }}</td>
     <td data-col="source">{% if e[5] == 'monthly' %}{{ t('Monthly') }}{% elif e[5] == 'saving' %}{{ t('Saving') }}{% else %}-{% endif %}</td>
     <td data-col="payment_method">{{ e[8] or '-' }}</td>
-    <td data-col="financed">{{ t('Yes') if e[9] else t('No') }}</td>
+    <td data-col="loan">{% if e[9] and e[10] %}{{ e[10] }} - {{ e[11] }}{% else %}-{% endif %}</td>
     <td class="text-end pe-5 amount-cell" data-col="amount">{{ "%.2f"|format(e[2]) }}</td>
     {% else %}
     <td data-col="concept">{{ e[1] }}</td>
@@ -478,7 +483,7 @@ const fixedType = "{{ fixed_type or '' }}";
 const COL_STORAGE_KEY = `movements.columns.${fixedType || 'all'}`;
 
 function applyColumnVisibility(cols) {
-    const allCols = ['concept', 'amount', 'date', 'source', 'category', 'payment_method', 'financed'];
+    const allCols = ['concept', 'amount', 'date', 'source', 'category', 'payment_method', 'loan'];
     allCols.forEach((col) => {
         const show = cols.includes(col);
         document.querySelectorAll(`[data-col="${col}"]`).forEach((el) => {

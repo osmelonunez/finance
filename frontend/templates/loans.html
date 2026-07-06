@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    .card-soft {
+        border: 1px solid #e3e9f0;
+        border-radius: 14px;
+        box-shadow: 0 8px 18px rgba(24, 54, 88, 0.08);
+    }
+    .card-soft h6 {
+        color: #5a6b7b;
+        font-size: 0.86rem;
+        margin-bottom: 0.45rem;
+    }
+    .card-soft h4,
+    .card-soft h5 {
+        color: #2f3b47;
+        font-weight: 700;
+        margin-bottom: 0;
+    }
+    .filters-card {
+        background: #f7f9fc;
+        border: 1px solid #e3e9f0;
+        border-radius: 14px;
+        padding: 16px;
+    }
+    .filters-card .btn {
+        height: 38px;
+        min-width: 110px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .table-shell {
+        border: 1px solid #d7dee6;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 8px 18px rgba(24, 54, 88, 0.08);
+    }
+    .table-clean {
+        margin-bottom: 0;
+    }
+    .table-clean thead th {
+        background: #f0f4f8;
+        border-bottom: 1px solid #d7dee6;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        color: #4a5a6a;
+    }
+    .progress {
+        height: 8px;
+        background: #edf1f5;
+    }
+    .progress-bar {
+        background: #5d87ad;
+    }
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 0.15rem 0.55rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: #eef3f8;
+        color: #405265;
+    }
+</style>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card card-soft p-3 h-100">
+            <h6>{{ t('Requested total') }}</h6>
+            <h5>{{ "%.2f"|format(total_principal) }}</h5>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-soft p-3 h-100">
+            <h6>{{ t('Paid') }}</h6>
+            <h5 class="text-success">{{ "%.2f"|format(total_paid) }}</h5>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-soft p-3 h-100">
+            <h6>{{ t('Pending debt') }}</h6>
+            <h5 class="text-danger">{{ "%.2f"|format(total_pending) }}</h5>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-soft p-3 h-100">
+            <h6>{{ t('Active loans') }}</h6>
+            <h4 style="color:#5d87ad">{{ active_count }}</h4>
+        </div>
+    </div>
+</div>
+
+<form method="get" class="filters-card row g-2 mb-4 align-items-end">
+    <div class="col-md-2">
+        <label class="form-label">{{ t('Status') }}</label>
+        <select class="form-control" name="status">
+            <option value="">{{ t('All') }}</option>
+            <option value="active" {{ 'selected' if f_status == 'active' else '' }}>{{ t('Active') }}</option>
+            <option value="paid" {{ 'selected' if f_status == 'paid' else '' }}>{{ t('Paid') }}</option>
+            <option value="cancelled" {{ 'selected' if f_status == 'cancelled' else '' }}>{{ t('Cancelled') }}</option>
+        </select>
+    </div>
+    <div class="col-md-auto">
+        <button class="btn btn-soft">{{ t('Filter') }}</button>
+    </div>
+    <div class="col-md d-flex align-items-end justify-content-end pe-0">
+        <a href="/loans/add" class="btn btn-success">{{ t('+ Add') }}</a>
+    </div>
+</form>
+
+{% if loans|length == 0 %}
+<div class="alert alert-light border">{{ t('No loans yet.') }}</div>
+{% else %}
+<div class="table-shell">
+    <table class="table table-clean align-middle">
+        <thead>
+        <tr>
+            <th>{{ t('Loan') }}</th>
+            <th>{{ t('Bank') }}</th>
+            <th class="text-end">{{ t('Requested') }}</th>
+            <th>{{ t('Installments') }}</th>
+            <th class="text-end">{{ t('Monthly payment') }}</th>
+            <th>{{ t('Progress') }}</th>
+            <th class="text-end">{{ t('Pending') }}</th>
+            <th>{{ t('Status') }}</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for loan in loans %}
+            {% set paid = loan[9] %}
+            {% set pending = loan[3] - paid %}
+            {% set percent = (paid / loan[3] * 100) if loan[3] else 0 %}
+            {% if percent > 100 %}{% set percent = 100 %}{% endif %}
+            <tr class="row-link" data-href="/loans/{{ loan[0] }}" style="cursor:pointer;">
+                <td>
+                    <div class="fw-semibold">{{ loan[1] }}</div>
+                </td>
+                <td>{{ loan[2] }}</td>
+                <td class="text-end">{{ "%.2f"|format(loan[3]) }}</td>
+                <td>{{ loan[10] }}/{{ loan[4] }}</td>
+                <td class="text-end">{{ "%.2f"|format(loan[5]) if loan[5] else '-' }}</td>
+                <td style="min-width: 160px;">
+                    <div class="progress">
+                        <div class="progress-bar" style="width: {{ percent }}%;"></div>
+                    </div>
+                    <div class="text-muted small mt-1">{{ "%.0f"|format(percent) }}%</div>
+                </td>
+                <td class="text-end">{{ "%.2f"|format(pending if pending > 0 else 0) }}</td>
+                <td><span class="status-pill">{{ t(loan[8]|capitalize) }}</span></td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.row-link').forEach((row) => {
+    row.addEventListener('click', () => {
+        const href = row.getAttribute('data-href');
+        if (href) window.location.href = href;
+    });
+});
+</script>
+{% endblock %}

@@ -1,10 +1,13 @@
 services:
   finance:
-    image: f1nanc3/finance:3.1.0
+    image: f1nanc3/finance:3.2.0
     container_name: finance
     environment:
       # Runtime mode (development/production).
       APP_ENV: production
+      # Text logs with ANSI colors by level: info=green, warning=yellow, error=red.
+      LOG_FORMAT: text
+      LOG_COLOR: "true"
       # Path where app stores database connection configuration.
       APP_CONFIG_PATH: /config/.app_config.json
       # Directory used to store generated backup files.

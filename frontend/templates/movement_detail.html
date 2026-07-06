@@ -71,8 +71,14 @@
         {% endif %}
         {% if expense[4] == 'expense' %}
         <div class="col-md-4">
-            <div class="detail-label">{{ t('Financed') }}</div>
-            <div class="detail-value">{{ t('Yes') if expense[16] else t('No') }}</div>
+            <div class="detail-label">{{ t('Loan payment') }}</div>
+            <div class="detail-value">
+                {% if expense[17] and expense[18] %}
+                    <a href="/loans/{{ expense[16] }}">{{ expense[18] }} - {{ expense[19] }}</a>
+                {% else %}
+                    {{ t('No') }}
+                {% endif %}
+            </div>
         </div>
         {% endif %}
         <div class="col-md-12">

@@ -1,15 +1,14 @@
 COMPOSE=docker compose -f tools/docker/docker-compose.yaml
 COMPOSE_PROD=docker compose -f docker/docker-compose.yaml
 IMAGE_REPO?=f1nanc3/finance
-VERSION?=3.1.0
-IMAGE?=$(IMAGE_REPO):latest
+VERSION?=3.2.0
 PLATFORMS?=linux/amd64,linux/arm64
 
 build:
 	docker buildx build --platform $(PLATFORMS) -t $(IMAGE_REPO):$(VERSION) -t $(IMAGE_REPO):latest -f tools/docker/Dockerfile --push .
 
 build-local:
-	docker build -t finance:latest -f tools/docker/Dockerfile .
+	docker build -t $(IMAGE_REPO):latest -f tools/docker/Dockerfile .
 
 up:
 	$(COMPOSE) up -d --build

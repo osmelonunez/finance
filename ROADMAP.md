@@ -18,6 +18,7 @@ Este roadmap separa:
 - Uniformidad de logs por evento de negocio.
 
 ## Gestión Funcional
+- Préstamos y bancos completado en `v3.2.0`.
 - Evolución de “Cuentas y tarjetas” con reglas más claras.
 - Mejoras en asociación de gastos a cuenta/tarjeta.
 - Plantillas de reportes `v2` y opciones de branding.

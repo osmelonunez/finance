@@ -3,7 +3,7 @@ services:
     build:
       context: ../../
       dockerfile: tools/docker/Dockerfile
-    image: finance:latest
+    image: f1nanc3/finance:latest
     pull_policy: never
     container_name: finance
     ports:
@@ -11,6 +11,9 @@ services:
     environment:
       # Runtime mode (development/production).
       APP_ENV: development
+      # Text logs with ANSI colors by level: info=green, warning=yellow, error=red.
+      LOG_FORMAT: text
+      LOG_COLOR: "true"
       # Path where app stores database connection configuration.
       APP_CONFIG_PATH: /config/.app_config.json
       # Directory used to store generated backup files.

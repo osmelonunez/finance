@@ -1,0 +1,397 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    .detail-card {
+        border: 1px solid #d7dee6;
+        border-radius: 8px;
+        padding: 18px;
+        background: #ffffff;
+        box-shadow: 0 8px 18px rgba(24, 54, 88, 0.08);
+    }
+    .detail-label {
+        font-size: 0.75rem;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+        color: #5a6b7b;
+    }
+    .detail-value {
+        font-weight: 600;
+        font-size: 1rem;
+        color: #2f3b47;
+    }
+    .progress {
+        height: 10px;
+        background: #edf1f5;
+    }
+    .progress-bar {
+        background: #5d87ad;
+    }
+    .progress-bar-payment {
+        background: #198754;
+    }
+    .progress-bar-usage {
+        background: #5d87ad;
+    }
+    .payments-table thead th {
+        background: #f0f4f8;
+        border-bottom: 1px solid #d7dee6;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        color: #4a5a6a;
+    }
+    .loan-detail-tabs .nav-link {
+        color: #405267;
+        font-weight: 600;
+    }
+    .loan-detail-tabs .nav-link.active {
+        color: #1f2a35;
+    }
+</style>
+
+{% set paid = loan[9] %}
+{% set pending = loan[3] - paid %}
+{% set available = loan[3] - usage_total %}
+{% set percent = (paid / loan[3] * 100) if loan[3] else 0 %}
+{% if percent > 100 %}{% set percent = 100 %}{% endif %}
+{% set usage_percent = (usage_total / loan[3] * 100) if loan[3] else 0 %}
+{% if usage_percent > 100 %}{% set usage_percent = 100 %}{% endif %}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h2 class="mb-0">{{ loan[1] }}</h2>
+    <div class="d-flex gap-2">
+        {% if loan[8] == 'active' %}
+        <a href="/records/add?from=expense&loan_id={{ loan[0] }}" class="btn btn-success">{{ t('Register payment') }}</a>
+        {% endif %}
+        <a href="/loans" class="btn btn-light">{{ t('Back') }}</a>
+    </div>
+</div>
+
+<div class="detail-card mb-4">
+    <div class="row g-3">
+        <div class="col-md-3">
+            <div class="detail-label">{{ t('Bank') }}</div>
+            <div class="detail-value">{{ loan[2] }}</div>
+        </div>
+        <div class="col-md-3">
+            <div class="detail-label">{{ t('Requested') }}</div>
+            <div class="detail-value">{{ "%.2f"|format(loan[3]) }}</div>
+        </div>
+        <div class="col-md-3">
+            <div class="detail-label">{{ t('Used') }}</div>
+            <div class="detail-value" style="color:#5d87ad">{{ "%.2f"|format(usage_total) }}</div>
+        </div>
+        <div class="col-md-3">
+            <div class="detail-label">{{ t('Available') }}</div>
+            <div class="detail-value {{ 'text-success' if available >= 0 else 'text-danger' }}">{{ "%.2f"|format(available) }}</div>
+        </div>
+        <div class="col-md-3">
+            <div class="detail-label">{{ t('Paid') }}</div>
+            <div class="detail-value text-success">{{ "%.2f"|format(paid) }}</div>
+        </div>
+        <div class="col-md-3">
+            <div class="detail-label">{{ t('Pending') }}</div>
+            <div class="detail-value text-danger">{{ "%.2f"|format(pending if pending > 0 else 0) }}</div>
+        </div>
+        <div class="col-md-3">
+            <div class="detail-label">{{ t('Installments') }}</div>
+            <div class="detail-value">{{ loan[10] }}/{{ loan[4] }}</div>
+        </div>
+        <div class="col-md-3">
+            <div class="detail-label">{{ t('Monthly payment') }}</div>
+            <div class="detail-value">{{ "%.2f"|format(loan[5]) if loan[5] else '-' }}</div>
+        </div>
+        <div class="col-md-3">
+            <div class="detail-label">{{ t('Start date') }}</div>
+            <div class="detail-value">{{ loan[6] }}</div>
+        </div>
+        <div class="col-md-3">
+            <div class="detail-label">{{ t('Status') }}</div>
+            <div class="detail-value">{{ t(loan[8]|capitalize) }}</div>
+        </div>
+        <div class="col-md-3">
+            <div class="detail-label">{{ t('Dashboard') }}</div>
+            <div class="detail-value">{{ t('Excluded') if loan[11] else t('Included') }}</div>
+        </div>
+        <div class="col-md-12">
+            <div class="detail-label mb-1">{{ t('Usage progress') }}</div>
+            <div class="progress">
+                <div class="progress-bar progress-bar-usage" style="width: {{ usage_percent }}%;"></div>
+            </div>
+            <div class="text-muted small mt-1">{{ "%.0f"|format(usage_percent) }}% {{ t('used') }}</div>
+        </div>
+        <div class="col-md-12">
+            <div class="detail-label mb-1">{{ t('Payment progress') }}</div>
+            <div class="progress">
+                <div class="progress-bar progress-bar-payment" style="width: {{ percent }}%;"></div>
+            </div>
+            <div class="text-muted small mt-1">{{ "%.0f"|format(percent) }}% {{ t('paid') }}</div>
+        </div>
+        <div class="col-md-12">
+            <div class="detail-label">{{ t('Description') }}</div>
+            <div class="detail-value">{{ loan[7] or '-' }}</div>
+        </div>
+    </div>
+    <form method="post" action="/loans/{{ loan[0] }}/status" class="d-flex gap-2 mt-4 align-items-end">
+        <div>
+            <label class="form-label">{{ t('Status') }}</label>
+            <select class="form-control" name="status">
+                <option value="active" {{ 'selected' if loan[8] == 'active' else '' }}>{{ t('Active') }}</option>
+                <option value="paid" {{ 'selected' if loan[8] == 'paid' else '' }}>{{ t('Paid') }}</option>
+                <option value="cancelled" {{ 'selected' if loan[8] == 'cancelled' else '' }}>{{ t('Cancelled') }}</option>
+            </select>
+        </div>
+        <button class="btn btn-soft">{{ t('Update') }}</button>
+        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteLoanModal">
+            {{ t('Delete') }}
+        </button>
+    </form>
+    <form method="post" action="/loans/{{ loan[0] }}/dashboard-visibility" class="mt-3">
+        <div class="form-check">
+            <input
+                class="form-check-input"
+                type="checkbox"
+                id="excludeFromDashboard"
+                name="exclude_from_dashboard"
+                {{ 'checked' if loan[11] else '' }}>
+            <label class="form-check-label" for="excludeFromDashboard">
+                {{ t('Exclude from dashboard') }}
+            </label>
+            <div class="form-text">{{ t('Excluded loans keep their payments and detail history, but do not add to dashboard loan totals.') }}</div>
+        </div>
+        <button class="btn btn-soft mt-2">{{ t('Update') }}</button>
+    </form>
+</div>
+
+<div class="modal fade" id="deleteLoanModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-danger">{{ t('Delete loan') }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">{{ t('This action cannot be undone. Delete this loan?') }}</div>
+        <div class="alert alert-warning py-2 mb-0">
+            <strong>{{ loan[1] }}</strong>
+            <div class="small">{{ t('Loan payments will remain as expenses, but will no longer be linked to this loan.') }}</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ t('Cancel') }}</button>
+        <form method="post" action="/loans/{{ loan[0] }}/delete">
+          <button type="submit" class="btn btn-danger">{{ t('Delete') }}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="detail-card mb-4">
+    <ul class="nav nav-tabs loan-detail-tabs mb-4">
+        <li class="nav-item">
+            <a class="nav-link {{ 'active' if active_tab == 'usages' else '' }}" href="/loans/{{ loan[0] }}?tab=usages&usage_page={{ usage_page }}">
+                {{ t('Loan usage') }}
+                <span class="badge text-bg-light ms-1">{{ usage_total_rows }}</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {{ 'active' if active_tab == 'payments' else '' }}" href="/loans/{{ loan[0] }}?tab=payments&payment_page={{ payment_page }}">
+                {{ t('Payment history') }}
+                <span class="badge text-bg-light ms-1">{{ payment_total_rows }}</span>
+            </a>
+        </li>
+    </ul>
+
+    {% if active_tab == 'usages' %}
+    <form method="post" action="/loans/{{ loan[0] }}/usages/add" class="row g-3 align-items-end mb-4">
+        <div class="col-md-3">
+            <label class="form-label">{{ t('Concept') }}</label>
+            <input class="form-control" name="concept" required>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">{{ t('Amount') }}</label>
+            <input class="form-control" type="number" step="0.01" min="0.01" name="amount" required>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">{{ t('Date') }}</label>
+            <input class="form-control" type="month" name="date" value="{{ loan[6] }}" required>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">{{ t('Category') }}</label>
+            <select class="form-control" name="category">
+                <option value="">{{ t('Select') }}</option>
+                {% for category in categories %}
+                <option value="{{ category }}">{{ t(category) }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">{{ t('Comment') }}</label>
+            <input class="form-control" name="comment">
+        </div>
+        <div class="col-md-12">
+            <button class="btn btn-success">{{ t('Register usage') }}</button>
+        </div>
+    </form>
+
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="mb-0">{{ t('Usage history') }}</h6>
+        {% if usage_total_rows > 0 %}
+        <div class="text-muted small">{{ t('Page') }} {{ usage_page }} {{ t('of') }} {{ usage_pages }}</div>
+        {% endif %}
+    </div>
+    {% if usages|length == 0 %}
+    <div class="alert alert-light border mb-0">{{ t('No usages yet.') }}</div>
+    {% else %}
+    <div class="table-responsive">
+        <table class="table payments-table align-middle mb-0">
+            <thead>
+            <tr>
+                <th>{{ t('Date') }}</th>
+                <th>{{ t('Concept') }}</th>
+                <th>{{ t('Category') }}</th>
+                <th>{{ t('Comment') }}</th>
+                <th class="text-end">{{ t('Amount') }}</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for usage in usages %}
+            <tr>
+                <td>{{ usage[3] }}</td>
+                <td>{{ usage[1] }}</td>
+                <td>{{ t(usage[4]) if usage[4] else '-' }}</td>
+                <td>{{ usage[5] or '-' }}</td>
+                <td class="text-end">{{ "%.2f"|format(usage[2]) }}</td>
+                <td class="text-end">
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-outline-danger"
+                        data-bs-toggle="modal"
+                        data-bs-target="#deleteUsageModal"
+                        data-delete-url="/loans/{{ loan[0] }}/usages/{{ usage[0] }}/delete?usage_page={{ usage_page }}"
+                        data-usage-concept="{{ usage[1] }}"
+                        data-usage-amount="{{ "%.2f"|format(usage[2]) }}"
+                    >
+                        {{ t('Delete') }}
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if usage_pages > 1 %}
+    <nav class="mt-3">
+        <ul class="pagination pagination-sm justify-content-end mb-0">
+            <li class="page-item {{ 'disabled' if usage_page <= 1 else '' }}">
+                <a class="page-link" href="/loans/{{ loan[0] }}?tab=usages&usage_page={{ usage_page - 1 }}">{{ t('Previous') }}</a>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link">{{ usage_page }} / {{ usage_pages }}</span>
+            </li>
+            <li class="page-item {{ 'disabled' if usage_page >= usage_pages else '' }}">
+                <a class="page-link" href="/loans/{{ loan[0] }}?tab=usages&usage_page={{ usage_page + 1 }}">{{ t('Next') }}</a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+    {% endif %}
+    {% else %}
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="mb-0">{{ t('Payment history') }}</h6>
+        {% if payment_total_rows > 0 %}
+        <div class="text-muted small">{{ t('Page') }} {{ payment_page }} {{ t('of') }} {{ payment_pages }}</div>
+        {% endif %}
+    </div>
+    {% if payments|length == 0 %}
+    <div class="alert alert-light border mb-0">{{ t('No payments yet.') }}</div>
+    {% else %}
+    <div class="table-responsive">
+        <table class="table payments-table align-middle mb-0">
+            <thead>
+            <tr>
+                <th>{{ t('Date') }}</th>
+                <th>{{ t('Concept') }}</th>
+                <th>{{ t('Source') }}</th>
+                <th class="text-end">{{ t('Amount') }}</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for payment in payments %}
+            <tr>
+                <td>{{ payment[3] }}</td>
+                <td>{{ payment[1] }}</td>
+                <td>{{ t('Monthly') if payment[4] == 'monthly' else payment[4] or '-' }}</td>
+                <td class="text-end">{{ "%.2f"|format(payment[2]) }}</td>
+                <td class="text-end"><a href="/records/{{ payment[0] }}?from=expense&return_to={{ request.full_path|urlencode }}" class="btn btn-sm btn-light">{{ t('Details') }}</a></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if payment_pages > 1 %}
+    <nav class="mt-3">
+        <ul class="pagination pagination-sm justify-content-end mb-0">
+            <li class="page-item {{ 'disabled' if payment_page <= 1 else '' }}">
+                <a class="page-link" href="/loans/{{ loan[0] }}?tab=payments&payment_page={{ payment_page - 1 }}">{{ t('Previous') }}</a>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link">{{ payment_page }} / {{ payment_pages }}</span>
+            </li>
+            <li class="page-item {{ 'disabled' if payment_page >= payment_pages else '' }}">
+                <a class="page-link" href="/loans/{{ loan[0] }}?tab=payments&payment_page={{ payment_page + 1 }}">{{ t('Next') }}</a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+    {% endif %}
+    {% endif %}
+</div>
+
+<div class="modal fade" id="deleteUsageModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-danger">{{ t('Delete usage') }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">{{ t('This action cannot be undone. Delete this usage?') }}</div>
+        <div class="alert alert-warning py-2 mb-0">
+            <strong id="deleteUsageConcept">-</strong>
+            <div class="small">{{ t('Amount') }}: <span id="deleteUsageAmount">-</span></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ t('Cancel') }}</button>
+        <form method="post" id="deleteUsageForm" action="#">
+          <button type="submit" class="btn btn-danger">{{ t('Delete') }}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('deleteUsageModal');
+    if (!modal) {
+        return;
+    }
+    modal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        if (!button) {
+            return;
+        }
+        document.getElementById('deleteUsageForm').action = button.getAttribute('data-delete-url');
+        document.getElementById('deleteUsageConcept').textContent = button.getAttribute('data-usage-concept') || '-';
+        document.getElementById('deleteUsageAmount').textContent = button.getAttribute('data-usage-amount') || '-';
+    });
+});
+</script>
+
+{% endblock %}
