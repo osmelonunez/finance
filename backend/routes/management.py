@@ -184,8 +184,25 @@ def _load_payment_methods():
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT id, name, kind, bank_name, account_ref, is_active
-                FROM payment_methods
+                SELECT pm.id, pm.name, pm.kind, pm.bank_name, pm.account_ref, pm.is_active,
+                       pm.bank_id, COALESCE(b.name, pm.bank_name) AS bank_display
+                FROM payment_methods pm
+                LEFT JOIN banks b ON pm.bank_id = b.id
+                ORDER BY pm.name ASC
+                """
+            )
+            return cur.fetchall()
+
+
+def _load_banks(include_inactive=False):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            where = "" if include_inactive else "WHERE is_active=TRUE"
+            cur.execute(
+                f"""
+                SELECT id, name, is_active
+                FROM banks
+                {where}
                 ORDER BY name ASC
                 """
             )
@@ -446,6 +463,7 @@ def management_payment_methods():
     return render_template(
         "management_payment_methods.html",
         payment_methods=_load_payment_methods(),
+        banks=_load_banks(include_inactive=True),
         is_admin=(session.get("role") == "admin"),
         **_flash_payload(),
         current_page="management",
@@ -459,7 +477,7 @@ def add_payment_method():
         return redirect(url_for("dashboard.dashboard"))
     name = (request.form.get("name") or "").strip()
     kind = (request.form.get("kind") or "card").strip()
-    bank_name = (request.form.get("bank_name") or "").strip()
+    bank_id = _parse_int_or_none(request.form.get("bank_id"))
     account_ref = (request.form.get("account_ref") or "").strip()
     is_active = (request.form.get("is_active") or "1") == "1"
     if kind not in {"card", "bank_account"}:
@@ -472,10 +490,10 @@ def add_payment_method():
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    INSERT INTO payment_methods (name, kind, bank_name, account_ref, is_active, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, NOW())
+                    INSERT INTO payment_methods (name, kind, bank_id, bank_name, account_ref, is_active, updated_at)
+                    VALUES (%s, %s, %s, (SELECT name FROM banks WHERE id=%s), %s, %s, NOW())
                     """,
-                    (name, kind, bank_name or None, account_ref or None, is_active),
+                    (name, kind, bank_id, bank_id, account_ref or None, is_active),
                 )
                 conn.commit()
         session["management_msg"] = t("Payment method created.")
@@ -490,7 +508,7 @@ def update_payment_method(method_id):
         return redirect(url_for("dashboard.dashboard"))
     name = (request.form.get("name") or "").strip()
     kind = (request.form.get("kind") or "card").strip()
-    bank_name = (request.form.get("bank_name") or "").strip()
+    bank_id = _parse_int_or_none(request.form.get("bank_id"))
     account_ref = (request.form.get("account_ref") or "").strip()
     is_active = (request.form.get("is_active") or "0") == "1"
     if kind not in {"card", "bank_account"}:
@@ -504,15 +522,99 @@ def update_payment_method(method_id):
                 cur.execute(
                     """
                     UPDATE payment_methods
-                    SET name=%s, kind=%s, bank_name=%s, account_ref=%s, is_active=%s, updated_at=NOW()
+                    SET name=%s,
+                        kind=%s,
+                        bank_id=%s,
+                        bank_name=(SELECT name FROM banks WHERE id=%s),
+                        account_ref=%s,
+                        is_active=%s,
+                        updated_at=NOW()
                     WHERE id=%s
                     """,
-                    (name, kind, bank_name or None, account_ref or None, is_active, method_id),
+                    (name, kind, bank_id, bank_id, account_ref or None, is_active, method_id),
                 )
                 conn.commit()
         session["management_msg"] = t("Payment method updated.")
     except Exception:
         session["management_err"] = t("Name already exists.")
+    return redirect(url_for("management.management_payment_methods"))
+
+
+def _parse_int_or_none(raw_value):
+    if not raw_value:
+        return None
+    try:
+        return int(raw_value)
+    except (TypeError, ValueError):
+        return None
+
+
+@management_bp.route("/management/banks/add", methods=["POST"])
+def add_bank():
+    if session.get("role") not in {"admin", "editor"}:
+        return redirect(url_for("dashboard.dashboard"))
+    name = (request.form.get("name") or "").strip()
+    is_active = (request.form.get("is_active") or "1") == "1"
+    if not name:
+        session["management_err"] = t("Bank name is required.")
+        return redirect(url_for("management.management_payment_methods"))
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO banks (name, is_active, updated_at)
+                    VALUES (%s, %s, NOW())
+                    """,
+                    (name, is_active),
+                )
+                conn.commit()
+        session["management_msg"] = t("Bank created.")
+    except Exception:
+        session["management_err"] = t("Bank already exists.")
+    return redirect(url_for("management.management_payment_methods"))
+
+
+@management_bp.route("/management/banks/<int:bank_id>/update", methods=["POST"])
+def update_bank(bank_id):
+    if session.get("role") not in {"admin", "editor"}:
+        return redirect(url_for("dashboard.dashboard"))
+    name = (request.form.get("name") or "").strip()
+    is_active = (request.form.get("is_active") or "0") == "1"
+    if not name:
+        session["management_err"] = t("Bank name is required.")
+        return redirect(url_for("management.management_payment_methods"))
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    UPDATE banks
+                    SET name=%s, is_active=%s, updated_at=NOW()
+                    WHERE id=%s
+                    """,
+                    (name, is_active, bank_id),
+                )
+                cur.execute(
+                    """
+                    UPDATE payment_methods
+                    SET bank_name=%s, updated_at=NOW()
+                    WHERE bank_id=%s
+                    """,
+                    (name, bank_id),
+                )
+                cur.execute(
+                    """
+                    UPDATE loans
+                    SET bank_name=%s, updated_at=NOW()
+                    WHERE bank_id=%s
+                    """,
+                    (name, bank_id),
+                )
+                conn.commit()
+        session["management_msg"] = t("Bank updated.")
+    except Exception:
+        session["management_err"] = t("Bank already exists.")
     return redirect(url_for("management.management_payment_methods"))
 
 

@@ -52,7 +52,6 @@ CREATE TABLE IF NOT EXISTS records (
     comment TEXT,
     category_id INTEGER REFERENCES categories(id) ON DELETE RESTRICT,
     payment_method_id INTEGER REFERENCES payment_methods(id) ON DELETE RESTRICT,
-    is_financed BOOLEAN NOT NULL DEFAULT FALSE,
     deferred_index INTEGER,
     deferred_total INTEGER,
     created_by TEXT,
@@ -61,8 +60,6 @@ CREATE TABLE IF NOT EXISTS records (
     updated_by TEXT,
     CONSTRAINT records_payment_method_expense_chk
         CHECK (payment_method_id IS NULL OR type='expense'),
-    CONSTRAINT records_is_financed_expense_chk
-        CHECK (NOT is_financed OR type='expense'),
     CONSTRAINT records_deferred_values_chk
         CHECK (
             (deferred_index IS NULL AND deferred_total IS NULL)
@@ -85,60 +82,3 @@ CREATE INDEX IF NOT EXISTS idx_records_type_date ON records(type, date);
 CREATE INDEX IF NOT EXISTS idx_records_type_source_date ON records(type, source, date);
 CREATE INDEX IF NOT EXISTS idx_records_category_date ON records(category_id, date);
 CREATE INDEX IF NOT EXISTS idx_records_payment_method_date ON records(payment_method_id, date);
-
-CREATE TABLE IF NOT EXISTS backup_config (
-    id SMALLINT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
-    frequency TEXT NOT NULL DEFAULT 'daily'
-        CHECK (frequency IN ('daily', 'weekly', 'monthly_last_day')),
-    weekly_day SMALLINT NOT NULL DEFAULT 0
-        CHECK (weekly_day BETWEEN 0 AND 6),
-    retain_count INTEGER NOT NULL DEFAULT 7
-        CHECK (retain_count BETWEEN 1 AND 365),
-    last_run_at TIMESTAMP NULL,
-    last_cleanup_at TIMESTAMP NULL,
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS backup_runs (
-    id SERIAL PRIMARY KEY,
-    trigger TEXT NOT NULL DEFAULT 'manual',
-    filename TEXT,
-    file_path TEXT,
-    size_bytes BIGINT,
-    status TEXT NOT NULL
-        CHECK (status IN ('success', 'failed')),
-    message TEXT,
-    created_by TEXT,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS smtp_settings (
-    id SMALLINT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
-    host TEXT,
-    port INTEGER NOT NULL DEFAULT 587,
-    username TEXT,
-    password_encrypted TEXT,
-    from_name TEXT,
-    from_email TEXT,
-    use_tls BOOLEAN NOT NULL DEFAULT TRUE,
-    enabled BOOLEAN NOT NULL DEFAULT FALSE,
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS email_report_config (
-    id SMALLINT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
-    monthly_enabled BOOLEAN NOT NULL DEFAULT TRUE,
-    yearly_enabled BOOLEAN NOT NULL DEFAULT TRUE,
-    monthly_template_version TEXT NOT NULL DEFAULT 'v1',
-    yearly_template_version TEXT NOT NULL DEFAULT 'v1',
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS email_report_runs (
-    id SERIAL PRIMARY KEY,
-    report_type TEXT NOT NULL CHECK (report_type IN ('monthly', 'yearly', 'test_monthly', 'test_yearly')),
-    period_key TEXT NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ('success', 'failed')),
-    message TEXT,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);

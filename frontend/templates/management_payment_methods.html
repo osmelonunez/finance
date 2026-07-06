@@ -22,6 +22,11 @@
     table-layout: fixed;
     width: 100%;
   }
+  .bank-field:disabled {
+    background: #ffffff !important;
+    color: #2f3b47 !important;
+    opacity: 1 !important;
+  }
 </style>
 
 <div class="mg-shell">
@@ -42,7 +47,62 @@
   {% if error %}<div class="alert alert-danger py-2">{{ t(error) }}</div>{% endif %}
 
   <div class="panel">
-    <div class="fw-semibold mb-2">{{ t('Add account or card') }}</div>
+    <div class="fw-semibold mb-2">{{ t('Banks') }}</div>
+    <form method="post" action="/management/banks/add" class="row g-2 align-items-end mb-3">
+      <div class="col-md-5">
+        <label class="form-label">{{ t('Name') }}</label>
+        <input class="form-control" name="name" required>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">{{ t('Status') }}</label>
+        <select class="form-select" name="is_active">
+          <option value="1">{{ t('Active') }}</option>
+          <option value="0">{{ t('Inactive') }}</option>
+        </select>
+      </div>
+      <div class="col-md-2 d-grid">
+        <button class="btn btn-soft" type="submit">{{ t('Add') }}</button>
+      </div>
+    </form>
+
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead>
+          <tr>
+            <th>{{ t('Bank') }}</th>
+            <th style="width: 140px;">{{ t('Status') }}</th>
+            <th style="width: 210px;" class="text-end">{{ t('Action') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for bank in banks %}
+          <tr>
+            <td><input class="form-control form-control-sm bank-field" form="bank-update-{{ bank[0] }}" name="name" value="{{ bank[1] }}" data-original="{{ bank[1] }}" disabled required></td>
+            <td>
+              <select class="form-select form-select-sm bank-field" form="bank-update-{{ bank[0] }}" name="is_active" data-original="{{ '1' if bank[2] else '0' }}" disabled>
+                <option value="1" {% if bank[2] %}selected{% endif %}>{{ t('Active') }}</option>
+                <option value="0" {% if not bank[2] %}selected{% endif %}>{{ t('Inactive') }}</option>
+              </select>
+            </td>
+            <td class="text-end">
+              <div class="pm-actions">
+                <button class="btn btn-sm btn-outline-secondary bank-edit-btn" type="button">{{ t('Edit') }}</button>
+                <button class="btn btn-sm btn-light d-none bank-cancel-btn" type="button">{{ t('Cancel') }}</button>
+                <button class="btn btn-sm btn-outline-primary d-none bank-save-btn" type="submit" form="bank-update-{{ bank[0] }}">{{ t('Save') }}</button>
+              </div>
+              <form id="bank-update-{{ bank[0] }}" method="post" action="/management/banks/{{ bank[0] }}/update"></form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="3" class="text-muted">{{ t('No records found.') }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="fw-semibold mb-2">{{ t('Account or card') }}</div>
     <form method="post" action="/management/payment-methods/add" class="row g-2 align-items-end">
       <div class="col-md-3">
         <label class="form-label">{{ t('Name') }}</label>
@@ -57,7 +117,12 @@
       </div>
       <div class="col-md-3">
         <label class="form-label">{{ t('Bank') }}</label>
-        <input class="form-control" name="bank_name">
+        <select class="form-select" name="bank_id">
+          <option value="">{{ t('Select') }}</option>
+          {% for bank in banks if bank[2] %}
+          <option value="{{ bank[0] }}">{{ bank[1] }}</option>
+          {% endfor %}
+        </select>
       </div>
       <div class="col-md-2">
         <label class="form-label">{{ t('Account/Card number (optional)') }}</label>
@@ -106,7 +171,14 @@
               <option value="bank_account" {% if m[2]=='bank_account' %}selected{% endif %}>{{ t('Bank account') }}</option>
             </select>
           </td>
-          <td><input class="form-control form-control-sm pm-field" form="pm-update-{{ m[0] }}" name="bank_name" value="{{ m[3] or '' }}" data-original="{{ m[3] or '' }}" disabled></td>
+          <td>
+            <select class="form-select form-select-sm pm-field" form="pm-update-{{ m[0] }}" name="bank_id" data-original="{{ m[6] or '' }}" disabled>
+              <option value="">{{ t('Select') }}</option>
+              {% for bank in banks %}
+              <option value="{{ bank[0] }}" {% if m[6] == bank[0] %}selected{% endif %}>{{ bank[1] }}{% if not bank[2] %} ({{ t('Inactive') }}){% endif %}</option>
+              {% endfor %}
+            </select>
+          </td>
           <td><input class="form-control form-control-sm pm-field" form="pm-update-{{ m[0] }}" name="account_ref" value="{{ m[4] or '' }}" data-original="{{ m[4] or '' }}" disabled></td>
           <td>
             <select class="form-select form-select-sm pm-field" form="pm-update-{{ m[0] }}" name="is_active" data-original="{{ '1' if m[5] else '0' }}" disabled>
@@ -177,7 +249,38 @@
       if (on && fields.length) fields[0].focus();
     }
 
+    function setBankEditMode(row, on) {
+      const fields = row.querySelectorAll(".bank-field");
+      const editBtn = row.querySelector(".bank-edit-btn");
+      const cancelBtn = row.querySelector(".bank-cancel-btn");
+      const saveBtn = row.querySelector(".bank-save-btn");
+      fields.forEach((f) => { f.disabled = !on; });
+      if (editBtn) editBtn.classList.toggle("d-none", on);
+      if (cancelBtn) cancelBtn.classList.toggle("d-none", !on);
+      if (saveBtn) saveBtn.classList.toggle("d-none", !on);
+      if (on && fields.length) fields[0].focus();
+    }
+
     document.addEventListener("click", (event) => {
+      const bankEditBtn = event.target.closest(".bank-edit-btn");
+      if (bankEditBtn) {
+        const row = bankEditBtn.closest("tr");
+        if (row) setBankEditMode(row, true);
+        return;
+      }
+
+      const bankCancelBtn = event.target.closest(".bank-cancel-btn");
+      if (bankCancelBtn) {
+        const row = bankCancelBtn.closest("tr");
+        if (!row) return;
+        row.querySelectorAll(".bank-field").forEach((f) => {
+          const original = f.dataset.original;
+          if (original !== undefined) f.value = original;
+        });
+        setBankEditMode(row, false);
+        return;
+      }
+
       const editBtn = event.target.closest(".pm-edit-btn");
       if (editBtn) {
         const row = editBtn.closest("tr");

@@ -14,6 +14,24 @@
         .expense-options .form-check {
             margin: 0;
         }
+        .expense-fields {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+        .expense-category-field {
+            flex: 0 0 auto;
+        }
+        .expense-category-field .form-control {
+            width: 12ch;
+        }
+        .expense-account-field {
+            flex: 0 0 220px;
+        }
+        .expense-loan-field {
+            flex: 0 0 240px;
+        }
     </style>
 {% endblock %}
 
@@ -49,8 +67,8 @@
                 <label class="form-check-label" for="deferredCheck">{{ t('Deferred payment') }}</label>
             </div>
             <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="financedCheck" name="is_financed" value="1" {{ 'checked' if form_data and form_data.get('is_financed') == '1' else '' }}>
-                <label class="form-check-label" for="financedCheck">{{ t('Financed') }}</label>
+                <input class="form-check-input" type="checkbox" id="loanPaymentCheck" name="is_loan_payment" value="1" {{ 'checked' if form_data and form_data.get('is_loan_payment') == '1' else '' }}>
+                <label class="form-check-label" for="loanPaymentCheck">{{ t('Loan payment') }}</label>
             </div>
             <div id="deferredTotalWrap" style="{{ '' if form_data and form_data.get('is_deferred') == '1' else 'display:none;' }}">
                 <label class="form-label mb-1">{{ t('Installments') }}</label>
@@ -62,9 +80,9 @@
 
     {% if from_page == 'expense' %}
     <input type="hidden" name="type" value="expense">
-    <div class="col-md-8">
-        <div class="d-flex gap-3 align-items-start">
-            <div>
+    <div class="col-md-10">
+        <div class="expense-fields">
+            <div class="expense-category-field">
                 <label class="form-label">{{ t('Category') }}</label>
                 <select class="form-control" name="category">
                     <option value="">{{ t('Select') }}</option>
@@ -91,12 +109,21 @@
                     <option value="saving" {{ 'selected' if form_data and form_data.get('source') == 'saving' else '' }}>{{ t('Saving') }}</option>
                 </select>
             </div>
-            <div>
+            <div class="expense-account-field" id="accountField" style="{{ 'display:none;' if form_data and form_data.get('is_loan_payment') == '1' else '' }}">
                 <label class="form-label">{{ t('Account/Card') }}</label>
-                <select class="form-control" name="payment_method_id">
+                <select class="form-control" name="payment_method_id" id="paymentMethodSelect">
                     <option value="">{{ t('Select') }}</option>
                     {% for pm in payment_methods %}
                     <option value="{{ pm[0] }}" {{ 'selected' if form_data and form_data.get('payment_method_id') == (pm[0]|string) else '' }}>{{ pm[1] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="expense-loan-field" id="loanSelectWrap" style="{{ '' if form_data and form_data.get('is_loan_payment') == '1' else 'display:none;' }}">
+                <label class="form-label">{{ t('Loans') }}</label>
+                <select class="form-control" name="loan_id" id="loanSelect">
+                    <option value="">{{ t('Select') }}</option>
+                    {% for loan in loans %}
+                    <option value="{{ loan[0] }}" {{ 'selected' if form_data and form_data.get('loan_id') == (loan[0]|string) else '' }}>{{ loan[1] }} - {{ loan[2] }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -191,8 +218,16 @@ const dateWrapper = document.getElementById('dateAddWrapper');
 const monthsPicker = document.getElementById('monthsPicker');
 const deferredCheck = document.getElementById('deferredCheck');
 const deferredTotalWrap = document.getElementById('deferredTotalWrap');
+const loanPaymentCheck = document.getElementById('loanPaymentCheck');
+const loanSelectWrap = document.getElementById('loanSelectWrap');
+const accountField = document.getElementById('accountField');
+const paymentMethodSelect = document.getElementById('paymentMethodSelect');
+const loanSelect = document.getElementById('loanSelect');
 
 function toggleSourceField() {
+    if (!sourceField) {
+        return;
+    }
     if (!typeSelect) {
         sourceField.style.display = '';
         return;
@@ -233,8 +268,40 @@ if (deferredCheck) {
         if (deferredCheck.checked && recurrentCheck) {
             recurrentCheck.checked = false;
         }
+        if (deferredCheck.checked && loanPaymentCheck) {
+            loanPaymentCheck.checked = false;
+            toggleLoanPaymentFields();
+        }
         toggleRecurrent();
     });
+}
+function toggleLoanPaymentFields() {
+    if (!loanPaymentCheck || !loanSelectWrap) {
+        return;
+    }
+    const isLoanPayment = loanPaymentCheck.checked;
+    loanSelectWrap.style.display = isLoanPayment ? '' : 'none';
+    if (accountField) {
+        accountField.style.display = isLoanPayment ? 'none' : '';
+    }
+    if (isLoanPayment && paymentMethodSelect) {
+        paymentMethodSelect.value = '';
+    }
+    if (!isLoanPayment && loanSelect) {
+        loanSelect.value = '';
+    }
+}
+if (loanPaymentCheck) {
+    loanPaymentCheck.addEventListener('change', () => {
+        toggleLoanPaymentFields();
+        if (loanPaymentCheck.checked) {
+            if (deferredCheck) deferredCheck.checked = false;
+            if (recurrentCheck) recurrentCheck.checked = false;
+            if (deferredTotalWrap) deferredTotalWrap.style.display = 'none';
+        }
+        toggleRecurrent();
+    });
+    toggleLoanPaymentFields();
 }
 toggleRecurrent();
 </script>

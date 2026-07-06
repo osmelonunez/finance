@@ -219,6 +219,7 @@
         <a class="nav-link {{ 'active' if current_page=='expense' else '' }}" href="/records/expense">{{ t('Expenses') }}</a>
         <a class="nav-link {{ 'active' if current_page=='income' else '' }}" href="/records/income">{{ t('Incomes') }}</a>
         <a class="nav-link {{ 'active' if current_page=='saving' else '' }}" href="/records/saving">{{ t('Savings') }}</a>
+        <a class="nav-link {{ 'active' if current_page=='loans' else '' }}" href="/loans">{{ t('Loans') }}</a>
         {% if session.get('role') in ['admin', 'editor'] %}
         <a class="nav-link {{ 'active' if current_page=='management' else '' }}" href="/management">{{ t('Management') }}</a>
         {% endif %}
