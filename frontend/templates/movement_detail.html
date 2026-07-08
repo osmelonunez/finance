@@ -81,6 +81,16 @@
             </div>
         </div>
         {% endif %}
+        {% if expense[4] == 'expense' and expense[17] and expense[20] is not none %}
+        <div class="col-md-4">
+            <div class="detail-label">{{ t('Principal') }}</div>
+            <div class="detail-value text-success">{{ "%.2f"|format(expense[20]) }}</div>
+        </div>
+        <div class="col-md-4">
+            <div class="detail-label">{{ t('Interest') }}</div>
+            <div class="detail-value text-danger">{{ "%.2f"|format(expense[21]) }}</div>
+        </div>
+        {% endif %}
         <div class="col-md-12">
             <div class="detail-label">{{ t('Comment') }}</div>
             <div class="detail-value">{{ expense[6] or '-' }}</div>

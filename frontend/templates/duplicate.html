@@ -21,6 +21,14 @@
     .duplicate-date {
         width: 96px;
     }
+    .duplicate-mortgage-split {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 0.5rem;
+    }
+    .duplicate-mortgage-split .form-control {
+        width: 135px;
+    }
 </style>
 
 <form method="post" class="row g-3">
@@ -92,9 +100,38 @@
                     <select class="form-control form-control-sm" name="loan_id">
                         <option value="">{{ t('Select') }}</option>
                         {% for loan in loans %}
-                        <option value="{{ loan[0] }}" {{ 'selected' if expense[16] == loan[0] else '' }}>{{ loan[1] }} - {{ loan[2] }}</option>
+                        <option
+                            value="{{ loan[0] }}"
+                            data-is-mortgage="{{ '1' if loan[3] else '0' }}"
+                            data-monthly-principal="{{ loan[4] or '' }}"
+                            data-monthly-interest="{{ loan[5] or '' }}"
+                            {{ 'selected' if expense[16] == loan[0] else '' }}>{{ loan[1] }} - {{ loan[2] }}</option>
                         {% endfor %}
                     </select>
+                </div>
+                <div class="mt-2" id="mortgageSplitWrapDuplicate" style="display:none;">
+                    <label class="form-label mb-1">{{ t('Mortgage payment split') }}</label>
+                    <div class="duplicate-mortgage-split">
+                        <input
+                            class="form-control form-control-sm"
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            name="loan_principal_amount"
+                            id="loanPrincipalAmountDuplicate"
+                            value="{{ expense[18] or '' }}"
+                            placeholder="{{ t('Principal') }}">
+                        <input
+                            class="form-control form-control-sm"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            name="loan_interest_amount"
+                            id="loanInterestAmountDuplicate"
+                            value="{{ expense[19] if expense[19] is not none else '' }}"
+                            placeholder="{{ t('Interest') }}">
+                    </div>
+                    <div class="form-text">{{ t('Principal and interest are tracked separately; the full payment reduces total pending debt.') }}</div>
                 </div>
             </div>
         </div>
@@ -167,6 +204,10 @@ const deferredCheckDuplicate = document.getElementById('deferredCheckDuplicate')
 const deferredTotalWrapDuplicate = document.getElementById('deferredTotalWrapDuplicate');
 const loanPaymentCheckDuplicate = document.getElementById('loanPaymentCheckDuplicate');
 const loanSelectWrapDuplicate = document.getElementById('loanSelectWrapDuplicate');
+const loanSelectDuplicate = loanSelectWrapDuplicate ? loanSelectWrapDuplicate.querySelector('select[name="loan_id"]') : null;
+const mortgageSplitWrapDuplicate = document.getElementById('mortgageSplitWrapDuplicate');
+const loanPrincipalAmountDuplicate = document.getElementById('loanPrincipalAmountDuplicate');
+const loanInterestAmountDuplicate = document.getElementById('loanInterestAmountDuplicate');
 const duplicateDateWrappers = document.querySelectorAll('[data-date-wrapper]');
 const duplicateMonthsBlock = document.querySelector('input[name="months"]')?.closest('.col-12');
 
@@ -188,6 +229,7 @@ if (deferredCheckDuplicate) {
         if (deferredCheckDuplicate.checked && loanPaymentCheckDuplicate) {
             loanPaymentCheckDuplicate.checked = false;
             loanSelectWrapDuplicate.style.display = 'none';
+            toggleMortgageSplitDuplicate();
         }
         duplicateDateWrappers.forEach((el) => {
             el.style.display = deferredCheckDuplicate.checked ? '' : '';
@@ -200,12 +242,36 @@ if (deferredCheckDuplicate) {
 if (loanPaymentCheckDuplicate) {
     loanPaymentCheckDuplicate.addEventListener('change', () => {
         loanSelectWrapDuplicate.style.display = loanPaymentCheckDuplicate.checked ? '' : 'none';
+        toggleMortgageSplitDuplicate();
         if (loanPaymentCheckDuplicate.checked) {
             if (deferredCheckDuplicate) deferredCheckDuplicate.checked = false;
             if (deferredTotalWrapDuplicate) deferredTotalWrapDuplicate.style.display = 'none';
         }
     });
 }
+function toggleMortgageSplitDuplicate() {
+    if (!mortgageSplitWrapDuplicate || !loanSelectDuplicate) {
+        return;
+    }
+    const selected = loanSelectDuplicate.options[loanSelectDuplicate.selectedIndex];
+    const isMortgage = Boolean(loanPaymentCheckDuplicate && loanPaymentCheckDuplicate.checked && selected && selected.dataset.isMortgage === '1');
+    mortgageSplitWrapDuplicate.style.display = isMortgage ? '' : 'none';
+    if (isMortgage) {
+        if (loanPrincipalAmountDuplicate && !loanPrincipalAmountDuplicate.value && selected.dataset.monthlyPrincipal) {
+            loanPrincipalAmountDuplicate.value = selected.dataset.monthlyPrincipal;
+        }
+        if (loanInterestAmountDuplicate && !loanInterestAmountDuplicate.value && selected.dataset.monthlyInterest) {
+            loanInterestAmountDuplicate.value = selected.dataset.monthlyInterest;
+        }
+        return;
+    }
+    if (loanPrincipalAmountDuplicate) loanPrincipalAmountDuplicate.value = '';
+    if (loanInterestAmountDuplicate) loanInterestAmountDuplicate.value = '';
+}
+if (loanSelectDuplicate) {
+    loanSelectDuplicate.addEventListener('change', toggleMortgageSplitDuplicate);
+}
+toggleMortgageSplitDuplicate();
 
 const dateInputs = document.querySelectorAll('[data-date-input]');
 dateInputs.forEach((el) => {

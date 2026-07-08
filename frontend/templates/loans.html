@@ -68,25 +68,31 @@
 </style>
 
 <div class="row g-4 mb-4">
-    <div class="col-md-3">
+    <div class="col-md">
         <div class="card card-soft p-3 h-100">
             <h6>{{ t('Requested total') }}</h6>
             <h5>{{ "%.2f"|format(total_principal) }}</h5>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md">
+        <div class="card card-soft p-3 h-100">
+            <h6>{{ t('Total to repay') }}</h6>
+            <h5>{{ "%.2f"|format(total_repayment) }}</h5>
+        </div>
+    </div>
+    <div class="col-md">
         <div class="card card-soft p-3 h-100">
             <h6>{{ t('Paid') }}</h6>
             <h5 class="text-success">{{ "%.2f"|format(total_paid) }}</h5>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md">
         <div class="card card-soft p-3 h-100">
             <h6>{{ t('Pending debt') }}</h6>
             <h5 class="text-danger">{{ "%.2f"|format(total_pending) }}</h5>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md">
         <div class="card card-soft p-3 h-100">
             <h6>{{ t('Active loans') }}</h6>
             <h4 style="color:#5d87ad">{{ active_count }}</h4>
@@ -122,6 +128,7 @@
             <th>{{ t('Loan') }}</th>
             <th>{{ t('Bank') }}</th>
             <th class="text-end">{{ t('Requested') }}</th>
+            <th class="text-end">{{ t('Total to repay') }}</th>
             <th>{{ t('Installments') }}</th>
             <th class="text-end">{{ t('Monthly payment') }}</th>
             <th>{{ t('Progress') }}</th>
@@ -132,8 +139,9 @@
         <tbody>
         {% for loan in loans %}
             {% set paid = loan[9] %}
-            {% set pending = loan[3] - paid %}
-            {% set percent = (paid / loan[3] * 100) if loan[3] else 0 %}
+            {% set total_to_repay = loan[17] if loan[17] is not none else loan[3] %}
+            {% set pending = total_to_repay - paid %}
+            {% set percent = (paid / total_to_repay * 100) if total_to_repay else 0 %}
             {% if percent > 100 %}{% set percent = 100 %}{% endif %}
             <tr class="row-link" data-href="/loans/{{ loan[0] }}" style="cursor:pointer;">
                 <td>
@@ -141,6 +149,7 @@
                 </td>
                 <td>{{ loan[2] }}</td>
                 <td class="text-end">{{ "%.2f"|format(loan[3]) }}</td>
+                <td class="text-end">{{ "%.2f"|format(total_to_repay) }}</td>
                 <td>{{ loan[10] }}/{{ loan[4] }}</td>
                 <td class="text-end">{{ "%.2f"|format(loan[5]) if loan[5] else '-' }}</td>
                 <td style="min-width: 160px;">

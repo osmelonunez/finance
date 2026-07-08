@@ -24,6 +24,16 @@ def _parse_positive_decimal(value, field_name):
     return amount, None
 
 
+def _parse_non_negative_decimal(value, field_name):
+    try:
+        amount = Decimal((value or "").strip())
+    except (InvalidOperation, AttributeError):
+        return None, f"{field_name} must be a valid number."
+    if amount < 0:
+        return None, f"{field_name} must be greater than or equal to 0."
+    return amount, None
+
+
 def _parse_positive_int(value, field_name):
     try:
         parsed = int((value or "").strip())
@@ -32,6 +42,19 @@ def _parse_positive_int(value, field_name):
     if parsed <= 0:
         return None, f"{field_name} must be greater than 0."
     return parsed, None
+
+
+def _month_index(year_month):
+    return year_month.year * 12 + year_month.month
+
+
+def _recalculate_term_for_start_change(old_start_value, old_term_months, new_start):
+    old_start = parse_year_month(old_start_value, None)
+    if not old_start or not old_term_months:
+        return None
+    original_end_index = _month_index(old_start) + int(old_term_months) - 1
+    recalculated = original_end_index - _month_index(new_start) + 1
+    return recalculated if recalculated > 0 else None
 
 
 def _loan_query(where="1=1"):
@@ -47,8 +70,32 @@ def _loan_query(where="1=1"):
             l.description,
             l.status,
             COALESCE(SUM(CASE WHEN r.is_loan_payment THEN r.amount ELSE 0 END), 0) AS paid_amount,
-            COUNT(CASE WHEN r.is_loan_payment THEN 1 END) AS payments_count,
-            l.exclude_from_dashboard
+            CASE
+                WHEN l.status = 'paid' THEN l.term_months
+                ELSE LEAST(
+                    l.term_months,
+                    GREATEST(
+                        (
+                            (
+                                DATE_PART('year', DATE_TRUNC('month', CURRENT_DATE))::int
+                                - DATE_PART('year', TO_DATE(l.start_date, 'YYYY-MM'))::int
+                            ) * 12
+                            + DATE_PART('month', DATE_TRUNC('month', CURRENT_DATE))::int
+                            - DATE_PART('month', TO_DATE(l.start_date, 'YYYY-MM'))::int
+                            + 1
+                        ),
+                        0
+                    )
+                )
+            END AS payments_count,
+            l.exclude_from_dashboard,
+            l.is_mortgage,
+            l.annual_interest_rate,
+            l.monthly_principal_amount,
+            l.monthly_interest_amount,
+            l.loan_type,
+            l.total_repayment_amount,
+            l.bank_id
         FROM loans l
         LEFT JOIN banks b ON l.bank_id = b.id
         LEFT JOIN records r ON r.loan_id = l.id AND r.type = 'expense'
@@ -77,6 +124,7 @@ def loans_list():
                 """
                 SELECT
                     COALESCE(SUM(l.principal_amount), 0),
+                    COALESCE(SUM(COALESCE(l.total_repayment_amount, l.principal_amount)), 0),
                     COALESCE(SUM(paid.paid_amount), 0),
                     COUNT(CASE WHEN l.status = 'active' THEN 1 END)
                 FROM loans l
@@ -87,20 +135,23 @@ def loans_list():
                     GROUP BY loan_id
                 ) paid ON paid.loan_id = l.id
                 WHERE l.status <> 'cancelled'
+                  AND COALESCE(l.exclude_from_dashboard, FALSE) = FALSE
                 """
             )
             totals = cur.fetchone()
 
     total_principal = totals[0] if totals else 0
-    total_paid = totals[1] if totals else 0
-    active_count = totals[2] if totals else 0
-    total_pending = total_principal - total_paid
+    total_repayment = totals[1] if totals else 0
+    total_paid = totals[2] if totals else 0
+    active_count = totals[3] if totals else 0
+    total_pending = total_repayment - total_paid
 
     return render_template(
         "loans.html",
         loans=loans,
         f_status=status,
         total_principal=total_principal,
+        total_repayment=total_repayment,
         total_paid=total_paid,
         total_pending=total_pending,
         active_count=active_count,
@@ -143,6 +194,47 @@ def loan_add():
             if monthly_error:
                 return _render_loan_add(monthly_error, request.form)
 
+        loan_type = (request.form.get("loan_type") or "standard").strip()
+        if loan_type not in {"standard", "interest", "mortgage"}:
+            loan_type = "standard"
+        is_mortgage = loan_type == "mortgage"
+        is_interest_bearing = loan_type in {"interest", "mortgage"}
+        annual_interest_rate = (request.form.get("annual_interest_rate") or "").strip() or None
+        if not is_mortgage:
+            annual_interest_rate = None
+
+        total_repayment_amount = None
+        raw_total_repayment = (request.form.get("total_repayment_amount") or "").strip()
+        if raw_total_repayment:
+            total_repayment_amount, total_repayment_error = _parse_positive_decimal(
+                raw_total_repayment,
+                "Total to repay",
+            )
+            if total_repayment_error:
+                return _render_loan_add(total_repayment_error, request.form)
+            if total_repayment_amount < principal_amount:
+                return _render_loan_add("Total to repay must be greater than or equal to loan amount.", request.form)
+
+        monthly_principal_amount = None
+        monthly_interest_amount = None
+        if is_mortgage:
+            if not monthly_payment:
+                return _render_loan_add("Monthly payment is required for mortgages.", request.form)
+            monthly_principal_amount, monthly_principal_error = _parse_positive_decimal(
+                request.form.get("monthly_principal_amount"),
+                "Monthly principal",
+            )
+            if monthly_principal_error:
+                return _render_loan_add(monthly_principal_error, request.form)
+            monthly_interest_amount, monthly_interest_error = _parse_non_negative_decimal(
+                request.form.get("monthly_interest_amount"),
+                "Monthly interest",
+            )
+            if monthly_interest_error:
+                return _render_loan_add(monthly_interest_error, request.form)
+            if monthly_principal_amount + monthly_interest_amount != monthly_payment:
+                return _render_loan_add("Mortgage principal and interest must match monthly payment.", request.form)
+
         start_date = (request.form.get("start_date") or "").strip()
         start_date = parse_year_month(start_date, None)
         if not start_date:
@@ -162,9 +254,11 @@ def loan_add():
                     """
                     INSERT INTO loans (
                         name, bank_id, bank_name, principal_amount, term_months, monthly_payment,
-                        start_date, description, exclude_from_dashboard, created_by, created_at, updated_at
+                        start_date, description, exclude_from_dashboard, is_mortgage, annual_interest_rate,
+                        monthly_principal_amount, monthly_interest_amount, loan_type, total_repayment_amount,
+                        created_by, created_at, updated_at
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
                     RETURNING id
                     """,
                     (
@@ -177,6 +271,12 @@ def loan_add():
                         start_date_value,
                         description,
                         exclude_from_dashboard,
+                        is_mortgage,
+                        annual_interest_rate,
+                        monthly_principal_amount,
+                        monthly_interest_amount,
+                        loan_type,
+                        total_repayment_amount,
                         session.get("user_name"),
                     ),
                 )
@@ -290,7 +390,7 @@ def loan_detail(id):
             payment_page = min(payment_page, payment_pages)
             cur.execute(
                 """
-                SELECT id, concept, amount, date, source, comment
+                SELECT id, concept, amount, date, source, comment, loan_principal_amount, loan_interest_amount
                 FROM records
                 WHERE loan_id=%s AND type='expense' AND is_loan_payment=TRUE
                 ORDER BY date DESC, id DESC
@@ -301,6 +401,15 @@ def loan_detail(id):
             payments = cur.fetchall()
             cur.execute("SELECT name FROM categories ORDER BY name")
             categories = [r[0] for r in cur.fetchall()]
+            cur.execute(
+                """
+                SELECT id, name
+                FROM banks
+                WHERE is_active=TRUE
+                ORDER BY name
+                """
+            )
+            banks = cur.fetchall()
 
     return render_template(
         "loan_detail.html",
@@ -316,6 +425,7 @@ def loan_detail(id):
         payment_page=payment_page,
         payment_pages=payment_pages,
         active_tab=active_tab,
+        banks=banks,
         current_page="loans",
     )
 
@@ -411,6 +521,181 @@ def loan_status(id):
     return redirect(f"/loans/{id}")
 
 
+@loans_bp.route("/loans/<int:id>/details", methods=["POST"])
+def loan_details_update(id):
+    name, name_error = validate_concept(request.form.get("name"))
+    if name_error:
+        return redirect(f"/loans/{id}?edit=1&error={quote(name_error)}")
+
+    bank_id = _parse_int_or_none(request.form.get("bank_id"))
+    if bank_id is None:
+        return redirect(f"/loans/{id}?edit=1&error={quote('Select a bank.')}")
+
+    principal_amount, principal_error = _parse_positive_decimal(
+        request.form.get("principal_amount"),
+        "Loan amount",
+    )
+    if principal_error:
+        return redirect(f"/loans/{id}?edit=1&error={quote(principal_error)}")
+
+    term_months, term_error = _parse_positive_int(
+        request.form.get("term_months"),
+        "Term months",
+    )
+    if term_error:
+        return redirect(f"/loans/{id}?edit=1&error={quote(term_error)}")
+
+    start_date = (request.form.get("start_date") or "").strip()
+    start_date = parse_year_month(start_date, None)
+    if not start_date:
+        return redirect(f"/loans/{id}?edit=1&error={quote('Start date is required.')}")
+    start_date_value = start_date.strftime("%Y-%m")
+    description = (request.form.get("description") or "").strip() or None
+
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT start_date, term_months FROM loans WHERE id=%s", (id,))
+            current_loan = cur.fetchone()
+            if not current_loan:
+                return redirect("/loans")
+    old_start_value, old_term_months = current_loan
+    if start_date_value != old_start_value and term_months == old_term_months:
+        recalculated_term_months = _recalculate_term_for_start_change(
+            old_start_value,
+            old_term_months,
+            start_date,
+        )
+        if recalculated_term_months is None:
+            return redirect(f"/loans/{id}?edit=1&error={quote('Start date must be before the loan end date.')}")
+        term_months = recalculated_term_months
+
+    status = (request.form.get("status") or "").strip()
+    if status not in {"active", "paid", "cancelled"}:
+        return redirect(f"/loans/{id}?edit=1&error={quote('Invalid status.')}")
+
+    loan_type = (request.form.get("loan_type") or "standard").strip()
+    if loan_type not in {"standard", "interest", "mortgage"}:
+        loan_type = "standard"
+    is_mortgage = loan_type == "mortgage"
+    is_interest_bearing = loan_type in {"interest", "mortgage"}
+    exclude_from_dashboard = request.form.get("exclude_from_dashboard") == "on"
+
+    annual_interest_rate = (request.form.get("annual_interest_rate") or "").strip() or None
+    if not is_mortgage:
+        annual_interest_rate = None
+
+    monthly_payment = None
+    raw_monthly_payment = (request.form.get("monthly_payment") or "").strip()
+    if raw_monthly_payment:
+        monthly_payment, monthly_error = _parse_positive_decimal(
+            raw_monthly_payment,
+            "Monthly payment",
+        )
+        if monthly_error:
+            return redirect(f"/loans/{id}?edit=1&error={quote(monthly_error)}")
+
+    total_repayment_amount = None
+    raw_total_repayment = (request.form.get("total_repayment_amount") or "").strip()
+    if raw_total_repayment:
+        total_repayment_amount, total_repayment_error = _parse_positive_decimal(
+            raw_total_repayment,
+            "Total to repay",
+        )
+        if total_repayment_error:
+            return redirect(f"/loans/{id}?edit=1&error={quote(total_repayment_error)}")
+
+    if total_repayment_amount is not None and total_repayment_amount < principal_amount:
+        return redirect(
+            f"/loans/{id}?edit=1&error={quote('Total to repay must be greater than or equal to loan amount.')}"
+        )
+
+    monthly_principal_amount = None
+    monthly_interest_amount = None
+    if is_mortgage:
+        if not monthly_payment:
+            return redirect(f"/loans/{id}?edit=1&error={quote('Monthly payment is required for mortgages.')}")
+        monthly_principal_amount, monthly_principal_error = _parse_positive_decimal(
+            request.form.get("monthly_principal_amount"),
+            "Monthly principal",
+        )
+        if monthly_principal_error:
+            return redirect(f"/loans/{id}?edit=1&error={quote(monthly_principal_error)}")
+        monthly_interest_amount, monthly_interest_error = _parse_non_negative_decimal(
+            request.form.get("monthly_interest_amount"),
+            "Monthly interest",
+        )
+        if monthly_interest_error:
+            return redirect(f"/loans/{id}?edit=1&error={quote(monthly_interest_error)}")
+        if monthly_principal_amount + monthly_interest_amount != monthly_payment:
+            return redirect(
+                f"/loans/{id}?edit=1&error={quote('Mortgage principal and interest must match monthly payment.')}"
+            )
+
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT name FROM banks WHERE id=%s AND is_active=TRUE", (bank_id,))
+            bank_row = cur.fetchone()
+            if not bank_row:
+                return redirect(f"/loans/{id}?edit=1&error={quote('Select a bank.')}")
+            bank_name = bank_row[0]
+            cur.execute(
+                """
+                UPDATE loans
+                SET name=%s,
+                    bank_id=%s,
+                    bank_name=%s,
+                    principal_amount=%s,
+                    term_months=%s,
+                    start_date=%s,
+                    description=%s,
+                    status=%s,
+                    exclude_from_dashboard=%s,
+                    is_mortgage=%s,
+                    monthly_payment=%s,
+                    annual_interest_rate=%s,
+                    monthly_principal_amount=%s,
+                    monthly_interest_amount=%s,
+                    loan_type=%s,
+                    total_repayment_amount=%s,
+                    updated_at=NOW(),
+                    updated_by=%s
+                WHERE id=%s
+                """,
+                (
+                    name,
+                    bank_id,
+                    bank_name,
+                    principal_amount,
+                    term_months,
+                    start_date_value,
+                    description,
+                    status,
+                    exclude_from_dashboard,
+                    is_mortgage,
+                    monthly_payment,
+                    annual_interest_rate if is_mortgage else None,
+                    monthly_principal_amount if is_mortgage else None,
+                    monthly_interest_amount if is_mortgage else None,
+                    loan_type,
+                    total_repayment_amount if is_interest_bearing else None,
+                    session.get("user_name"),
+                    id,
+                ),
+            )
+            conn.commit()
+            invalidate_dashboard_cache()
+            logger.info(
+                "loan_details_update user=%s id=%s name=%s status=%s is_mortgage=%s exclude_from_dashboard=%s",
+                session.get("user_name"),
+                id,
+                name,
+                status,
+                is_mortgage,
+                exclude_from_dashboard,
+            )
+    return redirect(f"/loans/{id}")
+
+
 @loans_bp.route("/loans/<int:id>/dashboard-visibility", methods=["POST"])
 def loan_dashboard_visibility(id):
     exclude_from_dashboard = request.form.get("exclude_from_dashboard") == "on"
@@ -444,6 +729,8 @@ def loan_delete(id):
                 UPDATE records
                 SET loan_id=NULL,
                     is_loan_payment=FALSE,
+                    loan_principal_amount=NULL,
+                    loan_interest_amount=NULL,
                     updated_at=NOW(),
                     updated_by=%s
                 WHERE loan_id=%s

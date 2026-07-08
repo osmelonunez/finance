@@ -14,9 +14,9 @@ Repositorio: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
 ## Versión Actual
 
-- Versión estable: `3.2.0`
-- Release: `v3.2.0 - Loans and Banks`
-- El compose de producción usa imagen fijada en `f1nanc3/finance:3.2.0`
+- Versión estable: `3.3.0`
+- Release: `v3.3.0 - Mortgage Loan Details`
+- El compose de producción usa imagen fijada en `f1nanc3/finance:3.3.0`
 
 ## Funcionalidades Principales
 

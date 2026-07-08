@@ -17,7 +17,42 @@
     .loan-date {
         width: 120px;
     }
+    .loan-payment-fields {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: flex-end;
+    }
+    .loan-payment-fields .form-control {
+        width: 150px;
+    }
+    .loan-payment-fields .wide-field .form-control {
+        width: 210px;
+    }
+    .loan-payment-fields .form-text {
+        flex-basis: 100%;
+    }
+    .loan-calculation-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .loan-type-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+    .loan-type-options .form-check {
+        min-width: 180px;
+        border: 1px solid #d7dee6;
+        border-radius: 8px;
+        padding: 0.75rem 0.9rem 0.75rem 2.1rem;
+        background: #f9fbfd;
+    }
 </style>
+
+{% set selected_loan_type = form_data.get('loan_type') or ('mortgage' if form_data.get('is_mortgage') == 'on' else 'standard') %}
+{% set selected_calculation_mode = form_data.get('interest_calculation_mode') or 'interest' %}
 
 <div class="d-flex align-items-center justify-content-between mb-3">
     <h2 class="mb-0">{{ t('Add loan') }}</h2>
@@ -56,9 +91,69 @@
         <label class="form-label">{{ t('Term months') }}</label>
         <input class="form-control" type="number" min="1" max="600" name="term_months" value="{{ form_data.get('term_months', '') }}" required>
     </div>
-    <div class="col-md-2">
-        <label class="form-label">{{ t('Monthly payment') }}</label>
-        <input class="form-control" type="number" step="0.01" min="0.01" name="monthly_payment" value="{{ form_data.get('monthly_payment', '') }}">
+    <div class="col-md-12">
+        <label class="form-label">{{ t('Loan type') }}</label>
+        <div class="loan-type-options">
+            <div class="form-check">
+                <input class="form-check-input" type="radio" id="loanTypeStandard" name="loan_type" value="standard" {{ 'checked' if selected_loan_type == 'standard' else '' }}>
+                <label class="form-check-label fw-semibold" for="loanTypeStandard">{{ t('No interest') }}</label>
+                <div class="form-text">{{ t('The payment reduces the loan principal.') }}</div>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" id="loanTypeInterest" name="loan_type" value="interest" {{ 'checked' if selected_loan_type == 'interest' else '' }}>
+                <label class="form-check-label fw-semibold" for="loanTypeInterest">{{ t('With interest') }}</label>
+                <div class="form-text">{{ t('Track rate and expected repayment.') }}</div>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" id="loanTypeMortgage" name="loan_type" value="mortgage" {{ 'checked' if selected_loan_type == 'mortgage' else '' }}>
+                <label class="form-check-label fw-semibold" for="loanTypeMortgage">{{ t('Mortgage') }}</label>
+                <div class="form-text">{{ t('Mortgage payments can split principal and interest.') }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-12">
+        <div class="loan-calculation-options mb-2" id="interestCalculationOptions" style="{{ '' if selected_loan_type in ['interest', 'mortgage'] else 'display:none;' }}">
+            <div class="form-check">
+                <input class="form-check-input" type="radio" id="interestCalculationByInterest" name="interest_calculation_mode" value="interest" {{ 'checked' if selected_calculation_mode != 'installments' else '' }}>
+                <label class="form-check-label" for="interestCalculationByInterest">{{ t('Calculate by interest') }}</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" id="interestCalculationByInstallments" name="interest_calculation_mode" value="installments" {{ 'checked' if selected_calculation_mode == 'installments' else '' }}>
+                <label class="form-check-label" for="interestCalculationByInstallments">{{ t('Calculate by installments') }}</label>
+            </div>
+        </div>
+        <div class="loan-payment-fields">
+            <div>
+                <label class="form-label">{{ t('Monthly payment') }}</label>
+                <input class="form-control" type="number" step="0.01" min="0.01" name="monthly_payment" value="{{ form_data.get('monthly_payment', '') }}">
+            </div>
+            <div id="interestFields" style="{{ 'display:contents;' if selected_loan_type in ['interest', 'mortgage'] else 'display:none;' }}">
+            <div id="interestAmountField">
+                <label class="form-label">{{ t('Interest') }}</label>
+                <input class="form-control" type="number" step="0.01" min="0" id="estimatedInterest">
+            </div>
+            <div>
+                <label class="form-label">{{ t('Total to repay') }}</label>
+                <input class="form-control" type="number" step="0.01" min="0.01" name="total_repayment_amount" value="{{ form_data.get('total_repayment_amount', '') }}">
+            </div>
+            </div>
+            <div id="mortgageFields" style="{{ 'display:contents;' if selected_loan_type == 'mortgage' else 'display:none;' }}">
+            <div class="wide-field">
+                <label class="form-label">{{ t('Interest') }}</label>
+                <input class="form-control" name="annual_interest_rate" value="{{ form_data.get('annual_interest_rate', '') }}" placeholder="2,10 (EURIB+0.59)">
+            </div>
+            <div>
+                <label class="form-label">{{ t('Monthly principal') }}</label>
+                <input class="form-control" type="number" step="0.01" min="0.01" name="monthly_principal_amount" value="{{ form_data.get('monthly_principal_amount', '') }}">
+            </div>
+            <div>
+                <label class="form-label">{{ t('Monthly interest') }}</label>
+                <input class="form-control" type="number" step="0.01" min="0" name="monthly_interest_amount" value="{{ form_data.get('monthly_interest_amount', '') }}">
+            </div>
+            </div>
+            <div class="form-text" id="interestHelp" style="{{ '' if selected_loan_type in ['interest', 'mortgage'] else 'display:none;' }}">{{ t('Total to repay is optional and does not replace pending principal debt.') }}</div>
+            <div class="form-text" id="mortgageHelp" style="{{ '' if selected_loan_type == 'mortgage' else 'display:none;' }}">{{ t('Principal plus interest must match the monthly payment.') }}</div>
+        </div>
     </div>
     <div class="col-md-8">
         <label class="form-label">{{ t('Description') }}</label>
@@ -74,9 +169,9 @@
                 name="exclude_from_dashboard"
                 {{ 'checked' if form_data.get('exclude_from_dashboard') == 'on' else '' }}>
             <label class="form-check-label" for="excludeFromDashboard">
-                {{ t('Exclude from dashboard') }}
+                {{ t('Exclude from analytics') }}
             </label>
-            <div class="form-text">{{ t('Excluded loans keep their payments and detail history, but do not add to dashboard loan totals.') }}</div>
+            <div class="form-text">{{ t('Excluded loans keep their payments and detail history, but do not add to dashboard or loan summary totals.') }}</div>
         </div>
     </div>
     <div class="col-12">
@@ -100,5 +195,133 @@ $('#loanStartDate').datepicker({
     language: {{ ('es' if current_lang == 'es' else 'en') | tojson }},
     container: '#loanStartWrapper'
 });
+
+const loanTypeInputs = document.querySelectorAll('input[name="loan_type"]');
+const interestFields = document.getElementById('interestFields');
+const mortgageFields = document.getElementById('mortgageFields');
+const interestHelp = document.getElementById('interestHelp');
+const mortgageHelp = document.getElementById('mortgageHelp');
+const interestCalculationOptions = document.getElementById('interestCalculationOptions');
+const calculationModeInputs = document.querySelectorAll('input[name="interest_calculation_mode"]');
+const interestAmountField = document.getElementById('interestAmountField');
+const principalAmountInput = document.querySelector('input[name="principal_amount"]');
+const termMonthsInput = document.querySelector('input[name="term_months"]');
+const monthlyPaymentInput = document.querySelector('input[name="monthly_payment"]');
+const totalRepaymentInput = document.querySelector('input[name="total_repayment_amount"]');
+const estimatedInterestInput = document.getElementById('estimatedInterest');
+let syncingInterestFields = false;
+
+function selectedLoanType() {
+    const selected = document.querySelector('input[name="loan_type"]:checked');
+    return selected ? selected.value : 'standard';
+}
+
+function refreshLoanTypeFields() {
+    const type = selectedLoanType();
+    if (interestFields) {
+        interestFields.style.display = ['interest', 'mortgage'].includes(type) ? 'contents' : 'none';
+    }
+    if (mortgageFields) {
+        mortgageFields.style.display = type === 'mortgage' ? 'contents' : 'none';
+    }
+    if (interestHelp) {
+        interestHelp.style.display = ['interest', 'mortgage'].includes(type) ? '' : 'none';
+    }
+    if (mortgageHelp) {
+        mortgageHelp.style.display = type === 'mortgage' ? '' : 'none';
+    }
+    if (interestCalculationOptions) {
+        interestCalculationOptions.style.display = ['interest', 'mortgage'].includes(type) ? '' : 'none';
+    }
+    refreshCalculationMode();
+}
+
+function selectedCalculationMode() {
+    const selected = document.querySelector('input[name="interest_calculation_mode"]:checked');
+    return selected ? selected.value : 'interest';
+}
+
+function refreshCalculationMode() {
+    const type = selectedLoanType();
+    const byInstallments = ['interest', 'mortgage'].includes(type) && selectedCalculationMode() === 'installments';
+    if (estimatedInterestInput) {
+        estimatedInterestInput.readOnly = byInstallments;
+    }
+    if (interestAmountField) {
+        interestAmountField.style.display = byInstallments || type === 'mortgage' ? 'none' : '';
+    }
+    if (totalRepaymentInput) {
+        totalRepaymentInput.readOnly = byInstallments;
+    }
+    if (byInstallments) {
+        refreshFromInstallments();
+    }
+}
+
+function refreshEstimatedInterest() {
+    if (['interest', 'mortgage'].includes(selectedLoanType()) && selectedCalculationMode() === 'installments') {
+        refreshFromInstallments();
+        return;
+    }
+    if (!principalAmountInput || !totalRepaymentInput || !estimatedInterestInput) {
+        return;
+    }
+    if (syncingInterestFields) {
+        return;
+    }
+    syncingInterestFields = true;
+    const principal = parseFloat(principalAmountInput.value || '0');
+    const total = parseFloat(totalRepaymentInput.value || '0');
+    estimatedInterestInput.value = total > 0 && principal > 0 ? (total - principal).toFixed(2) : '';
+    syncingInterestFields = false;
+}
+
+function refreshTotalRepayment() {
+    if (['interest', 'mortgage'].includes(selectedLoanType()) && selectedCalculationMode() === 'installments') {
+        refreshFromInstallments();
+        return;
+    }
+    if (!principalAmountInput || !totalRepaymentInput || !estimatedInterestInput) {
+        return;
+    }
+    if (syncingInterestFields) {
+        return;
+    }
+    syncingInterestFields = true;
+    const principal = parseFloat(principalAmountInput.value || '0');
+    const interest = parseFloat(estimatedInterestInput.value || '0');
+    totalRepaymentInput.value = principal > 0 && interest >= 0 ? (principal + interest).toFixed(2) : '';
+    syncingInterestFields = false;
+}
+
+function refreshFromInstallments() {
+    if (!['interest', 'mortgage'].includes(selectedLoanType()) || selectedCalculationMode() !== 'installments') {
+        return;
+    }
+    if (!principalAmountInput || !termMonthsInput || !monthlyPaymentInput || !totalRepaymentInput || !estimatedInterestInput) {
+        return;
+    }
+    if (syncingInterestFields) {
+        return;
+    }
+    syncingInterestFields = true;
+    const principal = parseFloat(principalAmountInput.value || '0');
+    const termMonths = parseInt(termMonthsInput.value || '0', 10);
+    const monthlyPayment = parseFloat(monthlyPaymentInput.value || '0');
+    const total = termMonths > 0 && monthlyPayment > 0 ? termMonths * monthlyPayment : 0;
+    totalRepaymentInput.value = total > 0 ? total.toFixed(2) : '';
+    estimatedInterestInput.value = total > 0 && principal > 0 ? (total - principal).toFixed(2) : '';
+    syncingInterestFields = false;
+}
+
+loanTypeInputs.forEach((input) => input.addEventListener('change', refreshLoanTypeFields));
+if (principalAmountInput) principalAmountInput.addEventListener('input', refreshEstimatedInterest);
+if (termMonthsInput) termMonthsInput.addEventListener('input', refreshFromInstallments);
+if (monthlyPaymentInput) monthlyPaymentInput.addEventListener('input', refreshFromInstallments);
+if (totalRepaymentInput) totalRepaymentInput.addEventListener('input', refreshEstimatedInterest);
+if (estimatedInterestInput) estimatedInterestInput.addEventListener('input', refreshTotalRepayment);
+calculationModeInputs.forEach((input) => input.addEventListener('change', refreshCalculationMode));
+refreshLoanTypeFields();
+refreshEstimatedInterest();
 </script>
 {% endblock %}
