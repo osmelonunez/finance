@@ -85,7 +85,7 @@ def dashboard():
                     GROUP BY loan_id
                 )
                 SELECT
-                    COALESCE(SUM(GREATEST(l.principal_amount - COALESCE(paid.paid_amount, 0), 0)), 0),
+                    COALESCE(SUM(GREATEST(COALESCE(l.total_repayment_amount, l.principal_amount) - COALESCE(paid.paid_amount, 0), 0)), 0),
                     COALESCE(SUM(COALESCE(l.monthly_payment, 0)), 0),
                     COUNT(l.id)
                 FROM loans l
@@ -122,8 +122,8 @@ def dashboard():
                             TO_DATE(l.start_date, 'YYYY-MM') + ((l.term_months - 1) * INTERVAL '1 month'),
                             selected_bounds.end_month
                         ) AS payment_end,
-                        COALESCE(l.monthly_payment, 0) AS monthly_payment,
-                        GREATEST(l.principal_amount - COALESCE(paid.paid_amount, 0), 0) AS pending_debt
+                        COALESCE(l.monthly_principal_amount, l.monthly_payment, 0) AS monthly_payment,
+                        GREATEST(COALESCE(l.total_repayment_amount, l.principal_amount) - COALESCE(paid.paid_amount, 0), 0) AS pending_debt
                     FROM loans l
                     CROSS JOIN selected_bounds
                     LEFT JOIN paid ON paid.loan_id = l.id
@@ -169,7 +169,7 @@ def dashboard():
                     SELECT
                         m.month_key,
                         COALESCE(SUM(GREATEST(
-                            l.principal_amount - COALESCE((
+                            COALESCE(l.total_repayment_amount, l.principal_amount) - COALESCE((
                                 SELECT SUM(r.amount)
                                 FROM records r
                                 WHERE r.loan_id = l.id
@@ -222,7 +222,7 @@ def dashboard():
                     SELECT
                         y.year,
                         COALESCE(SUM(GREATEST(
-                            l.principal_amount - COALESCE((
+                            COALESCE(l.total_repayment_amount, l.principal_amount) - COALESCE((
                                 SELECT SUM(r.amount)
                                 FROM records r
                                 WHERE r.loan_id = l.id

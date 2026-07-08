@@ -32,6 +32,16 @@
         .expense-loan-field {
             flex: 0 0 240px;
         }
+        .expense-mortgage-split {
+            flex: 0 0 320px;
+        }
+        .expense-mortgage-split .split-fields {
+            display: flex;
+            gap: 0.75rem;
+        }
+        .expense-mortgage-split .form-control {
+            width: 135px;
+        }
     </style>
 {% endblock %}
 
@@ -123,9 +133,38 @@
                 <select class="form-control" name="loan_id" id="loanSelect">
                     <option value="">{{ t('Select') }}</option>
                     {% for loan in loans %}
-                    <option value="{{ loan[0] }}" {{ 'selected' if form_data and form_data.get('loan_id') == (loan[0]|string) else '' }}>{{ loan[1] }} - {{ loan[2] }}</option>
+                    <option
+                        value="{{ loan[0] }}"
+                        data-is-mortgage="{{ '1' if loan[3] else '0' }}"
+                        data-monthly-principal="{{ loan[4] or '' }}"
+                        data-monthly-interest="{{ loan[5] or '' }}"
+                        {{ 'selected' if form_data and form_data.get('loan_id') == (loan[0]|string) else '' }}>{{ loan[1] }} - {{ loan[2] }}</option>
                     {% endfor %}
                 </select>
+            </div>
+            <div class="expense-mortgage-split" id="mortgageSplitWrap" style="display:none;">
+                <label class="form-label">{{ t('Mortgage payment split') }}</label>
+                <div class="split-fields">
+                    <input
+                        class="form-control"
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        name="loan_principal_amount"
+                        id="loanPrincipalAmount"
+                        value="{{ form_data.get('loan_principal_amount','') if form_data else '' }}"
+                        placeholder="{{ t('Principal') }}">
+                    <input
+                        class="form-control"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        name="loan_interest_amount"
+                        id="loanInterestAmount"
+                        value="{{ form_data.get('loan_interest_amount','') if form_data else '' }}"
+                        placeholder="{{ t('Interest') }}">
+                </div>
+                <div class="form-text">{{ t('Principal and interest are tracked separately; the full payment reduces total pending debt.') }}</div>
             </div>
         </div>
     </div>
@@ -223,6 +262,9 @@ const loanSelectWrap = document.getElementById('loanSelectWrap');
 const accountField = document.getElementById('accountField');
 const paymentMethodSelect = document.getElementById('paymentMethodSelect');
 const loanSelect = document.getElementById('loanSelect');
+const mortgageSplitWrap = document.getElementById('mortgageSplitWrap');
+const loanPrincipalAmount = document.getElementById('loanPrincipalAmount');
+const loanInterestAmount = document.getElementById('loanInterestAmount');
 
 function toggleSourceField() {
     if (!sourceField) {
@@ -290,6 +332,27 @@ function toggleLoanPaymentFields() {
     if (!isLoanPayment && loanSelect) {
         loanSelect.value = '';
     }
+    toggleMortgageSplitFields();
+}
+
+function toggleMortgageSplitFields() {
+    if (!mortgageSplitWrap || !loanSelect) {
+        return;
+    }
+    const selected = loanSelect.options[loanSelect.selectedIndex];
+    const isMortgage = Boolean(loanPaymentCheck && loanPaymentCheck.checked && selected && selected.dataset.isMortgage === '1');
+    mortgageSplitWrap.style.display = isMortgage ? '' : 'none';
+    if (isMortgage) {
+        if (loanPrincipalAmount && !loanPrincipalAmount.value && selected.dataset.monthlyPrincipal) {
+            loanPrincipalAmount.value = selected.dataset.monthlyPrincipal;
+        }
+        if (loanInterestAmount && !loanInterestAmount.value && selected.dataset.monthlyInterest) {
+            loanInterestAmount.value = selected.dataset.monthlyInterest;
+        }
+        return;
+    }
+    if (loanPrincipalAmount) loanPrincipalAmount.value = '';
+    if (loanInterestAmount) loanInterestAmount.value = '';
 }
 if (loanPaymentCheck) {
     loanPaymentCheck.addEventListener('change', () => {
@@ -302,6 +365,9 @@ if (loanPaymentCheck) {
         toggleRecurrent();
     });
     toggleLoanPaymentFields();
+}
+if (loanSelect) {
+    loanSelect.addEventListener('change', toggleMortgageSplitFields);
 }
 toggleRecurrent();
 </script>

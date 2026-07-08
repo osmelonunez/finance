@@ -26,6 +26,9 @@ Las migraciones viven en esta carpeta como ficheros SQL planos. El runner de la 
 - `008_drop_records_is_financed.sql`: elimina la marca obsoleta `is_financed` de `records`.
 - `009_add_loan_usages.sql`: usos del capital de un prestamo sin impactar gastos mensuales ni ahorros.
 - `010_loans_dashboard_visibility.sql`: permite excluir prestamos de los totales de prestamos del panel principal.
+- `011_mortgage_loan_details.sql`: marca prestamos como hipoteca y separa amortizacion/intereses en pagos.
+- `012_loan_interest_rate_text.sql`: permite guardar el interes de hipoteca como texto descriptivo.
+- `013_loan_type_and_repayment.sql`: agrega tipo de prestamo y total previsto a devolver.
 
 ## English
 
@@ -53,3 +56,6 @@ Migrations live in this folder as plain SQL files. The app runner (`backend/migr
 - `008_drop_records_is_financed.sql`: removes the obsolete `is_financed` flag from `records`.
 - `009_add_loan_usages.sql`: loan capital usage tracking without affecting monthly expenses or savings.
 - `010_loans_dashboard_visibility.sql`: allows loans to be excluded from dashboard loan totals.
+- `011_mortgage_loan_details.sql`: marks loans as mortgages and splits principal/interest in payments.
+- `012_loan_interest_rate_text.sql`: allows mortgage interest to be stored as descriptive text.
+- `013_loan_type_and_repayment.sql`: adds loan type and expected total repayment.

@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 import logging
 from urllib.parse import quote
 from flask import Blueprint, render_template, request, redirect, session
@@ -55,6 +56,52 @@ def _resolve_active_loan_id(cur, raw_id, include_id=None):
     return row[0] if row else None
 
 
+def _load_loan_profile(cur, loan_id):
+    if not loan_id:
+        return None
+    cur.execute(
+        """
+        SELECT id, is_mortgage, monthly_principal_amount, monthly_interest_amount
+        FROM loans
+        WHERE id=%s
+        """,
+        (loan_id,),
+    )
+    return cur.fetchone()
+
+
+def _parse_non_negative_decimal(value, field_name):
+    try:
+        amount = Decimal((value or "").strip())
+    except (InvalidOperation, AttributeError):
+        return None, f"{field_name} must be a valid number."
+    if amount < 0:
+        return None, f"{field_name} must be greater than or equal to 0."
+    return amount, None
+
+
+def _parse_loan_payment_split(cur, loan_id, amount, form):
+    profile = _load_loan_profile(cur, loan_id)
+    if not profile or not profile[1]:
+        return None, None, None
+
+    principal, principal_error = validate_amount(form.get("loan_principal_amount"))
+    if principal_error:
+        return None, None, principal_error.replace("Amount", "Principal")
+
+    interest, interest_error = _parse_non_negative_decimal(
+        form.get("loan_interest_amount"),
+        "Interest",
+    )
+    if interest_error:
+        return None, None, interest_error
+
+    if principal + interest != amount:
+        return None, None, "Principal and interest must match amount."
+
+    return principal, interest, None
+
+
 def _load_active_loans(cur, include_id=None):
     params = []
     where = "l.status='active'"
@@ -63,7 +110,13 @@ def _load_active_loans(cur, include_id=None):
         params.append(include_id)
     cur.execute(
         f"""
-        SELECT l.id, l.name, COALESCE(b.name, l.bank_name)
+        SELECT
+            l.id,
+            l.name,
+            COALESCE(b.name, l.bank_name),
+            l.is_mortgage,
+            l.monthly_principal_amount,
+            l.monthly_interest_amount
         FROM loans l
         LEFT JOIN banks b ON l.bank_id = b.id
         WHERE {where}
@@ -88,21 +141,21 @@ def _sync_loan_statuses(cur, loan_ids):
             )
             UPDATE loans l
             SET status = CASE
-                    WHEN paid.paid_amount >= l.principal_amount THEN 'paid'
-                    WHEN l.status = 'paid' AND paid.paid_amount < l.principal_amount THEN 'active'
+                    WHEN paid.paid_amount >= COALESCE(l.total_repayment_amount, l.principal_amount) THEN 'paid'
+                    WHEN l.status = 'paid' AND paid.paid_amount < COALESCE(l.total_repayment_amount, l.principal_amount) THEN 'active'
                     ELSE l.status
                 END,
                 updated_at = CASE
                     WHEN (
-                        (paid.paid_amount >= l.principal_amount AND l.status <> 'paid')
-                        OR (l.status = 'paid' AND paid.paid_amount < l.principal_amount)
+                        (paid.paid_amount >= COALESCE(l.total_repayment_amount, l.principal_amount) AND l.status <> 'paid')
+                        OR (l.status = 'paid' AND paid.paid_amount < COALESCE(l.total_repayment_amount, l.principal_amount))
                     ) THEN NOW()
                     ELSE l.updated_at
                 END,
                 updated_by = CASE
                     WHEN (
-                        (paid.paid_amount >= l.principal_amount AND l.status <> 'paid')
-                        OR (l.status = 'paid' AND paid.paid_amount < l.principal_amount)
+                        (paid.paid_amount >= COALESCE(l.total_repayment_amount, l.principal_amount) AND l.status <> 'paid')
+                        OR (l.status = 'paid' AND paid.paid_amount < COALESCE(l.total_repayment_amount, l.principal_amount))
                     ) THEN %s
                     ELSE l.updated_by
                 END
@@ -407,6 +460,17 @@ def add_movement():
                         error="Select an active loan.",
                         form_data=request.form.to_dict(flat=True) | {"months": request.form.getlist("months")},
                     )
+                loan_principal_amount, loan_interest_amount, split_error = _parse_loan_payment_split(
+                    cur,
+                    loan_id,
+                    amount,
+                    request.form,
+                ) if is_loan_payment else (None, None, None)
+                if split_error:
+                    return _render_add(
+                        error=split_error,
+                        form_data=request.form.to_dict(flat=True) | {"months": request.form.getlist("months")},
+                    )
 
                 deferred_dates = []
                 if type_ == "expense" and is_deferred and deferred_total > 1:
@@ -418,8 +482,12 @@ def add_movement():
                     deferred_index = idx if deferred_dates else None
                     deferred_total_value = deferred_total if deferred_dates else None
                     cur.execute("""
-                    INSERT INTO records (concept, amount, date, type, source, comment, category_id, payment_method_id, deferred_index, deferred_total, loan_id, is_loan_payment, created_by, created_at, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                    INSERT INTO records (
+                        concept, amount, date, type, source, comment, category_id, payment_method_id,
+                        deferred_index, deferred_total, loan_id, is_loan_payment,
+                        loan_principal_amount, loan_interest_amount, created_by, created_at, updated_at
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
                 """, (
                     concept,
                     amount,
@@ -433,6 +501,8 @@ def add_movement():
                     deferred_total_value,
                     loan_id,
                     is_loan_payment,
+                    loan_principal_amount,
+                    loan_interest_amount,
                     session.get("user_name")
                 ))
                 _sync_loan_statuses(cur, [loan_id])
@@ -464,7 +534,8 @@ def movement_detail(id):
                        e.created_by, e.created_at, e.updated_at, e.updated_by,
                        e.payment_method_id, pm.name AS payment_method_name,
                        e.deferred_index, e.deferred_total,
-                       e.loan_id, e.is_loan_payment, l.name AS loan_name, l.bank_name AS loan_bank_name
+                       e.loan_id, e.is_loan_payment, l.name AS loan_name, l.bank_name AS loan_bank_name,
+                       e.loan_principal_amount, e.loan_interest_amount
                 FROM records e
                 LEFT JOIN categories c ON e.category_id = c.id
                 LEFT JOIN payment_methods pm ON e.payment_method_id = pm.id
@@ -548,6 +619,14 @@ def edit(id):
                 if is_loan_payment and loan_id is None:
                     msg = "Select an active loan."
                     return redirect(f"/edit/{id}?from={from_page}&error={quote(msg)}")
+                loan_principal_amount, loan_interest_amount, split_error = _parse_loan_payment_split(
+                    cur,
+                    loan_id,
+                    amount,
+                    request.form,
+                ) if is_loan_payment else (None, None, None)
+                if split_error:
+                    return redirect(f"/edit/{id}?from={from_page}&error={quote(split_error)}")
 
                 if (
                     prev_type == "expense"
@@ -596,7 +675,8 @@ def edit(id):
                     UPDATE records
                     SET concept=%s, amount=%s, date=%s, type=%s, source=%s, comment=%s,
                         category_id=%s, payment_method_id=%s, deferred_index=%s, deferred_total=%s,
-                        loan_id=%s, is_loan_payment=%s, updated_at=NOW(), updated_by=%s
+                        loan_id=%s, is_loan_payment=%s, loan_principal_amount=%s, loan_interest_amount=%s,
+                        updated_at=NOW(), updated_by=%s
                     WHERE id=%s
                 """, (
                     concept,
@@ -611,6 +691,8 @@ def edit(id):
                     deferred_total_value,
                     loan_id,
                     is_loan_payment,
+                    loan_principal_amount,
+                    loan_interest_amount,
                     session.get("user_name"),
                     id
                 ))
@@ -663,6 +745,8 @@ def edit(id):
                             payment_method_id=%s,
                             loan_id=%s,
                             is_loan_payment=%s,
+                            loan_principal_amount=%s,
+                            loan_interest_amount=%s,
                             deferred_total=%s,
                             updated_at=NOW(),
                             updated_by=%s
@@ -687,6 +771,8 @@ def edit(id):
                             payment_method_id,
                             loan_id,
                             is_loan_payment,
+                            loan_principal_amount,
+                            loan_interest_amount,
                             deferred_total,
                             session.get("user_name"),
                             id,
@@ -724,9 +810,10 @@ def edit(id):
                                 """
                                 INSERT INTO records (
                                     concept, amount, date, type, source, comment, category_id, payment_method_id,
-                                    deferred_index, deferred_total, loan_id, is_loan_payment, created_by, created_at, updated_at
+                                    deferred_index, deferred_total, loan_id, is_loan_payment,
+                                    loan_principal_amount, loan_interest_amount, created_by, created_at, updated_at
                                 )
-                                VALUES (%s, %s, %s, 'expense', %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                                VALUES (%s, %s, %s, 'expense', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
                                 """,
                                 (
                                     concept,
@@ -740,6 +827,8 @@ def edit(id):
                                     deferred_total,
                                     loan_id,
                                     is_loan_payment,
+                                    loan_principal_amount,
+                                    loan_interest_amount,
                                     session.get("user_name"),
                                 ),
                             )
@@ -764,7 +853,7 @@ def edit(id):
                        e.category_id,
                        e.created_by, e.created_at, e.updated_at, e.updated_by,
                        e.payment_method_id, e.deferred_index, e.deferred_total,
-                       e.loan_id, e.is_loan_payment
+                       e.loan_id, e.is_loan_payment, e.loan_principal_amount, e.loan_interest_amount
                 FROM records e
                 LEFT JOIN categories c ON e.category_id = c.id
                 WHERE e.id=%s
@@ -800,7 +889,7 @@ def duplicate(id):
                        e.category_id,
                        e.created_by, e.created_at, e.updated_at, e.updated_by,
                        e.payment_method_id, e.deferred_index, e.deferred_total,
-                       e.loan_id, e.is_loan_payment
+                       e.loan_id, e.is_loan_payment, e.loan_principal_amount, e.loan_interest_amount
                 FROM records e
                 LEFT JOIN categories c ON e.category_id = c.id
                 WHERE e.id=%s
@@ -863,6 +952,17 @@ def duplicate(id):
                     if return_to.startswith("/"):
                         duplicate_url += f"&return_to={quote(return_to)}"
                     return redirect(duplicate_url)
+                loan_principal_amount, loan_interest_amount, split_error = _parse_loan_payment_split(
+                    cur,
+                    loan_id,
+                    amount,
+                    request.form,
+                ) if is_loan_payment else (None, None, None)
+                if split_error:
+                    duplicate_url = f"/duplicate/{id}?from={from_page}&error={quote(split_error)}"
+                    if return_to.startswith("/"):
+                        duplicate_url += f"&return_to={quote(return_to)}"
+                    return redirect(duplicate_url)
                 if type_ == "expense" and is_deferred and deferred_total > 1:
                     base_dt = parse_year_month(date_fallback, datetime.now())
                     deferred_dates = [_shift_month(base_dt, i).strftime("%Y-%m") for i in range(deferred_total)]
@@ -872,8 +972,12 @@ def duplicate(id):
                     deferred_index = idx if deferred_dates else None
                     deferred_total_value = deferred_total if deferred_dates else None
                     cur.execute("""
-                        INSERT INTO records (concept, amount, date, type, source, comment, category_id, payment_method_id, deferred_index, deferred_total, loan_id, is_loan_payment, created_by, created_at, updated_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                        INSERT INTO records (
+                            concept, amount, date, type, source, comment, category_id, payment_method_id,
+                            deferred_index, deferred_total, loan_id, is_loan_payment,
+                            loan_principal_amount, loan_interest_amount, created_by, created_at, updated_at
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
                     """, (
                         concept,
                         amount,
@@ -887,6 +991,8 @@ def duplicate(id):
                         deferred_total_value,
                         loan_id,
                         is_loan_payment,
+                        loan_principal_amount,
+                        loan_interest_amount,
                         session.get("user_name")
                     ))
                 _sync_loan_statuses(cur, [loan_id])
@@ -906,8 +1012,9 @@ def duplicate(id):
                     return redirect(return_to)
                 return redirect(_page_to_url(from_page))
 
-    year_now = datetime.now().year
-    years = [year_now, year_now + 1]
+    record_dt = parse_year_month(expense[3], datetime.now())
+    record_year = record_dt.year
+    years = [record_year - 1, record_year, record_year + 1]
     with get_db() as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT name FROM categories ORDER BY name")

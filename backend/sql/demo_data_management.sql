@@ -106,7 +106,9 @@ BEGIN
     demo_loans AS (
         INSERT INTO loans (
             name, bank_id, bank_name, principal_amount, term_months, monthly_payment,
-            start_date, description, exclude_from_dashboard, status, created_by, created_at, updated_at, updated_by
+            start_date, description, exclude_from_dashboard, is_mortgage, annual_interest_rate,
+            monthly_principal_amount, monthly_interest_amount, loan_type, total_repayment_amount,
+            status, created_by, created_at, updated_at, updated_by
         )
         VALUES
             (
@@ -119,6 +121,12 @@ BEGIN
                 TO_CHAR(MAKE_DATE(EXTRACT(YEAR FROM CURRENT_DATE)::int, 1, 1), 'YYYY-MM'),
                 demo_tag || ' Estudios universitarios y matricula',
                 FALSE,
+                FALSE,
+                NULL,
+                NULL,
+                NULL,
+                'standard',
+                NULL,
                 'active',
                 actor_username,
                 NOW(),
@@ -135,6 +143,12 @@ BEGIN
                 TO_CHAR(MAKE_DATE(EXTRACT(YEAR FROM CURRENT_DATE)::int, 3, 1), 'YYYY-MM'),
                 demo_tag || ' Reforma parcial de vivienda',
                 FALSE,
+                FALSE,
+                NULL,
+                NULL,
+                NULL,
+                'standard',
+                NULL,
                 'active',
                 actor_username,
                 NOW(),
@@ -147,10 +161,16 @@ BEGIN
                 'Santander',
                 3600.00,
                 12,
-                300.00,
+                315.00,
                 TO_CHAR(MAKE_DATE(EXTRACT(YEAR FROM CURRENT_DATE)::int, 1, 1), 'YYYY-MM'),
-                demo_tag || ' Compra de coche de segunda mano',
+                demo_tag || ' Compra de coche de segunda mano con interes. Total a devolver calculado por cuotas: 315.00 x 12 = 3780.00.',
                 FALSE,
+                FALSE,
+                NULL,
+                NULL,
+                NULL,
+                'interest',
+                3780.00,
                 'paid',
                 actor_username,
                 NOW(),
@@ -167,13 +187,19 @@ BEGIN
                 TO_CHAR(MAKE_DATE(EXTRACT(YEAR FROM CURRENT_DATE)::int - 1, 2, 1), 'YYYY-MM'),
                 demo_tag || ' Hipoteca de vivienda principal',
                 TRUE,
+                TRUE,
+                '2,10 (EURIB+0.59)',
+                532.50,
+                367.50,
+                'mortgage',
+                324000.00,
                 'active',
                 actor_username,
                 NOW(),
                 NOW(),
                 actor_username
             )
-        RETURNING id, name, principal_amount
+        RETURNING id, name, principal_amount, is_mortgage, monthly_principal_amount, monthly_interest_amount, monthly_payment
     ),
     loan_payment_plan AS (
         SELECT
@@ -188,10 +214,19 @@ BEGIN
                 'YYYY-MM'
             ) AS date,
             CASE
+                WHEN dl.is_mortgage THEN dl.monthly_payment
                 WHEN gs.idx = lp.payment_count
                     THEN lp.target_paid - ROUND((lp.target_paid / lp.payment_count)::numeric, 2) * (lp.payment_count - 1)
                 ELSE ROUND((lp.target_paid / lp.payment_count)::numeric, 2)
-            END AS amount
+            END AS amount,
+            CASE
+                WHEN dl.is_mortgage THEN dl.monthly_principal_amount
+                ELSE NULL::numeric
+            END AS loan_principal_amount,
+            CASE
+                WHEN dl.is_mortgage THEN dl.monthly_interest_amount
+                ELSE NULL::numeric
+            END AS loan_interest_amount
         FROM (
             VALUES
                 (
@@ -213,14 +248,14 @@ BEGIN
                     'Demo - Shared Card',
                     MAKE_DATE(EXTRACT(YEAR FROM CURRENT_DATE)::int, 1, 1),
                     12,
-                    3600.00::numeric
+                    3780.00::numeric
                 ),
                 (
                     'Hipoteca vivienda',
                     'Demo - Current Account',
                     MAKE_DATE(EXTRACT(YEAR FROM CURRENT_DATE)::int - 1, 2, 1),
                     EXTRACT(MONTH FROM CURRENT_DATE)::int + 11,
-                    (900.00 * (EXTRACT(MONTH FROM CURRENT_DATE)::int + 11))::numeric
+                    (532.50 * (EXTRACT(MONTH FROM CURRENT_DATE)::int + 11))::numeric
                 )
         ) AS lp(loan_name, payment_method_name, start_month, payment_count, target_paid)
         JOIN demo_loans dl ON dl.name = lp.loan_name
@@ -343,7 +378,8 @@ BEGIN
     inserted_loan_payments AS (
         INSERT INTO records (
             concept, amount, date, type, source, comment, category_id, payment_method_id,
-            deferred_index, deferred_total, loan_id, is_loan_payment, created_by, created_at, updated_at, updated_by
+            deferred_index, deferred_total, loan_id, is_loan_payment,
+            loan_principal_amount, loan_interest_amount, created_by, created_at, updated_at, updated_by
         )
         SELECT
             lpp.loan_name || ' loan payment',
@@ -358,6 +394,8 @@ BEGIN
             NULL,
             lpp.loan_id,
             TRUE,
+            lpp.loan_principal_amount,
+            lpp.loan_interest_amount,
             actor_username,
             NOW(),
             NOW(),
