@@ -29,6 +29,7 @@ Las migraciones viven en esta carpeta como ficheros SQL planos. El runner de la 
 - `011_mortgage_loan_details.sql`: marca prestamos como hipoteca y separa amortizacion/intereses en pagos.
 - `012_loan_interest_rate_text.sql`: permite guardar el interes de hipoteca como texto descriptivo.
 - `013_loan_type_and_repayment.sql`: agrega tipo de prestamo y total previsto a devolver.
+- `014_data_robustness_constraints.sql`: agrega limites de longitud defensivos para textos principales: conceptos y nombres a 40 caracteres, comentarios y descripciones a 500.
 
 ## English
 
@@ -59,3 +60,4 @@ Migrations live in this folder as plain SQL files. The app runner (`backend/migr
 - `011_mortgage_loan_details.sql`: marks loans as mortgages and splits principal/interest in payments.
 - `012_loan_interest_rate_text.sql`: allows mortgage interest to be stored as descriptive text.
 - `013_loan_type_and_repayment.sql`: adds loan type and expected total repayment.
+- `014_data_robustness_constraints.sql`: adds defensive length limits for primary text fields: concepts and names to 40 characters, comments and descriptions to 500.

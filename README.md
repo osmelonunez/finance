@@ -14,13 +14,13 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
 ## Current Version
 
-- Stable version: `3.3.0`
-- Release: `v3.3.0 - Mortgage Loan Details`
-- Production compose image is pinned to `f1nanc3/finance:3.3.0`
+- Stable version: `3.4.0`
+- Release: `v3.4.0 - Data Robustness and UX Safety`
+- Production compose image is pinned to `f1nanc3/finance:3.4.0`
 
 ## Core Features
 
-- Separate views: `Expenses`, `Incomes`, `Savings`
+- Separate views: `Dashboard`, `Expenses`, `Incomes`, `Savings`, `Loans`, `Management`
 - Dashboard with monthly and yearly charts, including loan debt indicators
 - Auth with roles: `admin`, `editor`, `user`
 - Rate limiting in auth endpoints
@@ -35,10 +35,14 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
   - SMTP + email reports
   - categories
   - system settings
-  - accounts/cards
+  - accounts
+  - cards
   - banks
-- Loans with bank, amount, term, monthly payment, description, and payment tracking
+- Loans with bank, amount, term, monthly payment, description, status, and payment tracking
+- Loan types: no interest, interest-bearing loans, and mortgages with principal/interest split
+- Loan usage tracking to record what borrowed money is spent on without counting it as monthly income
 - Loan payments registered from expenses without counting loan requests as income
+- Optional loan exclusion from dashboard and analytics totals
 - Deferred expenses
 - Localized categories for default list (`en` / `es`)
 - SQL migrations with migration tracking table

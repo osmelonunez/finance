@@ -6,6 +6,25 @@
   .mg-tabs a { padding: 6px 10px; border: 1px solid #d9e3ee; border-radius: 9px; text-decoration: none; color: #4a5a6b; }
   .mg-tabs a.active { background: #eef4fb; color: #2f3b47; font-weight: 600; }
   .panel { border: 1px solid #dfe7f0; border-radius: 12px; background: #fbfcfe; padding: 14px; margin-bottom: 12px; }
+  .compact-validation > [class*="col-"] {
+    position: relative;
+  }
+  .compact-validation:has(.is-invalid) {
+    padding-bottom: 1.35rem;
+  }
+  .compact-validation .invalid-feedback {
+    position: absolute;
+    left: calc(var(--bs-gutter-x) * 0.5);
+    right: calc(var(--bs-gutter-x) * 0.5);
+    top: 100%;
+    z-index: 10;
+    margin-top: 2px;
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: #fff5f5;
+    box-shadow: 0 4px 10px rgba(120, 20, 20, 0.08);
+    font-size: 0.78rem;
+  }
   .pm-field:disabled {
     background: #ffffff !important;
     color: #2f3b47 !important;
@@ -14,13 +33,47 @@
   .pm-actions {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     flex-wrap: nowrap;
     white-space: nowrap;
+  }
+  .pm-actions .btn {
+    padding-left: 0.45rem;
+    padding-right: 0.45rem;
   }
   .pm-table {
     table-layout: fixed;
     width: 100%;
+  }
+  .pm-table th,
+  .pm-table td {
+    overflow: hidden;
+  }
+  .pm-table td {
+    position: relative;
+    overflow: visible;
+  }
+  .pm-table .invalid-feedback {
+    position: absolute;
+    left: 0.25rem;
+    right: 0.25rem;
+    top: calc(100% - 1px);
+    z-index: 20;
+    margin-top: 0;
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: #fff5f5;
+    box-shadow: 0 4px 10px rgba(120, 20, 20, 0.08);
+    font-size: 0.78rem;
+    text-align: left;
+  }
+  .pm-table tr:has(.is-invalid) td {
+    padding-bottom: 1.45rem;
+  }
+  .pm-table .form-control-sm,
+  .pm-table .form-select-sm {
+    padding-left: 0.45rem;
+    padding-right: 0.45rem;
   }
   .bank-field:disabled {
     background: #ffffff !important;
@@ -48,10 +101,10 @@
 
   <div class="panel">
     <div class="fw-semibold mb-2">{{ t('Banks') }}</div>
-    <form method="post" action="/management/banks/add" class="row g-2 align-items-end mb-3">
-      <div class="col-md-5">
+    <form method="post" action="/management/banks/add" class="row g-2 align-items-end mb-3 compact-validation">
+      <div class="col-md-3">
         <label class="form-label">{{ t('Name') }}</label>
-        <input class="form-control" name="name" required>
+        <input class="form-control" name="name" data-maxlength="40" required>
       </div>
       <div class="col-md-2">
         <label class="form-label">{{ t('Status') }}</label>
@@ -60,7 +113,7 @@
           <option value="0">{{ t('Inactive') }}</option>
         </select>
       </div>
-      <div class="col-md-2 d-grid">
+      <div class="col-md-1 d-grid">
         <button class="btn btn-soft" type="submit">{{ t('Add') }}</button>
       </div>
     </form>
@@ -71,13 +124,13 @@
           <tr>
             <th>{{ t('Bank') }}</th>
             <th style="width: 140px;">{{ t('Status') }}</th>
-            <th style="width: 210px;" class="text-end">{{ t('Action') }}</th>
+            <th style="width: 280px;" class="text-end">{{ t('Action') }}</th>
           </tr>
         </thead>
         <tbody>
         {% for bank in banks %}
           <tr>
-            <td><input class="form-control form-control-sm bank-field" form="bank-update-{{ bank[0] }}" name="name" value="{{ bank[1] }}" data-original="{{ bank[1] }}" disabled required></td>
+            <td><input class="form-control form-control-sm bank-field" form="bank-update-{{ bank[0] }}" name="name" data-maxlength="40" value="{{ bank[1] }}" data-original="{{ bank[1] }}" disabled required></td>
             <td>
               <select class="form-select form-select-sm bank-field" form="bank-update-{{ bank[0] }}" name="is_active" data-original="{{ '1' if bank[2] else '0' }}" disabled>
                 <option value="1" {% if bank[2] %}selected{% endif %}>{{ t('Active') }}</option>
@@ -87,8 +140,9 @@
             <td class="text-end">
               <div class="pm-actions">
                 <button class="btn btn-sm btn-outline-secondary bank-edit-btn" type="button">{{ t('Edit') }}</button>
-                <button class="btn btn-sm btn-light d-none bank-cancel-btn" type="button">{{ t('Cancel') }}</button>
-                <button class="btn btn-sm btn-outline-primary d-none bank-save-btn" type="submit" form="bank-update-{{ bank[0] }}">{{ t('Save') }}</button>
+                <button class="btn btn-sm btn-light d-none bank-cancel-btn" type="button" title="{{ t('Cancel') }}">{{ t('Cancel') }}</button>
+                <button class="btn btn-sm btn-outline-primary d-none bank-save-btn" type="submit" form="bank-update-{{ bank[0] }}" title="{{ t('Save') }}">{{ t('Save') }}</button>
+                <button class="btn btn-sm btn-outline-danger d-none bank-delete-btn" type="button" data-delete-action="/management/banks/{{ bank[0] }}/delete" data-delete-name="{{ bank[1] }}" title="{{ t('Delete') }}">{{ t('Delete') }}</button>
               </div>
               <form id="bank-update-{{ bank[0] }}" method="post" action="/management/banks/{{ bank[0] }}/update"></form>
             </td>
@@ -102,18 +156,12 @@
   </div>
 
   <div class="panel">
-    <div class="fw-semibold mb-2">{{ t('Account or card') }}</div>
-    <form method="post" action="/management/payment-methods/add" class="row g-2 align-items-end">
+    <div class="fw-semibold mb-2">{{ t('Accounts') }}</div>
+    <form method="post" action="/management/payment-methods/add" class="row g-2 align-items-end compact-validation">
+      <input type="hidden" name="kind" value="bank_account">
       <div class="col-md-3">
         <label class="form-label">{{ t('Name') }}</label>
-        <input class="form-control" name="name" required>
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">{{ t('Type') }}</label>
-        <select class="form-select" name="kind">
-          <option value="card">{{ t('Card') }}</option>
-          <option value="bank_account">{{ t('Bank account') }}</option>
-        </select>
+        <input class="form-control" name="name" data-maxlength="40" required>
       </div>
       <div class="col-md-3">
         <label class="form-label">{{ t('Bank') }}</label>
@@ -125,10 +173,10 @@
         </select>
       </div>
       <div class="col-md-2">
-        <label class="form-label">{{ t('Account/Card number (optional)') }}</label>
+        <label class="form-label">{{ t('Account number') }}</label>
         <input class="form-control" name="account_ref">
       </div>
-      <div class="col-md-1">
+      <div class="col-md-2">
         <label class="form-label">{{ t('Status') }}</label>
         <select class="form-select" name="is_active">
           <option value="1">{{ t('Active') }}</option>
@@ -142,35 +190,28 @@
   </div>
 
   <div class="panel table-responsive">
+    <div class="fw-semibold mb-2">{{ t('Accounts') }}</div>
     <table class="table table-sm align-middle mb-0 pm-table">
       <colgroup>
-        <col style="width: 22%;">
+        <col style="width: 20%;">
         <col style="width: 18%;">
+        <col style="width: 22%;">
         <col style="width: 12%;">
-        <col style="width: 24%;">
-        <col style="width: 10%;">
-        <col style="width: 14%;">
+        <col style="width: 28%;">
       </colgroup>
       <thead>
         <tr class="pm-row">
           <th>{{ t('Name') }}</th>
-          <th>{{ t('Type') }}</th>
           <th>{{ t('Bank') }}</th>
-          <th>{{ t('Account/Card number (optional)') }}</th>
+          <th>{{ t('Account number') }}</th>
           <th>{{ t('Status') }}</th>
           <th class="text-end">{{ t('Action') }}</th>
         </tr>
       </thead>
       <tbody>
-      {% for m in payment_methods %}
+      {% for m in payment_methods if m[2] == 'bank_account' %}
         <tr>
-          <td><input class="form-control form-control-sm pm-field" form="pm-update-{{ m[0] }}" name="name" value="{{ m[1] }}" data-original="{{ m[1] }}" disabled required></td>
-          <td>
-            <select class="form-select form-select-sm pm-field" form="pm-update-{{ m[0] }}" name="kind" data-original="{{ m[2] }}" disabled>
-              <option value="card" {% if m[2]=='card' %}selected{% endif %}>{{ t('Card') }}</option>
-              <option value="bank_account" {% if m[2]=='bank_account' %}selected{% endif %}>{{ t('Bank account') }}</option>
-            </select>
-          </td>
+          <td><input class="form-control form-control-sm pm-field" form="pm-update-{{ m[0] }}" name="name" data-maxlength="40" value="{{ m[1] }}" data-original="{{ m[1] }}" disabled required></td>
           <td>
             <select class="form-select form-select-sm pm-field" form="pm-update-{{ m[0] }}" name="bank_id" data-original="{{ m[6] or '' }}" disabled>
               <option value="">{{ t('Select') }}</option>
@@ -189,15 +230,106 @@
           <td class="text-end">
             <div class="pm-actions">
               <button class="btn btn-sm btn-outline-secondary pm-edit-btn" type="button">{{ t('Edit') }}</button>
-              <button class="btn btn-sm btn-light d-none pm-cancel-btn" type="button">{{ t('Cancel') }}</button>
-              <button class="btn btn-sm btn-outline-primary d-none pm-save-btn" type="submit" form="pm-update-{{ m[0] }}">{{ t('Save') }}</button>
-              <button class="btn btn-sm btn-outline-danger d-none pm-delete-btn" type="button" data-delete-action="/management/payment-methods/{{ m[0] }}/delete" data-delete-name="{{ m[1] }}">{{ t('Delete') }}</button>
+              <button class="btn btn-sm btn-light d-none pm-cancel-btn" type="button" title="{{ t('Cancel') }}">{{ t('Cancel') }}</button>
+              <button class="btn btn-sm btn-outline-primary d-none pm-save-btn" type="submit" form="pm-update-{{ m[0] }}" title="{{ t('Save') }}">{{ t('Save') }}</button>
+              <button class="btn btn-sm btn-outline-danger d-none pm-delete-btn" type="button" data-delete-action="/management/payment-methods/{{ m[0] }}/delete" data-delete-name="{{ m[1] }}" title="{{ t('Delete') }}">{{ t('Delete') }}</button>
             </div>
+            <input type="hidden" form="pm-update-{{ m[0] }}" name="kind" value="bank_account">
             <form id="pm-update-{{ m[0] }}" method="post" action="/management/payment-methods/{{ m[0] }}/update"></form>
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="6" class="text-muted">{{ t('No records found.') }}</td></tr>
+        <tr><td colspan="5" class="text-muted">{{ t('No records found.') }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <div class="fw-semibold mb-2">{{ t('Cards') }}</div>
+    <form method="post" action="/management/payment-methods/add" class="row g-2 align-items-end compact-validation">
+      <input type="hidden" name="kind" value="card">
+      <div class="col-md-3">
+        <label class="form-label">{{ t('Name') }}</label>
+        <input class="form-control" name="name" data-maxlength="40" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">{{ t('Bank') }}</label>
+        <select class="form-select" name="bank_id">
+          <option value="">{{ t('Select') }}</option>
+          {% for bank in banks if bank[2] %}
+          <option value="{{ bank[0] }}">{{ bank[1] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">{{ t('Card number') }}</label>
+        <input class="form-control" name="account_ref">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">{{ t('Status') }}</label>
+        <select class="form-select" name="is_active">
+          <option value="1">{{ t('Active') }}</option>
+          <option value="0">{{ t('Inactive') }}</option>
+        </select>
+      </div>
+      <div class="col-md-1 d-grid">
+        <button class="btn btn-soft" type="submit">{{ t('Add') }}</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="panel table-responsive">
+    <div class="fw-semibold mb-2">{{ t('Cards') }}</div>
+    <table class="table table-sm align-middle mb-0 pm-table">
+      <colgroup>
+        <col style="width: 20%;">
+        <col style="width: 18%;">
+        <col style="width: 22%;">
+        <col style="width: 12%;">
+        <col style="width: 28%;">
+      </colgroup>
+      <thead>
+        <tr class="pm-row">
+          <th>{{ t('Name') }}</th>
+          <th>{{ t('Bank') }}</th>
+          <th>{{ t('Card number') }}</th>
+          <th>{{ t('Status') }}</th>
+          <th class="text-end">{{ t('Action') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for m in payment_methods if m[2] == 'card' %}
+        <tr>
+          <td><input class="form-control form-control-sm pm-field" form="pm-update-{{ m[0] }}" name="name" data-maxlength="40" value="{{ m[1] }}" data-original="{{ m[1] }}" disabled required></td>
+          <td>
+            <select class="form-select form-select-sm pm-field" form="pm-update-{{ m[0] }}" name="bank_id" data-original="{{ m[6] or '' }}" disabled>
+              <option value="">{{ t('Select') }}</option>
+              {% for bank in banks %}
+              <option value="{{ bank[0] }}" {% if m[6] == bank[0] %}selected{% endif %}>{{ bank[1] }}{% if not bank[2] %} ({{ t('Inactive') }}){% endif %}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td><input class="form-control form-control-sm pm-field" form="pm-update-{{ m[0] }}" name="account_ref" value="{{ m[4] or '' }}" data-original="{{ m[4] or '' }}" disabled></td>
+          <td>
+            <select class="form-select form-select-sm pm-field" form="pm-update-{{ m[0] }}" name="is_active" data-original="{{ '1' if m[5] else '0' }}" disabled>
+              <option value="1" {% if m[5] %}selected{% endif %}>{{ t('Active') }}</option>
+              <option value="0" {% if not m[5] %}selected{% endif %}>{{ t('Inactive') }}</option>
+            </select>
+          </td>
+          <td class="text-end">
+            <div class="pm-actions">
+              <button class="btn btn-sm btn-outline-secondary pm-edit-btn" type="button">{{ t('Edit') }}</button>
+              <button class="btn btn-sm btn-light d-none pm-cancel-btn" type="button" title="{{ t('Cancel') }}">{{ t('Cancel') }}</button>
+              <button class="btn btn-sm btn-outline-primary d-none pm-save-btn" type="submit" form="pm-update-{{ m[0] }}" title="{{ t('Save') }}">{{ t('Save') }}</button>
+              <button class="btn btn-sm btn-outline-danger d-none pm-delete-btn" type="button" data-delete-action="/management/payment-methods/{{ m[0] }}/delete" data-delete-name="{{ m[1] }}" title="{{ t('Delete') }}">{{ t('Delete') }}</button>
+            </div>
+            <input type="hidden" form="pm-update-{{ m[0] }}" name="kind" value="card">
+            <form id="pm-update-{{ m[0] }}" method="post" action="/management/payment-methods/{{ m[0] }}/update"></form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="text-muted">{{ t('No records found.') }}</td></tr>
       {% endfor %}
       </tbody>
     </table>
@@ -227,6 +359,8 @@
   </div>
 </div>
 
+{% endblock %}
+
 {% block extra_js %}
 <script>
   (function () {
@@ -254,10 +388,12 @@
       const editBtn = row.querySelector(".bank-edit-btn");
       const cancelBtn = row.querySelector(".bank-cancel-btn");
       const saveBtn = row.querySelector(".bank-save-btn");
+      const deleteBtn = row.querySelector(".bank-delete-btn");
       fields.forEach((f) => { f.disabled = !on; });
       if (editBtn) editBtn.classList.toggle("d-none", on);
       if (cancelBtn) cancelBtn.classList.toggle("d-none", !on);
       if (saveBtn) saveBtn.classList.toggle("d-none", !on);
+      if (deleteBtn) deleteBtn.classList.toggle("d-none", !on);
       if (on && fields.length) fields[0].focus();
     }
 
@@ -278,6 +414,15 @@
           if (original !== undefined) f.value = original;
         });
         setBankEditMode(row, false);
+        return;
+      }
+
+      const bankDeleteBtn = event.target.closest(".bank-delete-btn");
+      if (bankDeleteBtn) {
+        if (!deleteModal || !deleteForm || !deleteName) return;
+        deleteForm.setAttribute("action", bankDeleteBtn.getAttribute("data-delete-action") || "");
+        deleteName.textContent = bankDeleteBtn.getAttribute("data-delete-name") || "-";
+        deleteModal.show();
         return;
       }
 
@@ -310,5 +455,4 @@
     });
   })();
 </script>
-{% endblock %}
 {% endblock %}

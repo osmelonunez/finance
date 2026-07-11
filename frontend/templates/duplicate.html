@@ -37,7 +37,7 @@
 
     <div class="col-md-2">
         <label class="form-label">{{ t('Concept') }}</label>
-        <input class="form-control" name="concept" value="{{ expense[1] }}" required>
+        <input class="form-control" name="concept" data-maxlength="40" value="{{ expense[1] }}" required>
     </div>
 
     {% if expense[4] == 'expense' %}
@@ -182,7 +182,7 @@
 
     <div class="col-12">
         <label class="form-label">{{ t('Comment') }}</label>
-        <textarea class="form-control" name="comment" rows="2" placeholder="{{ t('Optional') }}">{{ expense[6] or '' }}</textarea>
+        <textarea class="form-control" name="comment" rows="2" maxlength="500" placeholder="{{ t('Optional') }}">{{ expense[6] or '' }}</textarea>
     </div>
 
     <div class="col-12">

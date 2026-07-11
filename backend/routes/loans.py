@@ -6,7 +6,15 @@ from flask import Blueprint, redirect, render_template, request, session
 
 from dashboard_cache import invalidate_dashboard_cache
 from db import get_db
-from validators import parse_year_month, validate_concept
+from validators import (
+    MAX_LOAN_DESCRIPTION_LENGTH,
+    MAX_LOAN_NAME_LENGTH,
+    MAX_LOAN_USAGE_COMMENT_LENGTH,
+    MAX_LOAN_USAGE_CONCEPT_LENGTH,
+    parse_year_month,
+    validate_concept,
+    validate_text_length,
+)
 
 
 loans_bp = Blueprint("loans", __name__)
@@ -95,7 +103,11 @@ def _loan_query(where="1=1"):
             l.monthly_interest_amount,
             l.loan_type,
             l.total_repayment_amount,
-            l.bank_id
+            l.bank_id,
+            l.created_by,
+            l.created_at,
+            l.updated_by,
+            l.updated_at
         FROM loans l
         LEFT JOIN banks b ON l.bank_id = b.id
         LEFT JOIN records r ON r.loan_id = l.id AND r.type = 'expense'
@@ -162,7 +174,11 @@ def loans_list():
 @loans_bp.route("/loans/add", methods=["GET", "POST"])
 def loan_add():
     if request.method == "POST":
-        name, name_error = validate_concept(request.form.get("name"))
+        name, name_error = validate_concept(
+            request.form.get("name"),
+            MAX_LOAN_NAME_LENGTH,
+            "Loan name",
+        )
         if name_error:
             return _render_loan_add(name_error, request.form)
 
@@ -240,7 +256,13 @@ def loan_add():
         if not start_date:
             return _render_loan_add("Start date is required.", request.form)
         start_date_value = start_date.strftime("%Y-%m")
-        description = (request.form.get("description") or "").strip() or None
+        description, description_error = validate_text_length(
+            request.form.get("description"),
+            "Description",
+            MAX_LOAN_DESCRIPTION_LENGTH,
+        )
+        if description_error:
+            return _render_loan_add(description_error, request.form)
         exclude_from_dashboard = request.form.get("exclude_from_dashboard") == "on"
 
         with get_db() as conn:
@@ -432,7 +454,11 @@ def loan_detail(id):
 
 @loans_bp.route("/loans/<int:id>/usages/add", methods=["POST"])
 def loan_usage_add(id):
-    concept, concept_error = validate_concept(request.form.get("concept"))
+    concept, concept_error = validate_concept(
+        request.form.get("concept"),
+        MAX_LOAN_USAGE_CONCEPT_LENGTH,
+        "Usage concept",
+    )
     if concept_error:
         return redirect(f"/loans/{id}?tab=usages&error={quote(concept_error)}")
 
@@ -446,7 +472,13 @@ def loan_usage_add(id):
         return redirect(f"/loans/{id}?tab=usages&error={quote('Date is required.')}")
     date_value = date.strftime("%Y-%m")
     category_name = (request.form.get("category") or "").strip()
-    comment = (request.form.get("comment") or "").strip() or None
+    comment, comment_error = validate_text_length(
+        request.form.get("comment"),
+        "Usage comment",
+        MAX_LOAN_USAGE_COMMENT_LENGTH,
+    )
+    if comment_error:
+        return redirect(f"/loans/{id}?tab=usages&error={quote(comment_error)}")
 
     with get_db() as conn:
         with conn.cursor() as cur:
@@ -505,25 +537,42 @@ def loan_status(id):
     status = (request.form.get("status") or "").strip()
     if status not in {"active", "paid", "cancelled"}:
         return redirect(f"/loans/{id}?error={quote('Invalid status.')}")
+    exclude_from_dashboard = status in {"paid", "cancelled"}
     with get_db() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
                 UPDATE loans
-                SET status=%s, updated_at=NOW(), updated_by=%s
+                SET status=%s,
+                    exclude_from_dashboard = CASE
+                        WHEN %s THEN TRUE
+                        ELSE exclude_from_dashboard
+                    END,
+                    updated_at=NOW(),
+                    updated_by=%s
                 WHERE id=%s
                 """,
-                (status, session.get("user_name"), id),
+                (status, exclude_from_dashboard, session.get("user_name"), id),
             )
             conn.commit()
             invalidate_dashboard_cache()
-            logger.info("loan_status_update user=%s id=%s status=%s", session.get("user_name"), id, status)
+            logger.info(
+                "loan_status_update user=%s id=%s status=%s auto_excluded=%s",
+                session.get("user_name"),
+                id,
+                status,
+                exclude_from_dashboard,
+            )
     return redirect(f"/loans/{id}")
 
 
 @loans_bp.route("/loans/<int:id>/details", methods=["POST"])
 def loan_details_update(id):
-    name, name_error = validate_concept(request.form.get("name"))
+    name, name_error = validate_concept(
+        request.form.get("name"),
+        MAX_LOAN_NAME_LENGTH,
+        "Loan name",
+    )
     if name_error:
         return redirect(f"/loans/{id}?edit=1&error={quote(name_error)}")
 
@@ -550,7 +599,13 @@ def loan_details_update(id):
     if not start_date:
         return redirect(f"/loans/{id}?edit=1&error={quote('Start date is required.')}")
     start_date_value = start_date.strftime("%Y-%m")
-    description = (request.form.get("description") or "").strip() or None
+    description, description_error = validate_text_length(
+        request.form.get("description"),
+        "Description",
+        MAX_LOAN_DESCRIPTION_LENGTH,
+    )
+    if description_error:
+        return redirect(f"/loans/{id}?edit=1&error={quote(description_error)}")
 
     with get_db() as conn:
         with conn.cursor() as cur:
@@ -579,6 +634,8 @@ def loan_details_update(id):
     is_mortgage = loan_type == "mortgage"
     is_interest_bearing = loan_type in {"interest", "mortgage"}
     exclude_from_dashboard = request.form.get("exclude_from_dashboard") == "on"
+    if status in {"paid", "cancelled"}:
+        exclude_from_dashboard = True
 
     annual_interest_rate = (request.form.get("annual_interest_rate") or "").strip() or None
     if not is_mortgage:

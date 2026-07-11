@@ -1,4 +1,8 @@
 {% extends "base.html" %}
+{% block extra_css %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.10.0/dist/css/bootstrap-datepicker.min.css" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
 
 <style>
@@ -119,6 +123,9 @@
     .loan-mortgage-fields .form-text {
         flex-basis: 100%;
     }
+    .loan-date {
+        width: 120px;
+    }
     .loan-edit-main-fields {
         display: grid;
         grid-template-columns: minmax(180px, 1.2fr) minmax(160px, 0.9fr) minmax(130px, 0.7fr) minmax(120px, 0.6fr) minmax(120px, 0.6fr);
@@ -151,6 +158,38 @@
         border-radius: 8px;
         padding: 0.75rem 0.9rem 0.75rem 2.1rem;
         background: #f9fbfd;
+    }
+    .loan-usage-form > [class*="col-"] {
+        position: relative;
+    }
+    .loan-usage-form .invalid-feedback {
+        position: absolute;
+        left: calc(var(--bs-gutter-x) * 0.5);
+        right: calc(var(--bs-gutter-x) * 0.5);
+        top: 100%;
+        z-index: 10;
+        margin-top: 2px;
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: #fff5f5;
+        box-shadow: 0 4px 10px rgba(120, 20, 20, 0.08);
+        font-size: 0.82rem;
+    }
+    .loan-usage-form .loan-usage-submit {
+        padding-top: 0.25rem;
+    }
+    .loan-usage-form:has(.is-invalid) {
+        padding-bottom: 1.35rem;
+    }
+    .loan-usage-form:has(.is-invalid) .loan-usage-submit {
+        padding-top: 1.5rem;
+    }
+    .audit-strip {
+        border-top: 1px solid #e3e9f0;
+        margin-top: 1rem;
+        padding-top: 0.75rem;
+        color: #617182;
+        font-size: 0.88rem;
     }
 </style>
 
@@ -284,12 +323,26 @@
             <div class="detail-value">{{ loan[7] or '-' }}</div>
         </div>
     </div>
+    <div class="audit-strip">
+        <div class="row g-2">
+            <div class="col-md-6">
+                <span class="fw-semibold">{{ t('Created') }}:</span>
+                {{ loan[19] or '-' }}
+                {% if loan[20] %} · {{ loan[20].strftime("%Y-%m-%d %H:%M") }}{% endif %}
+            </div>
+            <div class="col-md-6">
+                <span class="fw-semibold">{{ t('Last edit') }}:</span>
+                {{ loan[21] or '-' }}
+                {% if loan[22] %} · {{ loan[22].strftime("%Y-%m-%d %H:%M") }}{% endif %}
+            </div>
+        </div>
+    </div>
     {% if edit_mode %}
     <form method="post" action="/loans/{{ loan[0] }}/details" class="mt-4">
         <div class="loan-edit-main-fields">
             <div>
                 <label class="form-label">{{ t('Loan name') }}</label>
-                <input class="form-control" name="name" value="{{ loan[1] }}" required>
+                <input class="form-control" name="name" data-maxlength="40" value="{{ loan[1] }}" required>
             </div>
             <div>
                 <label class="form-label">{{ t('Bank') }}</label>
@@ -306,7 +359,9 @@
             </div>
             <div>
                 <label class="form-label">{{ t('Start date') }}</label>
-                <input class="form-control" type="month" name="start_date" value="{{ loan[6] }}" required>
+                <div class="position-relative" id="loanStartWrapperDetail">
+                    <input class="form-control loan-date text-center" id="loanStartDateDetail" name="start_date" value="{{ loan[6] }}" required>
+                </div>
             </div>
             <div>
                 <label class="form-label">{{ t('Term months') }}</label>
@@ -315,7 +370,7 @@
         </div>
         <div class="mt-3">
             <label class="form-label">{{ t('Description') }}</label>
-            <input class="form-control" name="description" value="{{ loan[7] if loan[7] else '' }}" placeholder="{{ t('What will this loan be used for?') }}">
+            <input class="form-control" name="description" maxlength="500" value="{{ loan[7] if loan[7] else '' }}" placeholder="{{ t('What will this loan be used for?') }}">
         </div>
         <div class="loan-settings-grid mt-3">
             <div class="settings-field">
@@ -457,10 +512,10 @@
     </ul>
 
     {% if active_tab == 'usages' %}
-    <form method="post" action="/loans/{{ loan[0] }}/usages/add" class="row g-3 align-items-end mb-4">
+    <form method="post" action="/loans/{{ loan[0] }}/usages/add" class="row g-3 align-items-start mb-4 loan-usage-form">
         <div class="col-md-3">
             <label class="form-label">{{ t('Concept') }}</label>
-            <input class="form-control" name="concept" required>
+            <input class="form-control" name="concept" data-maxlength="40" required>
         </div>
         <div class="col-md-2">
             <label class="form-label">{{ t('Amount') }}</label>
@@ -481,9 +536,9 @@
         </div>
         <div class="col-md-3">
             <label class="form-label">{{ t('Comment') }}</label>
-            <input class="form-control" name="comment">
+            <input class="form-control" name="comment" maxlength="500">
         </div>
-        <div class="col-md-12">
+        <div class="col-md-12 loan-usage-submit">
             <button class="btn btn-success">{{ t('Register usage') }}</button>
         </div>
     </form>
@@ -636,6 +691,9 @@
   </div>
 </div>
 
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.10.0/dist/js/bootstrap-datepicker.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.10.0/dist/locales/bootstrap-datepicker.es.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const loanTypeInputs = document.querySelectorAll('input[name="loan_type"]');
@@ -805,6 +863,16 @@ document.addEventListener('DOMContentLoaded', function () {
     if (principalAmountInput) principalAmountInput.addEventListener('input', refreshEstimatedInterest);
     if (termMonthsInput) termMonthsInput.addEventListener('input', refreshFromInstallments);
     if (startDateInput) startDateInput.addEventListener('change', refreshTermFromStartDate);
+    if (startDateInput && window.jQuery && window.jQuery.fn.datepicker) {
+        window.jQuery('#loanStartDateDetail').datepicker({
+            format: "yyyy-mm",
+            startView: 1,
+            minViewMode: 1,
+            autoclose: true,
+            language: {{ ('es' if current_lang == 'es' else 'en') | tojson }},
+            container: '#loanStartWrapperDetail'
+        }).on('changeDate', refreshTermFromStartDate);
+    }
     calculationModeInputs.forEach((input) => input.addEventListener('change', refreshCalculationMode));
     refreshLoanTypeFields();
     refreshEstimatedInterest();

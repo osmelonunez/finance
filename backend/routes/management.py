@@ -13,11 +13,19 @@ from dashboard_cache import invalidate_dashboard_cache
 from i18n import t
 from email_service import notify_user_approved
 from report_service import send_monthly_report, send_yearly_report
+from validators import (
+    MAX_BANK_NAME_LENGTH,
+    MAX_PAYMENT_METHOD_NAME_LENGTH,
+    validate_text_length,
+)
 
 
 management_bp = Blueprint("management", __name__)
 logger = logging.getLogger("finance.management")
 DEMO_SQL_PATH = os.path.join(os.path.dirname(__file__), "..", "sql", "demo_data_management.sql")
+DEMO_TAG = "[DEMO_SEED_MANAGEMENT]"
+DEMO_BANK_NAMES = ("ING", "Santander", "CaixaBank", "BBVA")
+DEMO_PAYMENT_METHOD_NAMES = ("Demo - Main Card", "Demo - Shared Card", "Demo - Current Account")
 
 
 def _build_db_url_from_form(prefix: str = ""):
@@ -78,6 +86,52 @@ def _flash_payload():
 def _ensure_demo_functions(cur):
     with open(DEMO_SQL_PATH, "r", encoding="utf-8") as f:
         cur.execute(f.read())
+
+
+def _demo_data_counts(cur):
+    cur.execute("SELECT COUNT(*) FROM banks WHERE name = ANY(%s)", (list(DEMO_BANK_NAMES),))
+    banks = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM payment_methods WHERE name = ANY(%s)", (list(DEMO_PAYMENT_METHOD_NAMES),))
+    payment_methods = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM loans WHERE description LIKE %s", (f"{DEMO_TAG}%",))
+    loans = cur.fetchone()[0]
+    cur.execute(
+        """
+        SELECT
+            COUNT(*) FILTER (WHERE is_loan_payment = TRUE),
+            COUNT(*) FILTER (WHERE COALESCE(is_loan_payment, FALSE) = FALSE),
+            COUNT(*) FILTER (WHERE type = 'income'),
+            COUNT(*) FILTER (WHERE type = 'expense'),
+            COUNT(*) FILTER (WHERE type = 'saving')
+        FROM records
+        WHERE comment = %s
+        """,
+        (DEMO_TAG,),
+    )
+    loan_payments, regular_records, incomes, expenses, savings = cur.fetchone()
+    cur.execute("SELECT COUNT(*) FROM loan_usages WHERE comment LIKE %s", (f"{DEMO_TAG}%",))
+    loan_usages = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM settings WHERE key='initial_saving'")
+    initial_saving = cur.fetchone()[0]
+    return {
+        "banks": banks,
+        "payment_methods": payment_methods,
+        "loans": loans,
+        "regular_records": regular_records,
+        "loan_payments": loan_payments,
+        "loan_usages": loan_usages,
+        "incomes": incomes,
+        "expenses": expenses,
+        "savings": savings,
+        "initial_saving": initial_saving,
+    }
+
+
+def _log_demo_data_actions(action, counts, total=None):
+    for entity, count in counts.items():
+        logger.info("[DEMO DATA] action=%s entity=%s count=%s", action, entity, count)
+    if total is not None:
+        logger.info("[DEMO DATA] action=%s entity=total count=%s", action, total)
 
 
 def _smtp_cipher():
@@ -475,15 +529,20 @@ def management_payment_methods():
 def add_payment_method():
     if session.get("role") not in {"admin", "editor"}:
         return redirect(url_for("dashboard.dashboard"))
-    name = (request.form.get("name") or "").strip()
+    name, name_error = validate_text_length(
+        request.form.get("name"),
+        "Name",
+        MAX_PAYMENT_METHOD_NAME_LENGTH,
+        required=True,
+    )
     kind = (request.form.get("kind") or "card").strip()
     bank_id = _parse_int_or_none(request.form.get("bank_id"))
     account_ref = (request.form.get("account_ref") or "").strip()
     is_active = (request.form.get("is_active") or "1") == "1"
     if kind not in {"card", "bank_account"}:
         kind = "card"
-    if not name:
-        session["management_err"] = t("Name is required.")
+    if name_error:
+        session["management_err"] = t(name_error)
         return redirect(url_for("management.management_payment_methods"))
     try:
         with get_db() as conn:
@@ -492,10 +551,21 @@ def add_payment_method():
                     """
                     INSERT INTO payment_methods (name, kind, bank_id, bank_name, account_ref, is_active, updated_at)
                     VALUES (%s, %s, %s, (SELECT name FROM banks WHERE id=%s), %s, %s, NOW())
+                    RETURNING id
                     """,
                     (name, kind, bank_id, bank_id, account_ref or None, is_active),
                 )
+                method_id = cur.fetchone()[0]
                 conn.commit()
+        logger.info(
+            "payment_method_create user=%s id=%s name=%s kind=%s bank_id=%s active=%s",
+            session.get("user_name"),
+            method_id,
+            name,
+            kind,
+            bank_id,
+            is_active,
+        )
         session["management_msg"] = t("Payment method created.")
     except Exception:
         session["management_err"] = t("Name already exists.")
@@ -506,15 +576,20 @@ def add_payment_method():
 def update_payment_method(method_id):
     if session.get("role") not in {"admin", "editor"}:
         return redirect(url_for("dashboard.dashboard"))
-    name = (request.form.get("name") or "").strip()
+    name, name_error = validate_text_length(
+        request.form.get("name"),
+        "Name",
+        MAX_PAYMENT_METHOD_NAME_LENGTH,
+        required=True,
+    )
     kind = (request.form.get("kind") or "card").strip()
     bank_id = _parse_int_or_none(request.form.get("bank_id"))
     account_ref = (request.form.get("account_ref") or "").strip()
     is_active = (request.form.get("is_active") or "0") == "1"
     if kind not in {"card", "bank_account"}:
         kind = "card"
-    if not name:
-        session["management_err"] = t("Name is required.")
+    if name_error:
+        session["management_err"] = t(name_error)
         return redirect(url_for("management.management_payment_methods"))
     try:
         with get_db() as conn:
@@ -533,7 +608,18 @@ def update_payment_method(method_id):
                     """,
                     (name, kind, bank_id, bank_id, account_ref or None, is_active, method_id),
                 )
+                updated = cur.rowcount
                 conn.commit()
+        logger.info(
+            "payment_method_update user=%s id=%s name=%s kind=%s bank_id=%s active=%s updated=%s",
+            session.get("user_name"),
+            method_id,
+            name,
+            kind,
+            bank_id,
+            is_active,
+            updated,
+        )
         session["management_msg"] = t("Payment method updated.")
     except Exception:
         session["management_err"] = t("Name already exists.")
@@ -553,10 +639,15 @@ def _parse_int_or_none(raw_value):
 def add_bank():
     if session.get("role") not in {"admin", "editor"}:
         return redirect(url_for("dashboard.dashboard"))
-    name = (request.form.get("name") or "").strip()
+    name, name_error = validate_text_length(
+        request.form.get("name"),
+        "Bank name",
+        MAX_BANK_NAME_LENGTH,
+        required=True,
+    )
     is_active = (request.form.get("is_active") or "1") == "1"
-    if not name:
-        session["management_err"] = t("Bank name is required.")
+    if name_error:
+        session["management_err"] = t(name_error)
         return redirect(url_for("management.management_payment_methods"))
     try:
         with get_db() as conn:
@@ -565,10 +656,19 @@ def add_bank():
                     """
                     INSERT INTO banks (name, is_active, updated_at)
                     VALUES (%s, %s, NOW())
+                    RETURNING id
                     """,
                     (name, is_active),
                 )
+                bank_id = cur.fetchone()[0]
                 conn.commit()
+        logger.info(
+            "bank_create user=%s id=%s name=%s active=%s",
+            session.get("user_name"),
+            bank_id,
+            name,
+            is_active,
+        )
         session["management_msg"] = t("Bank created.")
     except Exception:
         session["management_err"] = t("Bank already exists.")
@@ -579,10 +679,15 @@ def add_bank():
 def update_bank(bank_id):
     if session.get("role") not in {"admin", "editor"}:
         return redirect(url_for("dashboard.dashboard"))
-    name = (request.form.get("name") or "").strip()
+    name, name_error = validate_text_length(
+        request.form.get("name"),
+        "Bank name",
+        MAX_BANK_NAME_LENGTH,
+        required=True,
+    )
     is_active = (request.form.get("is_active") or "0") == "1"
-    if not name:
-        session["management_err"] = t("Bank name is required.")
+    if name_error:
+        session["management_err"] = t(name_error)
         return redirect(url_for("management.management_payment_methods"))
     try:
         with get_db() as conn:
@@ -595,6 +700,7 @@ def update_bank(bank_id):
                     """,
                     (name, is_active, bank_id),
                 )
+                updated = cur.rowcount
                 cur.execute(
                     """
                     UPDATE payment_methods
@@ -612,9 +718,54 @@ def update_bank(bank_id):
                     (name, bank_id),
                 )
                 conn.commit()
+        logger.info(
+            "bank_update user=%s id=%s name=%s active=%s updated=%s",
+            session.get("user_name"),
+            bank_id,
+            name,
+            is_active,
+            updated,
+        )
         session["management_msg"] = t("Bank updated.")
     except Exception:
         session["management_err"] = t("Bank already exists.")
+    return redirect(url_for("management.management_payment_methods"))
+
+
+@management_bp.route("/management/banks/<int:bank_id>/delete", methods=["POST"])
+def delete_bank(bank_id):
+    if session.get("role") not in {"admin", "editor"}:
+        return redirect(url_for("dashboard.dashboard"))
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM payment_methods WHERE bank_id=%s LIMIT 1", (bank_id,))
+            if cur.fetchone():
+                logger.info(
+                    "bank_delete_blocked user=%s id=%s reason=payment_methods_in_use",
+                    session.get("user_name"),
+                    bank_id,
+                )
+                session["management_err"] = t("Cannot delete bank. It is used by accounts or cards.")
+                return redirect(url_for("management.management_payment_methods"))
+            cur.execute("SELECT 1 FROM loans WHERE bank_id=%s LIMIT 1", (bank_id,))
+            if cur.fetchone():
+                logger.info(
+                    "bank_delete_blocked user=%s id=%s reason=loans_in_use",
+                    session.get("user_name"),
+                    bank_id,
+                )
+                session["management_err"] = t("Cannot delete bank. It is used by loans.")
+                return redirect(url_for("management.management_payment_methods"))
+            cur.execute("DELETE FROM banks WHERE id=%s", (bank_id,))
+            deleted = cur.rowcount
+            conn.commit()
+    logger.info(
+        "bank_delete user=%s id=%s deleted=%s",
+        session.get("user_name"),
+        bank_id,
+        deleted,
+    )
+    session["management_msg"] = t("Bank deleted.")
     return redirect(url_for("management.management_payment_methods"))
 
 
@@ -626,9 +777,21 @@ def delete_payment_method(method_id):
         with get_db() as conn:
             with conn.cursor() as cur:
                 cur.execute("DELETE FROM payment_methods WHERE id=%s", (method_id,))
+                deleted = cur.rowcount
                 conn.commit()
+        logger.info(
+            "payment_method_delete user=%s id=%s deleted=%s",
+            session.get("user_name"),
+            method_id,
+            deleted,
+        )
         session["management_msg"] = t("Payment method deleted.")
     except ForeignKeyViolation:
+        logger.info(
+            "payment_method_delete_blocked user=%s id=%s reason=in_use",
+            session.get("user_name"),
+            method_id,
+        )
         session["management_err"] = t("Cannot delete payment method. It is used by expenses.")
     return redirect(url_for("management.management_payment_methods"))
 
@@ -812,8 +975,10 @@ def seed_demo_data():
             _ensure_demo_functions(cur)
             cur.execute("SELECT management_seed_demo_data()")
             inserted = cur.fetchone()[0]
+            demo_counts = _demo_data_counts(cur)
             conn.commit()
     invalidate_dashboard_cache()
+    _log_demo_data_actions("seed", demo_counts, inserted)
     logger.info("demo_data_seed user=%s inserted=%s initial_saving=300", session.get("user_name"), inserted)
     session["management_msg"] = f"{t('Demo data inserted')}: {inserted} {t('records')}"
 
@@ -828,10 +993,12 @@ def clear_demo_data():
     with get_db() as conn:
         with conn.cursor() as cur:
             _ensure_demo_functions(cur)
+            demo_counts = _demo_data_counts(cur)
             cur.execute("SELECT management_clear_demo_data()")
             deleted = cur.fetchone()[0]
             conn.commit()
     invalidate_dashboard_cache()
+    _log_demo_data_actions("clear", demo_counts, deleted)
     logger.info("demo_data_clear user=%s deleted=%s initial_saving_removed=true", session.get("user_name"), deleted)
     session["management_msg"] = f"{t('Demo data deleted')}: {deleted} {t('records')}"
 

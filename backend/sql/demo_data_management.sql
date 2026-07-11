@@ -164,7 +164,7 @@ BEGIN
                 315.00,
                 TO_CHAR(MAKE_DATE(EXTRACT(YEAR FROM CURRENT_DATE)::int, 1, 1), 'YYYY-MM'),
                 demo_tag || ' Compra de coche de segunda mano con interes. Total a devolver calculado por cuotas: 315.00 x 12 = 3780.00.',
-                FALSE,
+                TRUE,
                 FALSE,
                 NULL,
                 NULL,

@@ -113,6 +113,22 @@
         color: #2f3b47;
         font-weight: 600;
     }
+    .compact-validation > [class*="col-"] {
+        position: relative;
+    }
+    .compact-validation .invalid-feedback {
+        position: absolute;
+        left: calc(var(--bs-gutter-x) * 0.5);
+        right: calc(var(--bs-gutter-x) * 0.5);
+        top: 100%;
+        z-index: 10;
+        margin-top: 2px;
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: #fff5f5;
+        box-shadow: 0 4px 10px rgba(120, 20, 20, 0.08);
+        font-size: 0.78rem;
+    }
 </style>
 
 <div class="categories-shell">
@@ -137,14 +153,14 @@
     {% endif %}
 
     <div class="categories-card">
-        <form method="post" action="/categories/add" class="row g-2 align-items-end">
+        <form method="post" action="/categories/add" class="row g-2 align-items-end compact-validation">
             <div class="col-md-4">
                 <label class="form-label">{{ t('Category') }}</label>
-                <input class="form-control" name="name" placeholder="{{ t('New category') }}" required>
+                <input class="form-control" name="name" data-maxlength="40" placeholder="{{ t('New category') }}" required>
             </div>
             <div class="col-md-6">
                 <label class="form-label">{{ t('Description') }}</label>
-                <input class="form-control" name="description" placeholder="{{ t('Optional') }}">
+                <input class="form-control" name="description" maxlength="500" placeholder="{{ t('Optional') }}">
             </div>
             <div class="col-md-2 d-flex">
                 <button class="btn btn-soft w-100">{{ t('Add') }}</button>
@@ -168,17 +184,22 @@
                         <form method="post" action="/categories/{{ c[0] }}/update">
                             <td>
                                 <span class="cat-view">{{ cat_name(c[1]) }}</span>
-                                <input class="form-control form-control-sm d-none cat-input" name="name" value="{{ c[1] }}" required disabled>
+                                <input class="form-control form-control-sm d-none cat-input" name="name" data-maxlength="40" value="{{ c[1] }}" required disabled>
                             </td>
                             <td>
                                 <span class="cat-view">{{ cat_desc(c[1], c[2]) }}</span>
-                                <input class="form-control form-control-sm d-none cat-input" name="description" value="{{ c[2] or '' }}" disabled>
+                                <input class="form-control form-control-sm d-none cat-input" name="description" maxlength="500" value="{{ c[2] or '' }}" disabled>
                             </td>
                             <td class="text-end">
                                 <div class="d-flex gap-2 justify-content-end category-actions">
                                     <button class="icon-btn category-edit" type="button" title="{{ t('Edit') }}">✎</button>
                                     <button class="icon-btn category-save d-none" title="{{ t('Save') }}">✔</button>
-                                    <button class="icon-btn icon-btn-danger" formaction="/categories/{{ c[0] }}/delete" title="{{ t('Delete') }}">🗑</button>
+                                    <button
+                                        class="icon-btn icon-btn-danger category-delete"
+                                        type="button"
+                                        title="{{ t('Delete') }}"
+                                        data-delete-action="/categories/{{ c[0] }}/delete"
+                                        data-delete-name="{{ cat_name(c[1]) }}">🗑</button>
                                 </div>
                             </td>
                         </form>
@@ -189,6 +210,31 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="deleteCategoryModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-danger">{{ t('Delete category') }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">{{ t('This action cannot be undone. Delete this category?') }}</div>
+        <div class="alert alert-warning py-2 mb-0">
+          <strong id="deleteCategoryName">-</strong>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ t('Cancel') }}</button>
+        <form method="post" id="deleteCategoryForm">
+          <button type="submit" class="btn btn-danger">{{ t('Delete') }}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
 
 {% block extra_js %}
 <script>
@@ -205,7 +251,17 @@
             btn.classList.add('d-none');
         });
     });
+    const deleteCategoryModalEl = document.getElementById('deleteCategoryModal');
+    const deleteCategoryModal = deleteCategoryModalEl && window.bootstrap ? new bootstrap.Modal(deleteCategoryModalEl) : null;
+    const deleteCategoryForm = document.getElementById('deleteCategoryForm');
+    const deleteCategoryName = document.getElementById('deleteCategoryName');
+    document.querySelectorAll('.category-delete').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            if (!deleteCategoryModal || !deleteCategoryForm || !deleteCategoryName) return;
+            deleteCategoryForm.setAttribute('action', btn.dataset.deleteAction || '');
+            deleteCategoryName.textContent = btn.dataset.deleteName || '-';
+            deleteCategoryModal.show();
+        });
+    });
 </script>
-{% endblock %}
-
 {% endblock %}
