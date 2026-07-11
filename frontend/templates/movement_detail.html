@@ -105,7 +105,7 @@
             </div>
         </div>
         <div class="col-md-6">
-            <div class="detail-label">{{ t('Edited') }}</div>
+            <div class="detail-label">{{ t('Last edit') }}</div>
             <div class="detail-value">
                 {{ expense[11] or '-' }}
                 {% if expense[10] %}
@@ -131,15 +131,21 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">{{ t('Delete record') }}</h5>
+        <h5 class="modal-title text-danger">{{ t('Delete record') }}</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        {{ t('This action cannot be undone. Delete this record?') }}
+        <div class="mb-2">{{ t('This action cannot be undone. Delete this record?') }}</div>
+        <div class="alert alert-warning py-2 mb-0">
+            <strong>{{ expense[1] }}</strong>
+            <div class="small">{{ expense[3] }} · {{ "%.2f"|format(expense[2]) }}</div>
+        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ t('Cancel') }}</button>
-        <a href="/delete/{{ expense[0] }}?from={{ current_page }}{% if return_to %}&return_to={{ return_to|urlencode }}{% endif %}" class="btn btn-danger">{{ t('Delete') }}</a>
+        <form method="post" action="/delete/{{ expense[0] }}?from={{ current_page }}{% if return_to %}&return_to={{ return_to|urlencode }}{% endif %}">
+          <button type="submit" class="btn btn-danger">{{ t('Delete') }}</button>
+        </form>
       </div>
     </div>
   </div>

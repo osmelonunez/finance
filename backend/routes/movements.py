@@ -6,7 +6,13 @@ from flask import Blueprint, render_template, request, redirect, session
 
 from db import get_db
 from dashboard_cache import invalidate_dashboard_cache
-from validators import parse_year_month, validate_amount, validate_concept
+from validators import (
+    MAX_RECORD_COMMENT_LENGTH,
+    parse_year_month,
+    validate_amount,
+    validate_concept,
+    validate_text_length,
+)
 
 
 movements_bp = Blueprint("movements", __name__)
@@ -144,6 +150,10 @@ def _sync_loan_statuses(cur, loan_ids):
                     WHEN paid.paid_amount >= COALESCE(l.total_repayment_amount, l.principal_amount) THEN 'paid'
                     WHEN l.status = 'paid' AND paid.paid_amount < COALESCE(l.total_repayment_amount, l.principal_amount) THEN 'active'
                     ELSE l.status
+                END,
+                exclude_from_dashboard = CASE
+                    WHEN paid.paid_amount >= COALESCE(l.total_repayment_amount, l.principal_amount) THEN TRUE
+                    ELSE l.exclude_from_dashboard
                 END,
                 updated_at = CASE
                     WHEN (
@@ -448,7 +458,16 @@ def add_movement():
 
         with get_db() as conn:
             with conn.cursor() as cur:
-                comment = request.form.get("comment") or None
+                comment, comment_error = validate_text_length(
+                    request.form.get("comment"),
+                    "Comment",
+                    MAX_RECORD_COMMENT_LENGTH,
+                )
+                if comment_error:
+                    return _render_add(
+                        error=comment_error,
+                        form_data=request.form.to_dict(flat=True) | {"months": request.form.getlist("months")},
+                    )
                 category_name = request.form.get("category") or None
                 category_id = _resolve_category_id(cur, category_name)
                 payment_method_id = _resolve_payment_method_id(cur, request.form.get("payment_method_id"))
@@ -588,7 +607,13 @@ def edit(id):
                 amount, amount_error = validate_amount(request.form.get("amount"))
                 if amount_error:
                     return redirect(f"/edit/{id}?from={from_page}&error={quote(amount_error)}")
-                comment = request.form.get("comment") or None
+                comment, comment_error = validate_text_length(
+                    request.form.get("comment"),
+                    "Comment",
+                    MAX_RECORD_COMMENT_LENGTH,
+                )
+                if comment_error:
+                    return redirect(f"/edit/{id}?from={from_page}&error={quote(comment_error)}")
                 category_name = request.form.get("category") or None
                 category_id = _resolve_category_id(cur, category_name)
                 payment_method_id = _resolve_payment_method_id(cur, request.form.get("payment_method_id"))
@@ -926,7 +951,16 @@ def duplicate(id):
                     if return_to.startswith("/"):
                         duplicate_url += f"&return_to={quote(return_to)}"
                     return redirect(duplicate_url)
-                comment = request.form.get("comment") or None
+                comment, comment_error = validate_text_length(
+                    request.form.get("comment"),
+                    "Comment",
+                    MAX_RECORD_COMMENT_LENGTH,
+                )
+                if comment_error:
+                    duplicate_url = f"/duplicate/{id}?from={from_page}&error={quote(comment_error)}"
+                    if return_to.startswith("/"):
+                        duplicate_url += f"&return_to={quote(return_to)}"
+                    return redirect(duplicate_url)
                 category_name = request.form.get("category") or None
                 category_id = _resolve_category_id(cur, category_name)
                 payment_method_id = _resolve_payment_method_id(cur, request.form.get("payment_method_id"))
@@ -1036,7 +1070,7 @@ def duplicate(id):
     )
 
 
-@movements_bp.route("/delete/<int:id>")
+@movements_bp.route("/delete/<int:id>", methods=["POST"])
 def delete(id):
     from_page = (request.args.get("from") or "").strip()
     return_to = (request.args.get("return_to") or "").strip()

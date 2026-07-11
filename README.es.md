@@ -14,13 +14,13 @@ Repositorio: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
 ## Versión Actual
 
-- Versión estable: `3.3.0`
-- Release: `v3.3.0 - Mortgage Loan Details`
-- El compose de producción usa imagen fijada en `f1nanc3/finance:3.3.0`
+- Versión estable: `3.4.0`
+- Release: `v3.4.0 - Robustez de datos y seguridad de UX`
+- El compose de producción usa imagen fijada en `f1nanc3/finance:3.4.0`
 
 ## Funcionalidades Principales
 
-- Vistas separadas: `Expenses`, `Incomes`, `Savings`
+- Vistas separadas: `Panel`, `Gastos`, `Ingresos`, `Ahorros`, `Préstamos`, `Gestión`
 - Dashboard con gráficas mensuales y anuales, incluyendo indicadores de deuda de préstamos
 - Autenticación con roles: `admin`, `editor`, `user`
 - Rate limiting en endpoints de autenticación
@@ -35,10 +35,14 @@ Repositorio: [osmelonunez/finance](https://github.com/osmelonunez/finance)
   - SMTP + reportes por correo
   - categorías
   - ajustes del sistema
-  - cuentas/tarjetas
+  - cuentas
+  - tarjetas
   - bancos
-- Préstamos con banco, cantidad, plazo, cuota mensual, descripción y seguimiento de pagos
+- Préstamos con banco, cantidad, plazo, cuota mensual, descripción, estado y seguimiento de pagos
+- Tipos de préstamo: sin intereses, con intereses e hipotecas con separación de amortización/intereses
+- Seguimiento de uso de préstamo para registrar en qué se gasta el dinero prestado sin contarlo como ingreso mensual
 - Pagos de préstamo registrados desde gastos sin contar la solicitud del préstamo como ingreso
+- Exclusión opcional de préstamos en dashboard y totales de analíticas
 - Pagos aplazados
 - Categorías por defecto localizadas (`en` / `es`)
 - Migraciones SQL con tabla de control
@@ -49,22 +53,22 @@ Repositorio: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
 ## Capturas de Pantalla
 
-### Dashboard
+### Panel
 ![Dashboard](docs/screenshots/dashboard.png)
 
-### Expenses
+### Gastos
 ![Expenses](docs/screenshots/expenses.png)
 
-### Loans
+### Préstamos
 ![Loans](docs/screenshots/loans.png)
 
-### Loan Detail
+### Detalle de préstamo
 ![Loan Detail](docs/screenshots/loan-detail.png)
 
-### Management
+### Gestión
 ![Management](docs/screenshots/management.png)
 
-### Profile
+### Perfil
 ![Profile](docs/screenshots/profile.png)
 
 ## Stack Tecnológico

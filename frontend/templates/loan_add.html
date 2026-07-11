@@ -66,7 +66,7 @@
 <form method="post" class="loan-form row g-3">
     <div class="col-md-4">
         <label class="form-label">{{ t('Loan name') }}</label>
-        <input class="form-control" name="name" value="{{ form_data.get('name', '') }}" required>
+        <input class="form-control" name="name" data-maxlength="40" value="{{ form_data.get('name', '') }}" required>
     </div>
     <div class="col-md-3">
         <label class="form-label">{{ t('Bank') }}</label>
@@ -157,7 +157,7 @@
     </div>
     <div class="col-md-8">
         <label class="form-label">{{ t('Description') }}</label>
-        <input class="form-control" name="description" value="{{ form_data.get('description', '') }}" placeholder="{{ t('What will this loan be used for?') }}">
+        <input class="form-control" name="description" maxlength="500" value="{{ form_data.get('description', '') }}" placeholder="{{ t('What will this loan be used for?') }}">
         <div class="form-text">{{ t('Loan registration does not count as monthly income.') }}</div>
     </div>
     <div class="col-md-12">

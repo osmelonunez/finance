@@ -281,6 +281,143 @@
             form.appendChild(input);
         });
     })();
+
+    (function validateFormsLive() {
+        const requiredMessage = {{ t('This field is required.')|tojson }};
+        const maxLengthTemplate = {{ t('Maximum {max} characters. Current: {current}.')|tojson }};
+
+        function controlsFor(form) {
+            return Array.from(form.elements).filter((control) => {
+                if (control.type === "hidden") return false;
+                if (control.disabled) return false;
+                return control.hasAttribute("required") || control.hasAttribute("maxlength") || control.hasAttribute("data-maxlength");
+            });
+        }
+
+        function actionButtonsFor(form) {
+            const internalButtons = Array.from(form.querySelectorAll('button[type="submit"], input[type="submit"], button:not([type]), button[type="button"][data-bs-toggle="modal"]'));
+            if (!form.id) return internalButtons;
+            const externalButtons = Array.from(document.querySelectorAll(`button[form="${form.id}"], input[form="${form.id}"]`));
+            return internalButtons.concat(externalButtons);
+        }
+
+        function feedbackFor(control) {
+            let feedback = control.parentElement ? control.parentElement.querySelector(`.invalid-feedback[data-for="${control.name}"]`) : null;
+            if (!feedback && control.parentElement) {
+                feedback = document.createElement("div");
+                feedback.className = "invalid-feedback";
+                feedback.dataset.for = control.name || "";
+                control.insertAdjacentElement("afterend", feedback);
+            }
+            return feedback;
+        }
+
+        function validateControl(control, showFeedback) {
+            const rawValue = control.value || "";
+            const value = rawValue.trim();
+            const maxLength = Number.parseInt(control.getAttribute("data-maxlength") || control.getAttribute("maxlength") || "", 10);
+            let message = "";
+            let reason = "";
+
+            if (control.hasAttribute("required") && !value) {
+                message = requiredMessage;
+                reason = "required";
+            } else if (Number.isFinite(maxLength) && rawValue.length > maxLength) {
+                message = maxLengthTemplate
+                    .replace("{max}", String(maxLength))
+                    .replace("{current}", String(rawValue.length));
+                reason = "length";
+            }
+
+            control.setCustomValidity(message);
+            if (showFeedback) {
+                const feedback = feedbackFor(control);
+                if (feedback) feedback.textContent = message;
+                control.classList.toggle("is-invalid", Boolean(message));
+            }
+            return { valid: !message, reason };
+        }
+
+        function validateForm(form, showFeedback) {
+            const results = controlsFor(form).map((control) => validateControl(control, showFeedback));
+            const valid = results.every((result) => result.valid);
+            const hasBlockingError = results.some((result) => !result.valid && result.reason !== "required");
+            actionButtonsFor(form).forEach((button) => {
+                button.disabled = hasBlockingError;
+            });
+            return valid;
+        }
+
+        document.querySelectorAll("form").forEach((form) => {
+            const controls = controlsFor(form);
+            if (!controls.length) return;
+            controls.forEach((control) => {
+                ["input", "change", "blur"].forEach((eventName) => {
+                    control.addEventListener(eventName, () => validateForm(form, true));
+                });
+            });
+            validateForm(form, false);
+            form.addEventListener("submit", (event) => {
+                if (!validateForm(form, true)) {
+                    event.preventDefault();
+                    const firstInvalid = controlsFor(form).find((control) => control.classList.contains("is-invalid"));
+                    if (firstInvalid) firstInvalid.focus();
+                }
+            });
+        });
+    })();
+
+    (function preventDoubleSubmit() {
+        const labels = {
+            POST: {{ t('Processing...')|tojson }},
+            default: {{ t('Processing...')|tojson }}
+        };
+
+        function submitLabel(button) {
+            if (!button) return labels.default;
+            if (button.dataset.loadingText) return button.dataset.loadingText;
+            const text = (button.textContent || "").trim().toLowerCase();
+            if (text.includes("delete") || text.includes("eliminar")) return {{ t('Deleting...')|tojson }};
+            if (text.includes("save") || text.includes("guardar") || text.includes("update") || text.includes("actualizar")) return {{ t('Saving...')|tojson }};
+            if (text.includes("add") || text.includes("crear") || text.includes("create") || text.includes("añadir")) return {{ t('Creating...')|tojson }};
+            return labels.default;
+        }
+
+        function externalSubmitterFor(form) {
+            const id = form.dataset.submitterButtonId;
+            if (!id) return null;
+            const button = document.getElementById(id);
+            return button instanceof HTMLButtonElement || button instanceof HTMLInputElement ? button : null;
+        }
+
+        function disableSubmitButtons(form, externalSubmitter) {
+            form.querySelectorAll('button[type="submit"], input[type="submit"], button:not([type])').forEach((button) => {
+                button.disabled = true;
+            });
+            if (externalSubmitter) {
+                externalSubmitter.disabled = true;
+            }
+        }
+
+        document.addEventListener("submit", (event) => {
+            const form = event.target;
+            if (!(form instanceof HTMLFormElement)) return;
+            if (event.defaultPrevented) return;
+            if (form.dataset.allowResubmit === "true") return;
+            if (form.dataset.submitted === "true") {
+                event.preventDefault();
+                return;
+            }
+            form.dataset.submitted = "true";
+            const externalSubmitter = externalSubmitterFor(form);
+            const submitter = externalSubmitter || event.submitter || form.querySelector('button[type="submit"], input[type="submit"], button:not([type])');
+            if (submitter) {
+                submitter.dataset.originalText = submitter.textContent;
+                submitter.textContent = submitLabel(submitter);
+            }
+            disableSubmitButtons(form, externalSubmitter);
+        });
+    })();
 </script>
 {% block extra_js %}{% endblock %}
 <script>

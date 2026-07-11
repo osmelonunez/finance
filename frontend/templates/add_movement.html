@@ -65,7 +65,7 @@
 
     <div class="col-md-2">
         <label class="form-label">{{ t('Concept') }}</label>
-        <input class="form-control" name="concept" value="{{ form_data.get('concept','') if form_data else '' }}" required>
+        <input class="form-control" name="concept" data-maxlength="40" value="{{ form_data.get('concept','') if form_data else '' }}" required>
         <div class="expense-options">
             <div class="form-check">
                 <input class="form-check-input" type="checkbox" id="recurrentCheck" {{ 'checked' if form_data and selected_months else '' }}>
@@ -223,7 +223,7 @@
 
     <div class="col-12">
         <label class="form-label">{{ t('Comment') }}</label>
-        <textarea class="form-control" name="comment" rows="2" placeholder="{{ t('Optional') }}">{{ form_data.get('comment','') if form_data else '' }}</textarea>
+        <textarea class="form-control" name="comment" rows="2" maxlength="500" placeholder="{{ t('Optional') }}">{{ form_data.get('comment','') if form_data else '' }}</textarea>
     </div>
 
     <div class="col-12">

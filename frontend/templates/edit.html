@@ -52,7 +52,7 @@
 
     <div class="col-md-2">
         <label class="form-label">{{ t('Concept') }}</label>
-        <input class="form-control" name="concept" value="{{ expense[1] }}" required>
+        <input class="form-control" name="concept" data-maxlength="40" value="{{ expense[1] }}" required>
         {% if expense[4] == 'expense' %}
         <div class="edit-options">
             <div class="form-check">
@@ -177,7 +177,7 @@
 
     <div class="col-12">
         <label class="form-label">{{ t('Comment') }}</label>
-        <textarea class="form-control" name="comment" rows="2" placeholder="{{ t('Optional') }}">{{ expense[6] or '' }}</textarea>
+        <textarea class="form-control" name="comment" rows="2" maxlength="500" placeholder="{{ t('Optional') }}">{{ expense[6] or '' }}</textarea>
     </div>
 
     <div class="col-12">
@@ -322,6 +322,14 @@ $('#dateEdit').datepicker({
     }
 
     if (!saveBtn || !form || !deferredScopeInput) return;
+    function submitEditForm(button, deferredScope) {
+      deferredScopeInput.value = deferredScope;
+      if (button && button.id) {
+        form.dataset.submitterButtonId = button.id;
+      }
+      form.requestSubmit();
+    }
+
     saveBtn.addEventListener('click', () => {
       const isRemovingDeferred = wasDeferredInitially && deferredCheck && !deferredCheck.checked;
       if (isRemovingDeferred && deferredScopeModal) {
@@ -330,21 +338,18 @@ $('#dateEdit').datepicker({
         deferredScopeModal.show();
         return;
       }
-      deferredScopeInput.value = 'single';
-      form.submit();
+      submitEditForm(saveBtn, 'single');
     });
 
     if (saveSingleDeferredBtn) {
       saveSingleDeferredBtn.addEventListener('click', () => {
-        deferredScopeInput.value = 'single';
-        form.submit();
+        submitEditForm(saveSingleDeferredBtn, 'single');
       });
     }
 
     if (saveAllDeferredBtn) {
       saveAllDeferredBtn.addEventListener('click', () => {
-        deferredScopeInput.value = 'all';
-        form.submit();
+        submitEditForm(saveAllDeferredBtn, 'all');
       });
     }
   })();

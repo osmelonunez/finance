@@ -50,9 +50,9 @@
       <form method="post" action="/management/demo-data/seed">
         <button class="btn btn-outline-primary btn-sm">{{ t('Insert demo data') }}</button>
       </form>
-      <form method="post" action="/management/demo-data/clear">
-        <button class="btn btn-outline-danger btn-sm">{{ t('Delete demo data') }}</button>
-      </form>
+      <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteDemoDataModal">
+        {{ t('Delete demo data') }}
+      </button>
     </div>
   </div>
 
@@ -65,6 +65,30 @@
   {% endif %}
 </div>
 
+<div class="modal fade" id="deleteDemoDataModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-danger">{{ t('Delete demo data') }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">{{ t('This action cannot be undone. Delete demo data?') }}</div>
+        <div class="alert alert-warning py-2 mb-0">
+          <strong>{{ t('Demo data') }}</strong>
+          <div class="small">{{ t('Only records marked as demo data will be removed.') }}</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ t('Cancel') }}</button>
+        <form method="post" action="/management/demo-data/clear">
+          <button type="submit" class="btn btn-danger">{{ t('Delete') }}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% if is_admin %}
 <div class="modal fade" id="resetDbModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
@@ -75,7 +99,7 @@
       </div>
       <div class="modal-body">{{ t('This will delete all records. Continue?') }}</div>
       <div class="modal-footer">
-        <a href="/management/system" class="btn btn-light">{{ t('Cancel') }}</a>
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ t('Cancel') }}</button>
         <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#resetDbModal2">{{ t('Continue') }}</button>
       </div>
     </div>
@@ -91,7 +115,7 @@
       </div>
       <div class="modal-body">{{ t('Are you absolutely sure you want to reset the database?') }}</div>
       <div class="modal-footer">
-        <a href="/management/system" class="btn btn-light">{{ t('Cancel') }}</a>
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ t('Cancel') }}</button>
         <form method="post" action="/management/reset-db">
           <button type="submit" class="btn btn-danger">{{ t('Yes, delete all') }}</button>
         </form>
