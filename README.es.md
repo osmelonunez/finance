@@ -14,9 +14,9 @@ Repositorio: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
 ## Versión Actual
 
-- Versión estable: `3.4.0`
-- Release: `v3.4.0 - Robustez de datos y seguridad de UX`
-- El compose de producción usa imagen fijada en `f1nanc3/finance:3.4.0`
+- Versión estable: `3.4.1`
+- Release: `v3.4.1 - Edición de usos de préstamo`
+- El compose de producción usa imagen fijada en `f1nanc3/finance:3.4.1`
 
 ## Funcionalidades Principales
 
@@ -40,7 +40,7 @@ Repositorio: [osmelonunez/finance](https://github.com/osmelonunez/finance)
   - bancos
 - Préstamos con banco, cantidad, plazo, cuota mensual, descripción, estado y seguimiento de pagos
 - Tipos de préstamo: sin intereses, con intereses e hipotecas con separación de amortización/intereses
-- Seguimiento de uso de préstamo para registrar en qué se gasta el dinero prestado sin contarlo como ingreso mensual
+- Seguimiento editable de usos de préstamo para registrar en qué se gasta el dinero prestado sin contarlo como ingreso mensual
 - Pagos de préstamo registrados desde gastos sin contar la solicitud del préstamo como ingreso
 - Exclusión opcional de préstamos en dashboard y totales de analíticas
 - Pagos aplazados

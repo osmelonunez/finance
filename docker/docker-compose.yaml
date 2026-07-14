@@ -1,7 +1,9 @@
 services:
   finance:
-    image: f1nanc3/finance:3.4.0
+    image: f1nanc3/finance:3.4.1
     container_name: finance
+    ports:
+      - "5000:5000"
     environment:
       # Runtime mode (development/production).
       APP_ENV: production

@@ -107,6 +107,20 @@ Validacion:
 - `make up`
 - Pruebas manuales de validacion, formularios, modales, gestion, datos demo y prestamos.
 
+### v3.4.1 - Edicion de usos de prestamo
+
+Estado: preparado para release.
+
+Objetivo: completar la gestion de los usos de prestamo sin introducir cambios de esquema.
+
+Incluye:
+- Edicion en linea de concepto, categoria, fecha, importe y comentario.
+- Acciones consistentes de Editar, Cancelar, Guardar y Eliminar.
+- Validacion backend y actualizacion de los campos de auditoria.
+- Tabla reorganizada con fondo blanco y espacio estable para las acciones.
+- [Notas de release en espanol](docs/v3.4.1-release/notas-v3.4.1.md)
+- [Release notes in English](docs/v3.4.1-release/v3.4.1-release-notes.md)
+
 ## Ideas futuras
 
 Estas ideas no estan comprometidas todavia y pueden moverse segun prioridad.
