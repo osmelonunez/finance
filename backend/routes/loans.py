@@ -532,6 +532,78 @@ def loan_usage_delete(id, usage_id):
     return redirect(f"/loans/{id}?tab=usages&usage_page={usage_page}")
 
 
+@loans_bp.route("/loans/<int:id>/usages/<int:usage_id>/update", methods=["POST"])
+def loan_usage_update(id, usage_id):
+    usage_page = _parse_page(request.args.get("usage_page"))
+    error_url = f"/loans/{id}?tab=usages&usage_page={usage_page}&edit_usage={usage_id}"
+
+    concept, concept_error = validate_concept(
+        request.form.get("concept"),
+        MAX_LOAN_USAGE_CONCEPT_LENGTH,
+        "Usage concept",
+    )
+    if concept_error:
+        return redirect(f"{error_url}&error={quote(concept_error)}")
+
+    amount, amount_error = _parse_positive_decimal(request.form.get("amount"), "Amount")
+    if amount_error:
+        return redirect(f"{error_url}&error={quote(amount_error)}")
+
+    date = parse_year_month((request.form.get("date") or "").strip(), None)
+    if not date:
+        return redirect(f"{error_url}&error={quote('Date is required.')}")
+
+    comment, comment_error = validate_text_length(
+        request.form.get("comment"),
+        "Usage comment",
+        MAX_LOAN_USAGE_COMMENT_LENGTH,
+    )
+    if comment_error:
+        return redirect(f"{error_url}&error={quote(comment_error)}")
+
+    category_name = (request.form.get("category") or "").strip()
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            category_id = None
+            if category_name:
+                cur.execute("SELECT id FROM categories WHERE name=%s", (category_name,))
+                category_row = cur.fetchone()
+                category_id = category_row[0] if category_row else None
+            cur.execute(
+                """
+                UPDATE loan_usages
+                SET concept=%s,
+                    amount=%s,
+                    date=%s,
+                    category_id=%s,
+                    comment=%s,
+                    updated_at=NOW(),
+                    updated_by=%s
+                WHERE id=%s AND loan_id=%s
+                """,
+                (
+                    concept,
+                    amount,
+                    date.strftime("%Y-%m"),
+                    category_id,
+                    comment,
+                    session.get("user_name"),
+                    usage_id,
+                    id,
+                ),
+            )
+            updated = cur.rowcount
+            conn.commit()
+            logger.info(
+                "loan_usage_update user=%s loan_id=%s usage_id=%s updated=%s",
+                session.get("user_name"),
+                id,
+                usage_id,
+                updated,
+            )
+    return redirect(f"/loans/{id}?tab=usages&usage_page={usage_page}")
+
+
 @loans_bp.route("/loans/<int:id>/status", methods=["POST"])
 def loan_status(id):
     status = (request.form.get("status") or "").strip()

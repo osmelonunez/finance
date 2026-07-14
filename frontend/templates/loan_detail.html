@@ -184,6 +184,41 @@
     .loan-usage-form:has(.is-invalid) .loan-usage-submit {
         padding-top: 1.5rem;
     }
+    .loan-usage-row > td,
+    .loan-usage-row .loan-usage-field:disabled {
+        background-color: #fff;
+    }
+    .loan-usage-row .loan-usage-field:disabled {
+        opacity: 1;
+    }
+    .loan-usage-date-col,
+    .loan-usage-amount-col {
+        width: 125px;
+        min-width: 125px;
+    }
+    .loan-usage-concept-col {
+        width: 190px;
+        min-width: 190px;
+    }
+    .loan-usage-category-col {
+        width: 160px;
+        min-width: 160px;
+    }
+    .loan-usage-comment-col {
+        width: 250px;
+        min-width: 250px;
+    }
+    .loan-usage-actions-col {
+        width: 270px;
+        min-width: 270px;
+        white-space: nowrap;
+    }
+    .loan-usage-row .loan-usage-category:disabled {
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: none;
+        padding-right: 0.5rem;
+    }
     .audit-strip {
         border-top: 1px solid #e3e9f0;
         margin-top: 1rem;
@@ -196,6 +231,7 @@
 {% set paid = loan[9] %}
 {% set available = loan[3] - usage_total %}
 {% set edit_mode = request.args.get('edit') == '1' %}
+{% set edit_usage_id = request.args.get('edit_usage')|int if request.args.get('edit_usage') else none %}
 {% set selected_loan_type = loan[16] if loan[16] else ('mortgage' if loan[12] else 'standard') %}
 {% set is_interest_bearing = selected_loan_type in ['interest', 'mortgage'] %}
 {% set total_to_repay = loan[17] if loan[17] is not none else loan[3] %}
@@ -556,26 +592,47 @@
         <table class="table payments-table align-middle mb-0">
             <thead>
             <tr>
-                <th>{{ t('Date') }}</th>
-                <th>{{ t('Concept') }}</th>
-                <th>{{ t('Category') }}</th>
-                <th>{{ t('Comment') }}</th>
-                <th class="text-end">{{ t('Amount') }}</th>
-                <th></th>
+                <th class="loan-usage-concept-col">{{ t('Concept') }}</th>
+                <th class="loan-usage-category-col">{{ t('Category') }}</th>
+                <th class="loan-usage-date-col">{{ t('Date') }}</th>
+                <th class="text-end loan-usage-amount-col">{{ t('Amount') }}</th>
+                <th class="loan-usage-comment-col">{{ t('Comment') }}</th>
+                <th class="loan-usage-actions-col"></th>
             </tr>
             </thead>
             <tbody>
             {% for usage in usages %}
-            <tr>
-                <td>{{ usage[3] }}</td>
-                <td>{{ usage[1] }}</td>
-                <td>{{ t(usage[4]) if usage[4] else '-' }}</td>
-                <td>{{ usage[5] or '-' }}</td>
-                <td class="text-end">{{ "%.2f"|format(usage[2]) }}</td>
-                <td class="text-end">
+            {% set usage_editing = edit_usage_id == usage[0] %}
+            {% set usage_form_id = 'usage-edit-' ~ usage[0] %}
+            <tr class="loan-usage-row">
+                <td class="loan-usage-concept-col">
+                    <input class="form-control form-control-sm loan-usage-field" form="{{ usage_form_id }}" name="concept" value="{{ usage[1] }}" data-original="{{ usage[1] }}" data-maxlength="40" required {{ '' if usage_editing else 'disabled' }}>
+                </td>
+                <td class="loan-usage-category-col">
+                    <select class="form-select form-select-sm loan-usage-field loan-usage-category" form="{{ usage_form_id }}" name="category" data-original="{{ usage[4] or '' }}" {{ '' if usage_editing else 'disabled' }}>
+                        <option value="">{{ t('Select') }}</option>
+                        {% for category in categories %}
+                        <option value="{{ category }}" {{ 'selected' if usage[4] == category else '' }}>{{ t(category) }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td class="loan-usage-date-col">
+                    <input class="form-control form-control-sm loan-usage-field" form="{{ usage_form_id }}" type="month" name="date" value="{{ usage[3] }}" data-original="{{ usage[3] }}" required {{ '' if usage_editing else 'disabled' }}>
+                </td>
+                <td class="loan-usage-amount-col">
+                    <input class="form-control form-control-sm text-end loan-usage-field" form="{{ usage_form_id }}" type="number" step="0.01" min="0.01" name="amount" value="{{ '%.2f'|format(usage[2]) }}" data-original="{{ '%.2f'|format(usage[2]) }}" required {{ '' if usage_editing else 'disabled' }}>
+                </td>
+                <td class="loan-usage-comment-col">
+                    <input class="form-control form-control-sm loan-usage-field" form="{{ usage_form_id }}" name="comment" value="{{ usage[5] or '' }}" data-original="{{ usage[5] or '' }}" maxlength="500" {{ '' if usage_editing else 'disabled' }}>
+                </td>
+                <td class="text-end loan-usage-actions-col">
+                    <form id="{{ usage_form_id }}" method="post" action="/loans/{{ loan[0] }}/usages/{{ usage[0] }}/update?usage_page={{ usage_page }}"></form>
+                    <button type="button" class="btn btn-sm btn-outline-secondary loan-usage-edit-btn {{ 'd-none' if usage_editing else '' }}">{{ t('Edit') }}</button>
+                    <button type="button" class="btn btn-sm btn-light loan-usage-cancel-btn {{ '' if usage_editing else 'd-none' }}">{{ t('Cancel') }}</button>
+                    <button type="submit" form="{{ usage_form_id }}" class="btn btn-sm btn-success loan-usage-save-btn {{ '' if usage_editing else 'd-none' }}">{{ t('Save') }}</button>
                     <button
                         type="button"
-                        class="btn btn-sm btn-outline-danger"
+                        class="btn btn-sm btn-outline-danger loan-usage-delete-btn {{ '' if usage_editing else 'd-none' }}"
                         data-bs-toggle="modal"
                         data-bs-target="#deleteUsageModal"
                         data-delete-url="/loans/{{ loan[0] }}/usages/{{ usage[0] }}/delete?usage_page={{ usage_page }}"
@@ -876,6 +933,32 @@ document.addEventListener('DOMContentLoaded', function () {
     calculationModeInputs.forEach((input) => input.addEventListener('change', refreshCalculationMode));
     refreshLoanTypeFields();
     refreshEstimatedInterest();
+
+    function setUsageEditMode(row, on) {
+        const fields = row.querySelectorAll('.loan-usage-field');
+        fields.forEach((field) => { field.disabled = !on; });
+        row.querySelector('.loan-usage-edit-btn')?.classList.toggle('d-none', on);
+        row.querySelector('.loan-usage-cancel-btn')?.classList.toggle('d-none', !on);
+        row.querySelector('.loan-usage-save-btn')?.classList.toggle('d-none', !on);
+        row.querySelector('.loan-usage-delete-btn')?.classList.toggle('d-none', !on);
+        if (on && fields.length) fields[0].focus();
+    }
+
+    document.addEventListener('click', function (event) {
+        const editButton = event.target.closest('.loan-usage-edit-btn');
+        if (editButton) {
+            document.querySelectorAll('.loan-usage-row').forEach((row) => setUsageEditMode(row, row === editButton.closest('tr')));
+            return;
+        }
+        const cancelButton = event.target.closest('.loan-usage-cancel-btn');
+        if (cancelButton) {
+            const row = cancelButton.closest('tr');
+            row.querySelectorAll('.loan-usage-field').forEach((field) => {
+                if (field.dataset.original !== undefined) field.value = field.dataset.original;
+            });
+            setUsageEditMode(row, false);
+        }
+    });
 
     const modal = document.getElementById('deleteUsageModal');
     if (!modal) {

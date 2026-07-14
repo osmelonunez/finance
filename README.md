@@ -14,9 +14,9 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
 ## Current Version
 
-- Stable version: `3.4.0`
-- Release: `v3.4.0 - Data Robustness and UX Safety`
-- Production compose image is pinned to `f1nanc3/finance:3.4.0`
+- Stable version: `3.4.1`
+- Release: `v3.4.1 - Loan Usage Editing`
+- Production compose image is pinned to `f1nanc3/finance:3.4.1`
 
 ## Core Features
 
@@ -40,7 +40,7 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
   - banks
 - Loans with bank, amount, term, monthly payment, description, status, and payment tracking
 - Loan types: no interest, interest-bearing loans, and mortgages with principal/interest split
-- Loan usage tracking to record what borrowed money is spent on without counting it as monthly income
+- Editable loan usage tracking to record what borrowed money is spent on without counting it as monthly income
 - Loan payments registered from expenses without counting loan requests as income
 - Optional loan exclusion from dashboard and analytics totals
 - Deferred expenses
