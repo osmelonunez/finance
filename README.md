@@ -72,6 +72,9 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 ### Loan Detail
 ![Loan Detail](docs/screenshots/loan-detail.png)
 
+### Accounts & Cards KPI
+![Accounts & Cards KPI](docs/screenshots/payment-methods-kpi.png)
+
 ### Management
 ![Management](docs/screenshots/management.png)
 
