@@ -35,14 +35,17 @@ def _resolve_category_id(cur, name):
     row = cur.fetchone()
     return row[0] if row else None
 
-def _resolve_payment_method_id(cur, raw_id):
+def _resolve_payment_method_id(cur, raw_id, include_id=None):
     if not raw_id:
         return None
     try:
         pm_id = int(raw_id)
     except (TypeError, ValueError):
         return None
-    cur.execute("SELECT id FROM payment_methods WHERE id=%s", (pm_id,))
+    if include_id and pm_id == include_id:
+        cur.execute("SELECT id FROM payment_methods WHERE id=%s", (pm_id,))
+    else:
+        cur.execute("SELECT id FROM payment_methods WHERE id=%s AND is_active=TRUE", (pm_id,))
     row = cur.fetchone()
     return row[0] if row else None
 
@@ -195,8 +198,16 @@ def _records(fixed_type=None):
 
             cur.execute("SELECT name FROM categories ORDER BY name")
             categories = [r[0] for r in cur.fetchall()]
-            cur.execute("SELECT id, name FROM payment_methods ORDER BY name")
+            cur.execute(
+                """
+                SELECT pm.id, pm.name, pm.kind, pm.bank_id, pm.is_active
+                FROM payment_methods pm
+                ORDER BY pm.name
+                """
+            )
             payment_methods = cur.fetchall()
+            cur.execute("SELECT id, name, is_active FROM banks ORDER BY name")
+            banks = cur.fetchall()
             loans = _load_active_loans(cur)
 
     f_concept = request.args.get("concept", "")
@@ -205,6 +216,9 @@ def _records(fixed_type=None):
     f_source = request.args.get("source", "")
     f_category = request.args.get("category", "")
     f_payment_method = request.args.get("payment_method_id", "")
+    f_bank = request.args.get("bank_id", "")
+    f_account = request.args.get("account_id", "")
+    f_card = request.args.get("card_id", "")
     f_loan = request.args.get("loan_id", "")
     try:
         f_payment_method_int = int(f_payment_method) if f_payment_method else None
@@ -214,6 +228,18 @@ def _records(fixed_type=None):
         f_loan_int = int(f_loan) if f_loan else None
     except ValueError:
         f_loan_int = None
+    try:
+        f_bank_int = int(f_bank) if f_bank else None
+    except ValueError:
+        f_bank_int = None
+    try:
+        f_account_int = int(f_account) if f_account else None
+    except ValueError:
+        f_account_int = None
+    try:
+        f_card_int = int(f_card) if f_card else None
+    except ValueError:
+        f_card_int = None
 
     sort = request.args.get("sort", "date")
     order = request.args.get("order", "desc")
@@ -264,6 +290,15 @@ def _records(fixed_type=None):
     if f_payment_method_int is not None:
         base += " AND records.payment_method_id=%s"
         params.append(f_payment_method_int)
+    if f_bank_int is not None:
+        base += " AND payment_methods.bank_id=%s"
+        params.append(f_bank_int)
+    if f_account_int is not None:
+        base += " AND records.payment_method_id=%s AND payment_methods.kind='bank_account'"
+        params.append(f_account_int)
+    if f_card_int is not None:
+        base += " AND records.payment_method_id=%s AND payment_methods.kind='card'"
+        params.append(f_card_int)
     if f_loan_int is not None:
         base += " AND records.loan_id=%s"
         params.append(f_loan_int)
@@ -338,6 +373,9 @@ def _records(fixed_type=None):
         f_source=f_source,
         f_category=f_category,
         f_payment_method=str(f_payment_method_int) if f_payment_method_int is not None else "",
+        f_bank=str(f_bank_int) if f_bank_int is not None else "",
+        f_account=str(f_account_int) if f_account_int is not None else "",
+        f_card=str(f_card_int) if f_card_int is not None else "",
         f_loan=str(f_loan_int) if f_loan_int is not None else "",
         sort=sort,
         order=order,
@@ -357,6 +395,9 @@ def _records(fixed_type=None):
         return_to=request.full_path.rstrip("?"),
         categories=categories,
         payment_methods=payment_methods,
+        accounts=[pm for pm in payment_methods if pm[2] == "bank_account"],
+        cards=[pm for pm in payment_methods if pm[2] == "card"],
+        banks=banks,
         loans=loans,
         page_query=page_query
     )
@@ -470,9 +511,15 @@ def add_movement():
                     )
                 category_name = request.form.get("category") or None
                 category_id = _resolve_category_id(cur, category_name)
-                payment_method_id = _resolve_payment_method_id(cur, request.form.get("payment_method_id"))
+                raw_payment_method_id = request.form.get("payment_method_id")
+                payment_method_id = _resolve_payment_method_id(cur, raw_payment_method_id)
                 if type_ != "expense":
                     payment_method_id = None
+                elif raw_payment_method_id and payment_method_id is None:
+                    return _render_add(
+                        error="Select an active account or card.",
+                        form_data=request.form.to_dict(flat=True) | {"months": request.form.getlist("months")},
+                    )
                 loan_id = _resolve_active_loan_id(cur, request.form.get("loan_id")) if is_loan_payment else None
                 if is_loan_payment and loan_id is None:
                     return _render_add(
@@ -616,9 +663,16 @@ def edit(id):
                     return redirect(f"/edit/{id}?from={from_page}&error={quote(comment_error)}")
                 category_name = request.form.get("category") or None
                 category_id = _resolve_category_id(cur, category_name)
-                payment_method_id = _resolve_payment_method_id(cur, request.form.get("payment_method_id"))
+                raw_payment_method_id = request.form.get("payment_method_id")
+                payment_method_id = _resolve_payment_method_id(
+                    cur,
+                    raw_payment_method_id,
+                    include_id=previous_record[4],
+                )
                 if type_ != "expense":
                     payment_method_id = None
+                elif raw_payment_method_id and payment_method_id is None:
+                    return redirect(f"/edit/{id}?from={from_page}&error={quote('Select an active account or card.')}")
                 is_loan_payment = (request.form.get("is_loan_payment") == "1")
                 if type_ != "expense":
                     is_loan_payment = False
@@ -963,9 +1017,15 @@ def duplicate(id):
                     return redirect(duplicate_url)
                 category_name = request.form.get("category") or None
                 category_id = _resolve_category_id(cur, category_name)
-                payment_method_id = _resolve_payment_method_id(cur, request.form.get("payment_method_id"))
+                raw_payment_method_id = request.form.get("payment_method_id")
+                payment_method_id = _resolve_payment_method_id(cur, raw_payment_method_id)
                 if type_ != "expense":
                     payment_method_id = None
+                elif raw_payment_method_id and payment_method_id is None:
+                    duplicate_url = f"/duplicate/{id}?from={from_page}&error={quote('Select an active account or card.')}"
+                    if return_to.startswith("/"):
+                        duplicate_url += f"&return_to={quote(return_to)}"
+                    return redirect(duplicate_url)
                 is_loan_payment = (request.form.get("is_loan_payment") == "1")
                 if type_ != "expense":
                     is_loan_payment = False
@@ -1053,7 +1113,7 @@ def duplicate(id):
         with conn.cursor() as cur:
             cur.execute("SELECT name FROM categories ORDER BY name")
             categories = [r[0] for r in cur.fetchall()]
-            cur.execute("SELECT id, name, is_active FROM payment_methods ORDER BY name")
+            cur.execute("SELECT id, name, is_active FROM payment_methods WHERE is_active=TRUE ORDER BY name")
             payment_methods = cur.fetchall()
             loans = _load_active_loans(cur)
     return render_template(

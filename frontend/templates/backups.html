@@ -133,7 +133,6 @@
     <a href="/management/smtp">{{ t('SMTP') }}</a>
     <a href="/categories">{{ t('Categories') }}</a>
     <a href="/management/system">{{ t('System') }}</a>
-    <a href="/management/payment-methods">{{ t('Accounts & Cards') }}</a>
   </div>
   <div class="backup-section">
     <div class="backup-title mb-1">{{ t('Backup schedule') }}</div>
@@ -201,7 +200,7 @@
               <span class="badge {{ 'bg-success' if r[4] == 'success' else 'bg-danger' }}">{{ r[4] }}</span>
             </td>
             <td>{{ r[2] or (r[5] or '-') }}</td>
-            <td class="text-end">{{ ('%.1f MB'|format((r[3] or 0) / 1048576)) if r[3] else '-' }}</td>
+            <td class="text-end">{{ (number((r[3] or 0) / 1048576, 1) ~ ' MB') if r[3] else '-' }}</td>
             <td class="text-end">
               {% if r[4] == 'success' and r[2] %}
                 <a href="/management/backups/download/{{ r[0] }}" class="backup-action-btn download" title="{{ t('Download backup') }}" aria-label="{{ t('Download backup') }}">

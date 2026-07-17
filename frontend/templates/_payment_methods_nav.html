@@ -1,0 +1,13 @@
+<style>
+  .pm-section-tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .pm-section-tabs a { padding: 6px 10px; border: 1px solid #d9e3ee; border-radius: 9px; text-decoration: none; color: #4a5a6b; }
+  .pm-section-tabs a:hover { background: #f4f8fc; }
+  .pm-section-tabs a.active { background: #eef4fb; color: #2f3b47; font-weight: 600; }
+</style>
+<nav class="pm-section-tabs" aria-label="{{ t('Accounts & Cards') }}">
+  <a class="{% if payment_methods_section == 'kpi' %}active{% endif %}" href="/payment-methods/kpi">{{ t('KPI') }}</a>
+  <a class="{% if payment_methods_section == 'relationships' %}active{% endif %}" href="/payment-methods/relationships">{{ t('Relationships') }}</a>
+  <a class="{% if payment_methods_section == 'banks' %}active{% endif %}" href="/payment-methods/banks">{{ t('Banks') }}</a>
+  <a class="{% if payment_methods_section == 'accounts' %}active{% endif %}" href="/payment-methods/accounts">{{ t('Accounts') }}</a>
+  <a class="{% if payment_methods_section == 'cards' %}active{% endif %}" href="/payment-methods/cards">{{ t('Cards') }}</a>
+</nav>

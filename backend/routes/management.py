@@ -6,11 +6,9 @@ import smtplib
 from urllib.parse import urlparse, quote_plus
 
 import psycopg2
-from psycopg2.errors import ForeignKeyViolation
-
 from db import get_db, get_database_url, get_previous_database_url, set_database_url
 from dashboard_cache import invalidate_dashboard_cache
-from i18n import t
+from i18n import format_number, t
 from email_service import notify_user_approved
 from report_service import send_monthly_report, send_yearly_report
 from validators import (
@@ -25,7 +23,15 @@ logger = logging.getLogger("finance.management")
 DEMO_SQL_PATH = os.path.join(os.path.dirname(__file__), "..", "sql", "demo_data_management.sql")
 DEMO_TAG = "[DEMO_SEED_MANAGEMENT]"
 DEMO_BANK_NAMES = ("ING", "Santander", "CaixaBank", "BBVA")
-DEMO_PAYMENT_METHOD_NAMES = ("Demo - Main Card", "Demo - Shared Card", "Demo - Current Account")
+DEMO_PAYMENT_METHOD_NAMES = (
+    "Demo - Main Card",
+    "Demo - ING Secondary Card",
+    "Demo - Current Account",
+    "Demo - Shared Card",
+    "Demo - Santander Account",
+    "Demo - BBVA Card",
+    "Demo - BBVA Account",
+)
 
 
 def _build_db_url_from_form(prefix: str = ""):
@@ -261,6 +267,74 @@ def _load_banks(include_inactive=False):
                 """
             )
             return cur.fetchall()
+
+
+def _load_bank_summaries(selected_year):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT
+                    b.id,
+                    b.name,
+                    b.is_active,
+                    COUNT(DISTINCT pm.id) FILTER (WHERE pm.kind='bank_account') AS account_count,
+                    COUNT(DISTINCT pm.id) FILTER (WHERE pm.kind='card') AS card_count,
+                    COUNT(DISTINCT pm.id) FILTER (WHERE pm.is_active=TRUE) AS active_method_count,
+                    COALESCE(SUM(r.amount), 0) AS total_spent,
+                    COALESCE(SUM(r.amount) FILTER (WHERE r.date=TO_CHAR(CURRENT_DATE, 'YYYY-MM')), 0) AS month_spent,
+                    COALESCE(SUM(r.amount) FILTER (WHERE LEFT(r.date, 4)=%s), 0) AS year_spent
+                FROM banks b
+                LEFT JOIN payment_methods pm ON pm.bank_id=b.id
+                LEFT JOIN records r ON r.payment_method_id=pm.id AND r.type='expense'
+                GROUP BY b.id
+                ORDER BY b.name
+                """,
+                (str(selected_year),),
+            )
+            return cur.fetchall()
+
+
+def _load_payment_method_summaries(selected_year):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT
+                    pm.id,
+                    pm.name,
+                    pm.kind,
+                    COALESCE(SUM(r.amount), 0) AS total_spent,
+                    COALESCE(SUM(r.amount) FILTER (WHERE r.date=TO_CHAR(CURRENT_DATE, 'YYYY-MM')), 0) AS month_spent,
+                    COALESCE(SUM(r.amount) FILTER (WHERE LEFT(r.date, 4)=%s), 0) AS year_spent
+                FROM payment_methods pm
+                LEFT JOIN records r ON r.payment_method_id=pm.id AND r.type='expense'
+                GROUP BY pm.id
+                ORDER BY pm.name
+                """,
+                (str(selected_year),),
+            )
+            return cur.fetchall()
+
+
+def _load_expense_years():
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT year_value
+                FROM (
+                    SELECT DISTINCT LEFT(date, 4) AS year_value
+                    FROM records
+                    WHERE type='expense' AND date ~ '^[0-9]{4}-[0-9]{2}$'
+                    UNION
+                    SELECT TO_CHAR(CURRENT_DATE, 'YYYY')
+                ) years
+                WHERE year_value <= TO_CHAR(CURRENT_DATE, 'YYYY')
+                ORDER BY year_value DESC
+                """
+            )
+            return [row[0] for row in cur.fetchall()]
 
 
 @management_bp.route("/management")
@@ -509,23 +583,238 @@ def management_system():
         management_section="system",
     )
 
-@management_bp.route("/management/payment-methods")
+@management_bp.route("/payment-methods")
 def management_payment_methods():
     denied = _require_roles("admin", "editor")
     if denied:
         return denied
+    return redirect(url_for("management.payment_methods_section", section="kpi"))
+
+
+@management_bp.route("/payment-methods/<section>")
+def payment_methods_section(section):
+    if section == "summary":
+        return redirect(url_for("management.payment_methods_section", section="kpi"))
+    if section == "dependencies":
+        return redirect(url_for("management.payment_methods_section", section="relationships"))
+    if section not in {"kpi", "relationships", "banks", "accounts", "cards"}:
+        return redirect(url_for("management.management_payment_methods"))
+    denied = _require_roles("admin", "editor")
+    if denied:
+        return denied
+    available_years = _load_expense_years()
+    requested_year = (request.args.get("year") or "").strip()
+    selected_year = requested_year if requested_year in available_years else available_years[0]
+    requested_scope = (request.args.get("scope") or "banks").strip()
+    selected_scope = requested_scope if requested_scope in {"banks", "accounts", "cards"} else "banks"
+    payment_methods = _load_payment_methods()
+    banks = _load_banks(include_inactive=True)
+    bank_summaries = _load_bank_summaries(selected_year)
+    method_summaries = _load_payment_method_summaries(selected_year)
+    if section == "relationships":
+        method_count_by_bank = {}
+        for method in payment_methods:
+            method_count_by_bank[method[6]] = method_count_by_bank.get(method[6], 0) + 1
+        banks.sort(key=lambda bank: (-method_count_by_bank.get(bank[0], 0), bank[1].lower()))
     return render_template(
         "management_payment_methods.html",
-        payment_methods=_load_payment_methods(),
-        banks=_load_banks(include_inactive=True),
+        payment_methods=payment_methods,
+        banks=banks,
+        bank_summaries=bank_summaries,
+        payment_method_kpis={
+            "active_banks": sum(1 for bank in banks if bank[2]),
+            "total_banks": len(banks),
+            "active_accounts": sum(1 for method in payment_methods if method[2] == "bank_account" and method[5]),
+            "total_accounts": sum(1 for method in payment_methods if method[2] == "bank_account"),
+            "active_cards": sum(1 for method in payment_methods if method[2] == "card" and method[5]),
+            "total_cards": sum(1 for method in payment_methods if method[2] == "card"),
+            "month_spent": sum((bank[7] for bank in bank_summaries), 0),
+        },
+        chart_scopes={
+            "banks": {
+                "labels": [bank[1] for bank in bank_summaries],
+                "month_spent": [float(bank[7]) for bank in bank_summaries],
+                "year_spent": [float(bank[8]) for bank in bank_summaries],
+                "total_spent": [float(bank[6]) for bank in bank_summaries],
+                "urls": [f"/payment-methods/banks/{bank[0]}" for bank in bank_summaries],
+            },
+            "accounts": {
+                "labels": [method[1] for method in method_summaries if method[2] == "bank_account"],
+                "month_spent": [float(method[4]) for method in method_summaries if method[2] == "bank_account"],
+                "year_spent": [float(method[5]) for method in method_summaries if method[2] == "bank_account"],
+                "total_spent": [float(method[3]) for method in method_summaries if method[2] == "bank_account"],
+                "urls": [f"/payment-methods/{method[0]}" for method in method_summaries if method[2] == "bank_account"],
+            },
+            "cards": {
+                "labels": [method[1] for method in method_summaries if method[2] == "card"],
+                "month_spent": [float(method[4]) for method in method_summaries if method[2] == "card"],
+                "year_spent": [float(method[5]) for method in method_summaries if method[2] == "card"],
+                "total_spent": [float(method[3]) for method in method_summaries if method[2] == "card"],
+                "urls": [f"/payment-methods/{method[0]}" for method in method_summaries if method[2] == "card"],
+            },
+        },
+        payment_methods_section=section,
+        available_years=available_years,
+        selected_year=selected_year,
+        selected_scope=selected_scope,
         is_admin=(session.get("role") == "admin"),
         **_flash_payload(),
-        current_page="management",
+        current_page="payment_methods",
         management_section="payment_methods",
     )
 
 
+@management_bp.route("/payment-methods/<int:method_id>")
+def payment_method_detail(method_id):
+    denied = _require_roles("admin", "editor")
+    if denied:
+        return denied
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT pm.id, pm.name, pm.kind, pm.account_ref, pm.is_active,
+                       pm.created_at, pm.updated_at, pm.bank_id,
+                       COALESCE(b.name, pm.bank_name) AS bank_name,
+                       COALESCE(b.is_active, FALSE) AS bank_is_active
+                FROM payment_methods pm
+                LEFT JOIN banks b ON b.id=pm.bank_id
+                WHERE pm.id=%s
+                """,
+                (method_id,),
+            )
+            payment_method = cur.fetchone()
+            if not payment_method:
+                return redirect(url_for("management.management_payment_methods"))
+            cur.execute(
+                """
+                SELECT
+                    COALESCE(SUM(amount), 0),
+                    COALESCE(SUM(amount) FILTER (WHERE date=TO_CHAR(CURRENT_DATE, 'YYYY-MM')), 0),
+                    COUNT(*)
+                FROM records
+                WHERE payment_method_id=%s AND type='expense'
+                """,
+                (method_id,),
+            )
+            totals = cur.fetchone()
+            per_page = 10
+            total_pages = max(1, (totals[2] + per_page - 1) // per_page)
+            page = request.args.get("page", 1, type=int) or 1
+            page = min(max(page, 1), total_pages)
+            cur.execute(
+                """
+                SELECT r.id, r.concept, r.amount, r.date, r.source, c.name, r.comment
+                FROM records r
+                LEFT JOIN categories c ON c.id=r.category_id
+                WHERE r.payment_method_id=%s AND r.type='expense'
+                ORDER BY r.date DESC, r.id DESC
+                LIMIT %s OFFSET %s
+                """,
+                (method_id, per_page, (page - 1) * per_page),
+            )
+            recent_records = cur.fetchall()
+    return render_template(
+        "payment_method_detail.html",
+        payment_method=payment_method,
+        total_spent=totals[0],
+        month_spent=totals[1],
+        movement_count=totals[2],
+        recent_records=recent_records,
+        page=page,
+        total_pages=total_pages,
+        payment_methods_section="accounts" if payment_method[2] == "bank_account" else "cards",
+        current_page="payment_methods",
+        management_section="payment_methods",
+    )
+
+
+@management_bp.route("/payment-methods/banks/<int:bank_id>")
+def bank_detail(bank_id):
+    denied = _require_roles("admin", "editor")
+    if denied:
+        return denied
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, name, is_active, created_at, updated_at FROM banks WHERE id=%s",
+                (bank_id,),
+            )
+            bank = cur.fetchone()
+            if not bank:
+                return redirect(url_for("management.payment_methods_section", section="banks"))
+            cur.execute(
+                """
+                SELECT id, name, kind, account_ref, is_active
+                FROM payment_methods
+                WHERE bank_id=%s
+                ORDER BY kind, name
+                """,
+                (bank_id,),
+            )
+            linked_methods = cur.fetchall()
+            cur.execute(
+                """
+                SELECT
+                    COALESCE(SUM(r.amount), 0),
+                    COALESCE(SUM(r.amount) FILTER (WHERE r.date=TO_CHAR(CURRENT_DATE, 'YYYY-MM')), 0),
+                    COALESCE(SUM(r.amount) FILTER (WHERE LEFT(r.date, 4)=TO_CHAR(CURRENT_DATE, 'YYYY')), 0),
+                    COUNT(r.id)
+                FROM records r
+                JOIN payment_methods pm ON pm.id=r.payment_method_id
+                WHERE pm.bank_id=%s AND r.type='expense'
+                """,
+                (bank_id,),
+            )
+            totals = cur.fetchone()
+            per_page = 10
+            total_pages = max(1, (totals[3] + per_page - 1) // per_page)
+            page = request.args.get("page", 1, type=int) or 1
+            page = min(max(page, 1), total_pages)
+            cur.execute(
+                """
+                SELECT r.id, r.concept, r.amount, r.date, r.source, c.name, pm.name
+                FROM records r
+                JOIN payment_methods pm ON pm.id=r.payment_method_id
+                LEFT JOIN categories c ON c.id=r.category_id
+                WHERE pm.bank_id=%s AND r.type='expense'
+                ORDER BY r.date DESC, r.id DESC
+                LIMIT %s OFFSET %s
+                """,
+                (bank_id, per_page, (page - 1) * per_page),
+            )
+            recent_records = cur.fetchall()
+    return render_template(
+        "bank_detail.html",
+        bank=bank,
+        accounts=[method for method in linked_methods if method[2] == "bank_account"],
+        cards=[method for method in linked_methods if method[2] == "card"],
+        active_method_count=sum(1 for method in linked_methods if method[4]),
+        total_spent=totals[0],
+        month_spent=totals[1],
+        year_spent=totals[2],
+        movement_count=totals[3],
+        recent_records=recent_records,
+        page=page,
+        total_pages=total_pages,
+        payment_methods_section="banks",
+        current_page="payment_methods",
+        management_section="payment_methods",
+    )
+
+
+@management_bp.route("/management/payment-methods")
+def legacy_management_payment_methods():
+    return redirect(url_for("management.management_payment_methods"))
+
+
+@management_bp.route("/management/payment-methods/<int:method_id>")
+def legacy_payment_method_detail(method_id):
+    return redirect(url_for("management.payment_method_detail", method_id=method_id))
+
+
 @management_bp.route("/management/payment-methods/add", methods=["POST"])
+@management_bp.route("/payment-methods/add", methods=["POST"])
 def add_payment_method():
     if session.get("role") not in {"admin", "editor"}:
         return redirect(url_for("dashboard.dashboard"))
@@ -543,10 +832,17 @@ def add_payment_method():
         kind = "card"
     if name_error:
         session["management_err"] = t(name_error)
-        return redirect(url_for("management.management_payment_methods"))
+        return redirect(url_for("management.payment_methods_section", section="accounts" if kind == "bank_account" else "cards"))
+    if bank_id is None:
+        session["management_err"] = t("Select an active bank.")
+        return redirect(url_for("management.payment_methods_section", section="accounts" if kind == "bank_account" else "cards"))
     try:
         with get_db() as conn:
             with conn.cursor() as cur:
+                cur.execute("SELECT 1 FROM banks WHERE id=%s AND is_active=TRUE", (bank_id,))
+                if not cur.fetchone():
+                    session["management_err"] = t("Select an active bank.")
+                    return redirect(url_for("management.payment_methods_section", section="accounts" if kind == "bank_account" else "cards"))
                 cur.execute(
                     """
                     INSERT INTO payment_methods (name, kind, bank_id, bank_name, account_ref, is_active, updated_at)
@@ -569,10 +865,11 @@ def add_payment_method():
         session["management_msg"] = t("Payment method created.")
     except Exception:
         session["management_err"] = t("Name already exists.")
-    return redirect(url_for("management.management_payment_methods"))
+    return redirect(url_for("management.payment_methods_section", section="accounts" if kind == "bank_account" else "cards"))
 
 
 @management_bp.route("/management/payment-methods/<int:method_id>/update", methods=["POST"])
+@management_bp.route("/payment-methods/<int:method_id>/update", methods=["POST"])
 def update_payment_method(method_id):
     if session.get("role") not in {"admin", "editor"}:
         return redirect(url_for("dashboard.dashboard"))
@@ -590,10 +887,28 @@ def update_payment_method(method_id):
         kind = "card"
     if name_error:
         session["management_err"] = t(name_error)
-        return redirect(url_for("management.management_payment_methods"))
+        return redirect(url_for("management.payment_methods_section", section="accounts" if kind == "bank_account" else "cards"))
+    if bank_id is None:
+        session["management_err"] = t("Select an active bank.")
+        return redirect(url_for("management.payment_methods_section", section="accounts" if kind == "bank_account" else "cards"))
     try:
         with get_db() as conn:
             with conn.cursor() as cur:
+                cur.execute("SELECT bank_id FROM payment_methods WHERE id=%s", (method_id,))
+                current_row = cur.fetchone()
+                if not current_row:
+                    return redirect(url_for("management.payment_methods_section", section="accounts" if kind == "bank_account" else "cards"))
+                current_bank_id = current_row[0]
+                if bank_id is not None and bank_id != current_bank_id:
+                    cur.execute("SELECT 1 FROM banks WHERE id=%s AND is_active=TRUE", (bank_id,))
+                    if not cur.fetchone():
+                        session["management_err"] = t("Select an active bank.")
+                        return redirect(url_for("management.payment_methods_section", section="accounts" if kind == "bank_account" else "cards"))
+                if is_active and bank_id is not None:
+                    cur.execute("SELECT 1 FROM banks WHERE id=%s AND is_active=TRUE", (bank_id,))
+                    if not cur.fetchone():
+                        session["management_err"] = t("An account or card cannot be active when its bank is inactive.")
+                        return redirect(url_for("management.payment_methods_section", section="accounts" if kind == "bank_account" else "cards"))
                 cur.execute(
                     """
                     UPDATE payment_methods
@@ -623,7 +938,7 @@ def update_payment_method(method_id):
         session["management_msg"] = t("Payment method updated.")
     except Exception:
         session["management_err"] = t("Name already exists.")
-    return redirect(url_for("management.management_payment_methods"))
+    return redirect(url_for("management.payment_methods_section", section="accounts" if kind == "bank_account" else "cards"))
 
 
 def _parse_int_or_none(raw_value):
@@ -636,6 +951,7 @@ def _parse_int_or_none(raw_value):
 
 
 @management_bp.route("/management/banks/add", methods=["POST"])
+@management_bp.route("/payment-methods/banks/add", methods=["POST"])
 def add_bank():
     if session.get("role") not in {"admin", "editor"}:
         return redirect(url_for("dashboard.dashboard"))
@@ -648,7 +964,7 @@ def add_bank():
     is_active = (request.form.get("is_active") or "1") == "1"
     if name_error:
         session["management_err"] = t(name_error)
-        return redirect(url_for("management.management_payment_methods"))
+        return redirect(url_for("management.payment_methods_section", section="banks"))
     try:
         with get_db() as conn:
             with conn.cursor() as cur:
@@ -672,10 +988,11 @@ def add_bank():
         session["management_msg"] = t("Bank created.")
     except Exception:
         session["management_err"] = t("Bank already exists.")
-    return redirect(url_for("management.management_payment_methods"))
+    return redirect(url_for("management.payment_methods_section", section="banks"))
 
 
 @management_bp.route("/management/banks/<int:bank_id>/update", methods=["POST"])
+@management_bp.route("/payment-methods/banks/<int:bank_id>/update", methods=["POST"])
 def update_bank(bank_id):
     if session.get("role") not in {"admin", "editor"}:
         return redirect(url_for("dashboard.dashboard"))
@@ -688,7 +1005,7 @@ def update_bank(bank_id):
     is_active = (request.form.get("is_active") or "0") == "1"
     if name_error:
         session["management_err"] = t(name_error)
-        return redirect(url_for("management.management_payment_methods"))
+        return redirect(url_for("management.payment_methods_section", section="banks"))
     try:
         with get_db() as conn:
             with conn.cursor() as cur:
@@ -704,10 +1021,12 @@ def update_bank(bank_id):
                 cur.execute(
                     """
                     UPDATE payment_methods
-                    SET bank_name=%s, updated_at=NOW()
+                    SET bank_name=%s,
+                        is_active=CASE WHEN %s THEN is_active ELSE FALSE END,
+                        updated_at=NOW()
                     WHERE bank_id=%s
                     """,
-                    (name, bank_id),
+                    (name, is_active, bank_id),
                 )
                 cur.execute(
                     """
@@ -729,10 +1048,11 @@ def update_bank(bank_id):
         session["management_msg"] = t("Bank updated.")
     except Exception:
         session["management_err"] = t("Bank already exists.")
-    return redirect(url_for("management.management_payment_methods"))
+    return redirect(url_for("management.payment_methods_section", section="banks"))
 
 
 @management_bp.route("/management/banks/<int:bank_id>/delete", methods=["POST"])
+@management_bp.route("/payment-methods/banks/<int:bank_id>/delete", methods=["POST"])
 def delete_bank(bank_id):
     if session.get("role") not in {"admin", "editor"}:
         return redirect(url_for("dashboard.dashboard"))
@@ -746,7 +1066,7 @@ def delete_bank(bank_id):
                     bank_id,
                 )
                 session["management_err"] = t("Cannot delete bank. It is used by accounts or cards.")
-                return redirect(url_for("management.management_payment_methods"))
+                return redirect(url_for("management.payment_methods_section", section="banks"))
             cur.execute("SELECT 1 FROM loans WHERE bank_id=%s LIMIT 1", (bank_id,))
             if cur.fetchone():
                 logger.info(
@@ -755,7 +1075,7 @@ def delete_bank(bank_id):
                     bank_id,
                 )
                 session["management_err"] = t("Cannot delete bank. It is used by loans.")
-                return redirect(url_for("management.management_payment_methods"))
+                return redirect(url_for("management.payment_methods_section", section="banks"))
             cur.execute("DELETE FROM banks WHERE id=%s", (bank_id,))
             deleted = cur.rowcount
             conn.commit()
@@ -766,34 +1086,39 @@ def delete_bank(bank_id):
         deleted,
     )
     session["management_msg"] = t("Bank deleted.")
-    return redirect(url_for("management.management_payment_methods"))
+    return redirect(url_for("management.payment_methods_section", section="banks"))
 
 
 @management_bp.route("/management/payment-methods/<int:method_id>/delete", methods=["POST"])
+@management_bp.route("/payment-methods/<int:method_id>/delete", methods=["POST"])
 def delete_payment_method(method_id):
     if session.get("role") not in {"admin", "editor"}:
         return redirect(url_for("dashboard.dashboard"))
-    try:
-        with get_db() as conn:
-            with conn.cursor() as cur:
-                cur.execute("DELETE FROM payment_methods WHERE id=%s", (method_id,))
-                deleted = cur.rowcount
-                conn.commit()
-        logger.info(
-            "payment_method_delete user=%s id=%s deleted=%s",
-            session.get("user_name"),
-            method_id,
-            deleted,
-        )
-        session["management_msg"] = t("Payment method deleted.")
-    except ForeignKeyViolation:
-        logger.info(
-            "payment_method_delete_blocked user=%s id=%s reason=in_use",
-            session.get("user_name"),
-            method_id,
-        )
-        session["management_err"] = t("Cannot delete payment method. It is used by expenses.")
-    return redirect(url_for("management.management_payment_methods"))
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT kind FROM payment_methods WHERE id=%s", (method_id,))
+            method_row = cur.fetchone()
+            section = "accounts" if method_row and method_row[0] == "bank_account" else "cards"
+            cur.execute("SELECT 1 FROM records WHERE payment_method_id=%s LIMIT 1", (method_id,))
+            if cur.fetchone():
+                logger.info(
+                    "payment_method_delete_blocked user=%s id=%s reason=records_in_use",
+                    session.get("user_name"),
+                    method_id,
+                )
+                session["management_err"] = t("Cannot delete payment method. It is used by expenses.")
+                return redirect(url_for("management.payment_methods_section", section=section))
+            cur.execute("DELETE FROM payment_methods WHERE id=%s", (method_id,))
+            deleted = cur.rowcount
+            conn.commit()
+    logger.info(
+        "payment_method_delete user=%s id=%s deleted=%s",
+        session.get("user_name"),
+        method_id,
+        deleted,
+    )
+    session["management_msg"] = t("Payment method deleted.")
+    return redirect(url_for("management.payment_methods_section", section=section))
 
 
 @management_bp.route("/management/initial-saving", methods=["POST"])
@@ -960,7 +1285,7 @@ def reset_db():
             conn.commit()
     invalidate_dashboard_cache()
     logger.info("reset_db user=%s deleted=%s", session.get("user_name"), deleted)
-    session["management_msg"] = f"{t('Database reset')}: {deleted} {t('records deleted')}"
+    session["management_msg"] = f"{t('Database reset')}: {format_number(deleted)} {t('records deleted')}"
 
     return redirect(url_for("management.management_system"))
 
@@ -980,7 +1305,7 @@ def seed_demo_data():
     invalidate_dashboard_cache()
     _log_demo_data_actions("seed", demo_counts, inserted)
     logger.info("demo_data_seed user=%s inserted=%s initial_saving=300", session.get("user_name"), inserted)
-    session["management_msg"] = f"{t('Demo data inserted')}: {inserted} {t('records')}"
+    session["management_msg"] = f"{t('Demo data inserted')}: {format_number(inserted)} {t('records')}"
 
     return redirect(url_for("management.management_system"))
 
@@ -1000,7 +1325,7 @@ def clear_demo_data():
     invalidate_dashboard_cache()
     _log_demo_data_actions("clear", demo_counts, deleted)
     logger.info("demo_data_clear user=%s deleted=%s initial_saving_removed=true", session.get("user_name"), deleted)
-    session["management_msg"] = f"{t('Demo data deleted')}: {deleted} {t('records')}"
+    session["management_msg"] = f"{t('Demo data deleted')}: {format_number(deleted)} {t('records')}"
 
     return redirect(url_for("management.management_system"))
 

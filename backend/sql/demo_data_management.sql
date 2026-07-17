@@ -38,8 +38,12 @@ BEGIN
     INSERT INTO payment_methods (name, kind, bank_id, bank_name, account_ref, is_active, updated_at)
     VALUES
         ('Demo - Main Card', 'card', (SELECT id FROM banks WHERE name='ING'), 'ING', '**** 1234', TRUE, NOW()),
+        ('Demo - ING Secondary Card', 'card', (SELECT id FROM banks WHERE name='ING'), 'ING', '**** 5678', TRUE, NOW()),
         ('Demo - Shared Card', 'card', (SELECT id FROM banks WHERE name='Santander'), 'Santander', '**** 9876', TRUE, NOW()),
-        ('Demo - Current Account', 'bank_account', (SELECT id FROM banks WHERE name='ING'), 'ING', 'ES91 0000 0000 0000 0000', TRUE, NOW())
+        ('Demo - Current Account', 'bank_account', (SELECT id FROM banks WHERE name='ING'), 'ING', 'ES91 0000 0000 0000 0000', TRUE, NOW()),
+        ('Demo - Santander Account', 'bank_account', (SELECT id FROM banks WHERE name='Santander'), 'Santander', 'ES92 0000 0000 0000 0000', TRUE, NOW()),
+        ('Demo - BBVA Card', 'card', (SELECT id FROM banks WHERE name='BBVA'), 'BBVA', '**** 2468', TRUE, NOW()),
+        ('Demo - BBVA Account', 'bank_account', (SELECT id FROM banks WHERE name='BBVA'), 'BBVA', 'ES93 0000 0000 0000 0000', TRUE, NOW())
     ON CONFLICT (name) DO UPDATE
     SET
         kind = EXCLUDED.kind,
@@ -450,7 +454,15 @@ BEGIN
     DELETE FROM loans WHERE description LIKE '[DEMO_SEED_MANAGEMENT]%';
     DELETE FROM settings WHERE key = 'initial_saving';
     DELETE FROM payment_methods pm
-    WHERE pm.name IN ('Demo - Main Card', 'Demo - Shared Card', 'Demo - Current Account')
+    WHERE pm.name IN (
+        'Demo - Main Card',
+        'Demo - ING Secondary Card',
+        'Demo - Shared Card',
+        'Demo - Current Account',
+        'Demo - Santander Account',
+        'Demo - BBVA Card',
+        'Demo - BBVA Account'
+    )
       AND NOT EXISTS (SELECT 1 FROM records r WHERE r.payment_method_id = pm.id);
     DELETE FROM banks b
     WHERE b.name IN ('ING', 'Santander', 'CaixaBank', 'BBVA')

@@ -14,13 +14,13 @@ Repositorio: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
 ## Versión Actual
 
-- Versión estable: `3.4.1`
-- Release: `v3.4.1 - Edición de usos de préstamo`
-- El compose de producción usa imagen fijada en `f1nanc3/finance:3.4.1`
+- Versión actual de desarrollo: `3.5.0`
+- Release prevista: `v3.5.0 - Cuentas y tarjetas 2.0`
+- El compose de producción está preparado para `f1nanc3/finance:3.5.0`
 
 ## Funcionalidades Principales
 
-- Vistas separadas: `Panel`, `Gastos`, `Ingresos`, `Ahorros`, `Préstamos`, `Gestión`
+- Vistas separadas: `Panel`, `Gastos`, `Ingresos`, `Ahorros`, `Préstamos`, `Cuentas y tarjetas`, `Gestión`
 - Dashboard con gráficas mensuales y anuales, incluyendo indicadores de deuda de préstamos
 - Autenticación con roles: `admin`, `editor`, `user`
 - Rate limiting en endpoints de autenticación
@@ -28,16 +28,23 @@ Repositorio: [osmelonunez/finance](https://github.com/osmelonunez/finance)
   - idioma (`en` / `es`)
   - filas por página
   - notificaciones por correo on/off
-- Módulos de Management:
+- Módulos de Gestión:
   - usuarios
   - conexión a base de datos
   - copias de seguridad
   - SMTP + reportes por correo
   - categorías
   - ajustes del sistema
-  - cuentas
-  - tarjetas
-  - bancos
+- Espacio independiente `Cuentas y tarjetas` en `/payment-methods`:
+  - panel KPI con selectores de banco/cuenta/tarjeta y año
+  - gráficas de gasto mensual, anual, total y comparativa
+  - vista de relaciones entre bancos, cuentas y tarjetas
+  - pestañas separadas para gestionar bancos, cuentas y tarjetas
+  - un único formulario contextual para crear bancos, cuentas o tarjetas
+- Detalle de bancos, cuentas y tarjetas con totales de gasto y paginación de movimientos en servidor
+- Filtros de gastos específicos por banco, cuenta y tarjeta
+- Las cuentas y tarjetas requieren un banco y no pueden eliminarse mientras tengan datos relacionados
+- Formato monetario y numérico adaptado al idioma en toda la aplicación
 - Préstamos con banco, cantidad, plazo, cuota mensual, descripción, estado y seguimiento de pagos
 - Tipos de préstamo: sin intereses, con intereses e hipotecas con separación de amortización/intereses
 - Seguimiento editable de usos de préstamo para registrar en qué se gasta el dinero prestado sin contarlo como ingreso mensual
@@ -120,7 +127,7 @@ Notas:
 ## Despliegue en Producción (Imagen precompilada)
 
 Fichero compose:
-- `/Users/osmel/git/finance/docker/docker-compose.yaml`
+- `docker/docker-compose.yaml`
 
 Comandos:
 

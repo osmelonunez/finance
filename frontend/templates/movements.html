@@ -70,6 +70,19 @@
         .filter-pack .btn {
             height: 38px;
         }
+        .expense-filter-pack .category-filter {
+            min-width: 110px;
+            max-width: 110px;
+        }
+        .expense-filter-action {
+            min-width: 92px;
+        }
+        @media (min-width: 1200px) {
+            .expense-filter-pack {
+                flex-wrap: nowrap;
+                gap: 0.4rem;
+            }
+        }
         .col-desc {
             width: 30%;
         }
@@ -198,7 +211,7 @@
 
     {% if fixed_type == 'expense' %}
     <div class="col-md-10">
-        <div class="filter-pack">
+        <div class="filter-pack expense-filter-pack">
             <div>
                 <label class="form-label">{{ t('Category') }}</label>
                 <select class="form-control category-filter" name="category">
@@ -225,11 +238,29 @@
                 </select>
             </div>
             <div>
-                <label class="form-label">{{ t('Account/Card') }}</label>
-                <select class="form-control category-filter" name="payment_method_id">
+                <label class="form-label">{{ t('Bank') }}</label>
+                <select class="form-control category-filter" name="bank_id">
                     <option value="">{{ t('All') }}</option>
-                    {% for pm in payment_methods %}
-                    <option value="{{ pm[0] }}" {{ 'selected' if f_payment_method == (pm[0]|string) else '' }}>{{ pm[1] }}</option>
+                    {% for bank in banks %}
+                    <option value="{{ bank[0] }}" {{ 'selected' if f_bank == (bank[0]|string) else '' }}>{{ bank[1] }}{% if not bank[2] %} ({{ t('Inactive') }}){% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label">{{ t('Account') }}</label>
+                <select class="form-control category-filter" name="account_id">
+                    <option value="">{{ t('All') }}</option>
+                    {% for account in accounts %}
+                    <option value="{{ account[0] }}" {{ 'selected' if f_account == (account[0]|string) else '' }}>{{ account[1] }}{% if not account[4] %} ({{ t('Inactive') }}){% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label">{{ t('Card') }}</label>
+                <select class="form-control category-filter" name="card_id">
+                    <option value="">{{ t('All') }}</option>
+                    {% for card in cards %}
+                    <option value="{{ card[0] }}" {{ 'selected' if f_card == (card[0]|string) else '' }}>{{ card[1] }}{% if not card[4] %} ({{ t('Inactive') }}){% endif %}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -243,10 +274,10 @@
                 </select>
             </div>
             <div class="d-flex align-items-end">
-                <button type="submit" class="btn btn-soft" style="min-width: 110px;">{{ t('Filter') }}</button>
+                <button type="submit" class="btn btn-soft expense-filter-action">{{ t('Filter') }}</button>
             </div>
             <div class="d-flex align-items-end ms-auto">
-                <a href="/records/add?from={{ current_page }}" class="btn btn-success" style="height: 38px; min-width: 110px; display: inline-flex; align-items: center; justify-content: center;">{{ t('+ Add') }}</a>
+                <a href="/records/add?from={{ current_page }}" class="btn btn-success expense-filter-action" style="height: 38px; display: inline-flex; align-items: center; justify-content: center;">{{ t('+ Add') }}</a>
             </div>
         </div>
     </div>
@@ -380,7 +411,7 @@
     <td data-col="source">{% if e[5] == 'monthly' %}{{ t('Monthly') }}{% elif e[5] == 'saving' %}{{ t('Saving') }}{% else %}-{% endif %}</td>
     <td data-col="payment_method">{{ e[8] or '-' }}</td>
     <td data-col="loan">{% if e[9] and e[10] %}{{ e[10] }} - {{ e[11] }}{% else %}-{% endif %}</td>
-    <td class="text-end pe-5 amount-cell" data-col="amount">{{ "%.2f"|format(e[2]) }}</td>
+    <td class="text-end pe-5 amount-cell" data-col="amount">{{ money(e[2]) }}</td>
     {% else %}
     <td data-col="concept">{{ e[1] }}</td>
     <td data-col="date">{{ e[3] }}</td>
@@ -390,7 +421,7 @@
     {% if fixed_type is none %}
     <td data-col="source">{% if e[5] == 'monthly' %}{{ t('Monthly') }}{% elif e[5] == 'saving' %}{{ t('Saving') }}{% else %}-{% endif %}</td>
     {% endif %}
-    <td class="text-end pe-5 amount-cell" data-col="amount">{{ "%.2f"|format(e[2]) }}</td>
+    <td class="text-end pe-5 amount-cell" data-col="amount">{{ money(e[2]) }}</td>
     {% endif %}
     {% if fixed_type == 'expense' or fixed_type is none %}
     <td class="col-gear"></td>
@@ -430,7 +461,7 @@
                 <a class="page-link" href="?page={{ page - 1 }}{% if page_query %}&{{ page_query }}{% endif %}">{{ t('Previous') }}</a>
             </li>
             <li class="page-item active">
-                <span class="page-link">{{ t('Page') }} {{ page }} {{ t('of') }} {{ total_pages }}</span>
+                <span class="page-link">{{ t('Page') }} {{ number(page) }} {{ t('of') }} {{ number(total_pages) }}</span>
             </li>
             <li class="page-item {{ 'disabled' if page >= total_pages }}">
                 <a class="page-link" href="?page={{ page + 1 }}{% if page_query %}&{{ page_query }}{% endif %}">{{ t('Next') }}</a>
@@ -438,10 +469,10 @@
         </ul>
     </nav>
     <div class="text-muted ms-3" style="font-size: 0.8rem;">
-        {{ t('Showing') }} {{ showing_from }}–{{ showing_to }} {{ t('of') }} {{ total }}
+        {{ t('Showing') }} {{ number(showing_from) }}–{{ number(showing_to) }} {{ t('of') }} {{ number(total) }}
     </div>
     <div class="ms-auto text-muted" style="font-size: 0.8rem;">
-        <span class="total-amount">{{ t('Total amount') }}: {{ "%.2f"|format(total_amount) }}</span>
+        <span class="total-amount">{{ t('Total amount') }}: {{ money(total_amount) }}</span>
     </div>
 </div>
 

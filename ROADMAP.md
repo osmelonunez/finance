@@ -109,7 +109,7 @@ Validacion:
 
 ### v3.4.1 - Edicion de usos de prestamo
 
-Estado: preparado para release.
+Estado: completado.
 
 Objetivo: completar la gestion de los usos de prestamo sin introducir cambios de esquema.
 
@@ -121,21 +121,34 @@ Incluye:
 - [Notas de release en espanol](docs/v3.4.1-release/notas-v3.4.1.md)
 - [Release notes in English](docs/v3.4.1-release/v3.4.1-release-notes.md)
 
-## Ideas futuras
+### v3.5.0 - Cuentas y tarjetas 2.0
 
-Estas ideas no estan comprometidas todavia y pueden moverse segun prioridad.
-
-### Cuentas y tarjetas 2.0
+Estado: implementacion completada, pendiente de release.
 
 Objetivo: mejorar el modelo funcional de cuentas/tarjetas y su relacion con bancos y gastos.
 
-Ideas:
-- Estado activo/inactivo para cuentas y tarjetas.
-- Evitar eliminacion si existen registros asociados.
-- Vista de detalle de cuenta/tarjeta.
-- Resumen de gasto por cuenta/tarjeta.
-- Resumen por banco con cuentas y tarjetas vinculadas.
-- Mejoras en filtros por banco, cuenta y tarjeta.
+Incluye:
+- Bloqueo explicito de eliminacion cuando existen movimientos asociados.
+- Estado activo/inactivo aplicado en altas, ediciones y duplicados de movimientos.
+- Desactivacion automatica de cuentas y tarjetas al desactivar su banco.
+- Banco obligatorio para crear o editar cuentas y tarjetas, validado en UI y backend.
+- Espacio independiente `/payment-methods`, fuera de Gestion, con navegacion KPI, Relaciones, Bancos, Cuentas y Tarjetas.
+- Formulario unico y contextual para crear bancos, cuentas o tarjetas.
+- Vistas de detalle para bancos, cuentas y tarjetas con estado, referencia, metricas de gasto y numero de movimientos.
+- Historial paginado de movimientos, cargado en bloques de diez desde el servidor.
+- Filtros de gastos independientes por banco, cuenta y tarjeta.
+- KPI con conteos de entidades activas, gasto mensual y graficas por banco, cuenta o tarjeta.
+- Selector de año, estados vacios y graficas de gasto mensual, anual, total y comparativa.
+- Vista Relaciones ordenada por bancos con mayor numero de cuentas y tarjetas vinculadas.
+- Formato monetario y numerico localizado en toda la aplicacion.
+- Redirecciones compatibles desde las antiguas rutas de Gestion y rutas renombradas.
+- No requiere migracion de base de datos.
+- [Detalle de v3.5 en espanol](docs/v3.5-planning/detalles-v3.5.md)
+- [v3.5 details in English](docs/v3.5-planning/v3.5-details.md)
+
+## Ideas futuras
+
+Estas ideas no estan comprometidas todavia y pueden moverse segun prioridad.
 
 ### Presupuestos por categoria
 

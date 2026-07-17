@@ -80,44 +80,230 @@
     color: #2f3b47 !important;
     opacity: 1 !important;
   }
+  .create-panel {
+    background: #f6f9fc;
+  }
+  .create-fields[hidden] {
+    display: none !important;
+  }
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .kpi-card {
+    display: block;
+    min-width: 0;
+    padding: 12px 14px;
+    border: 1px solid #dfe7f0;
+    border-left: 4px solid var(--kpi-color, #7da9ca);
+    border-radius: 12px;
+    background: #ffffff;
+    color: inherit;
+    text-decoration: none;
+  }
+  .kpi-card:hover { color: inherit; background: #fbfcfe; }
+  .kpi-label { color: #667789; font-size: 0.8rem; }
+  .kpi-value { margin-top: 2px; color: #2f3b47; font-size: 1.35rem; font-weight: 700; }
+  .bank-chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 14px 0 18px; }
+  .bank-chart-card { min-width: 0; padding: 10px; border: 1px solid #e0e8f0; border-radius: 10px; background: #fff; }
+  .bank-chart-card-wide { grid-column: 1 / -1; }
+  .bank-chart-title { margin-bottom: 6px; color: #526373; font-size: 0.8rem; font-weight: 700; text-align: center; }
+  .bank-chart-wrap { position: relative; min-height: 260px; }
+  .chart-scope-toggle { display: inline-flex; gap: 3px; padding: 3px; border: 1px solid #d9e3ee; border-radius: 10px; background: #f5f8fb; }
+  .chart-scope-toggle button { padding: 5px 10px; border: 0; border-radius: 7px; background: transparent; color: #536575; font-size: 0.85rem; }
+  .chart-scope-toggle button.active { background: #fff; color: #2f3b47; font-weight: 600; box-shadow: 0 1px 4px rgba(50, 70, 90, 0.12); }
+  .financial-summary-controls { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+  .chart-year-form { display: flex; align-items: center; gap: 6px; }
+  .chart-year-form label { color: #637485; font-size: 0.82rem; }
+  .chart-year-form select { width: auto; min-width: 92px; }
+  .chart-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px; color: #7a8997; text-align: center; font-size: 0.85rem; }
+  .dependency-map { display: flex; flex-direction: column; gap: 14px; }
+  .dependency-row { display: grid; grid-template-columns: 180px minmax(0, 1fr); align-items: stretch; gap: 34px; }
+  .dependency-bank-node { position: relative; display: flex; flex-direction: column; justify-content: center; min-height: 86px; padding: 13px; border: 1px solid #a9c4dd; border-radius: 12px; background: #eef4fb; }
+  .dependency-bank-node::after { content: ""; position: absolute; left: 100%; top: 50%; width: 35px; border-top: 2px solid #c4d3e1; }
+  .dependency-bank-name { color: #2f3b47; font-weight: 700; }
+  .dependency-bank-meta { margin-top: 3px; color: #68798a; font-size: 0.76rem; }
+  .dependency-branches { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding-left: 16px; }
+  .dependency-branches::before { content: ""; position: absolute; left: 0; top: 18px; bottom: 18px; border-left: 2px solid #c4d3e1; }
+  .dependency-branch { position: relative; min-width: 0; padding: 10px; border: 1px solid #e0e8f0; border-radius: 10px; background: #fff; }
+  .dependency-branch::before { content: ""; position: absolute; right: 100%; top: 50%; width: 17px; border-top: 2px solid #c4d3e1; }
+  .dependency-branch-title { display: flex; justify-content: space-between; margin-bottom: 8px; color: #68798a; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; }
+  .dependency-node { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; padding: 7px 9px; border-left: 3px solid var(--node-color, #7da9ca); border-radius: 7px; background: #f7f9fc; }
+  .dependency-node:last-child { margin-bottom: 0; }
+  .dependency-empty { color: #8795a3; font-size: 0.8rem; }
+  @media (max-width: 767.98px) {
+    .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .bank-chart-grid { grid-template-columns: 1fr; }
+    .bank-chart-card-wide { grid-column: auto; }
+    .dependency-row { grid-template-columns: 1fr; gap: 10px; }
+    .dependency-bank-node::after, .dependency-branches::before, .dependency-branch::before { display: none; }
+    .dependency-branches { padding-left: 0; }
+  }
+  @media (max-width: 520px) {
+    .dependency-branches { grid-template-columns: 1fr; }
+  }
 </style>
 
 <div class="mg-shell">
-  <h4 class="mb-3">{{ t('Management') }}</h4>
-  <div class="mg-tabs">
-    {% if is_admin %}
-    <a href="/management/users">{{ t('Users') }}</a>
-    <a href="/management/database">{{ t('Database') }}</a>
-    <a href="/management/backups">{{ t('Backups') }}</a>
-    <a href="/management/smtp">{{ t('SMTP') }}</a>
-    {% endif %}
-    <a href="/categories">{{ t('Categories') }}</a>
-    <a href="/management/system">{{ t('System') }}</a>
-    <a class="active" href="/management/payment-methods">{{ t('Accounts & Cards') }}</a>
+  <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+    <h4 class="mb-0">{{ t('Accounts & Cards') }}</h4>
+    <a class="btn btn-sm btn-light" href="/payment-methods">{{ t('Back') }}</a>
   </div>
+
+  {% include '_payment_methods_nav.html' %}
 
   {% if message %}<div class="alert alert-success py-2">{{ t(message) }}</div>{% endif %}
   {% if error %}<div class="alert alert-danger py-2">{{ t(error) }}</div>{% endif %}
 
-  <div class="panel">
-    <div class="fw-semibold mb-2">{{ t('Banks') }}</div>
-    <form method="post" action="/management/banks/add" class="row g-2 align-items-end mb-3 compact-validation">
+  {% if payment_methods_section in ('banks', 'accounts', 'cards') %}
+  <div class="panel create-panel">
+    <div class="fw-semibold mb-2">{{ t('Add') }}</div>
+    <form id="createPaymentResourceForm" method="post" action="/payment-methods/banks/add" class="row g-2 align-items-end compact-validation">
       <div class="col-md-3">
-        <label class="form-label">{{ t('Name') }}</label>
-        <input class="form-control" name="name" data-maxlength="40" required>
+        <label class="form-label" for="createResourceType">{{ t('Type') }}</label>
+        <select class="form-select" id="createResourceType">
+          <option value="bank" {% if payment_methods_section == 'banks' %}selected{% endif %}>{{ t('Bank') }}</option>
+          <option value="bank_account" {% if payment_methods_section == 'accounts' %}selected{% endif %}>{{ t('Account') }}</option>
+          <option value="card" {% if payment_methods_section == 'cards' %}selected{% endif %}>{{ t('Card') }}</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="createResourceName">{{ t('Name') }}</label>
+        <input class="form-control" id="createResourceName" name="name" data-maxlength="40" required>
+      </div>
+      <div class="col-md-3 create-fields" data-create-field="payment-method" hidden>
+        <label class="form-label" for="createResourceBank">{{ t('Bank') }}</label>
+        <select class="form-select" id="createResourceBank" name="bank_id" disabled required>
+          <option value="">{{ t('Select') }}</option>
+          {% for bank in banks if bank[2] %}
+          <option value="{{ bank[0] }}">{{ bank[1] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2 create-fields" data-create-field="payment-method" hidden>
+        <label class="form-label" id="createResourceRefLabel" for="createResourceRef">{{ t('Account number') }}</label>
+        <input class="form-control" id="createResourceRef" name="account_ref" disabled>
       </div>
       <div class="col-md-2">
-        <label class="form-label">{{ t('Status') }}</label>
-        <select class="form-select" name="is_active">
+        <label class="form-label" for="createResourceStatus">{{ t('Status') }}</label>
+        <select class="form-select" id="createResourceStatus" name="is_active">
           <option value="1">{{ t('Active') }}</option>
           <option value="0">{{ t('Inactive') }}</option>
         </select>
       </div>
+      <input type="hidden" id="createResourceKind" name="kind" value="bank" disabled>
       <div class="col-md-1 d-grid">
         <button class="btn btn-soft" type="submit">{{ t('Add') }}</button>
       </div>
     </form>
+  </div>
+  {% endif %}
 
+  {% if payment_methods_section == 'kpi' %}
+  <div class="kpi-grid">
+    <a class="kpi-card" style="--kpi-color:#5b8db8" href="/payment-methods/banks">
+      <div class="kpi-label">{{ t('Active banks') }}</div>
+      <div class="kpi-value">{{ number(payment_method_kpis.active_banks) }} / {{ number(payment_method_kpis.total_banks) }}</div>
+    </a>
+    <a class="kpi-card" style="--kpi-color:#49a078" href="/payment-methods/accounts">
+      <div class="kpi-label">{{ t('Active accounts') }}</div>
+      <div class="kpi-value">{{ number(payment_method_kpis.active_accounts) }} / {{ number(payment_method_kpis.total_accounts) }}</div>
+    </a>
+    <a class="kpi-card" style="--kpi-color:#8168b3" href="/payment-methods/cards">
+      <div class="kpi-label">{{ t('Active cards') }}</div>
+      <div class="kpi-value">{{ number(payment_method_kpis.active_cards) }} / {{ number(payment_method_kpis.total_cards) }}</div>
+    </a>
+    <div class="kpi-card" style="--kpi-color:#d58a38">
+      <div class="kpi-label">{{ t('Spent this month') }}</div>
+      <div class="kpi-value">{{ money(payment_method_kpis.month_spent) }}</div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if payment_methods_section == 'kpi' %}
+  <div class="panel">
+    <div class="fw-semibold">{{ t('Financial summary') }}</div>
+    <div class="financial-summary-controls">
+      <div class="chart-scope-toggle" role="group" aria-label="{{ t('Financial summary') }}">
+        <button type="button" class="{% if selected_scope == 'banks' %}active{% endif %}" data-chart-scope="banks" aria-pressed="{{ 'true' if selected_scope == 'banks' else 'false' }}">{{ t('Banks') }}</button>
+        <button type="button" class="{% if selected_scope == 'accounts' %}active{% endif %}" data-chart-scope="accounts" aria-pressed="{{ 'true' if selected_scope == 'accounts' else 'false' }}">{{ t('Accounts') }}</button>
+        <button type="button" class="{% if selected_scope == 'cards' %}active{% endif %}" data-chart-scope="cards" aria-pressed="{{ 'true' if selected_scope == 'cards' else 'false' }}">{{ t('Cards') }}</button>
+      </div>
+      <form class="chart-year-form" method="get" action="/payment-methods/kpi">
+        <label for="chartYear">{{ t('Year') }}</label>
+        <select class="form-select form-select-sm" id="chartYear" name="year" onchange="this.form.submit()">
+          {% for year in available_years %}<option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>{% endfor %}
+        </select>
+        <input type="hidden" id="chartScopeInput" name="scope" value="{{ selected_scope }}">
+      </form>
+    </div>
+    <div class="bank-chart-grid">
+      <div class="bank-chart-card">
+        <div class="bank-chart-title">{{ t('Monthly spending') }}</div>
+        <div class="bank-chart-wrap"><canvas id="bankMonthChart" aria-label="{{ t('Monthly spending by bank') }}"></canvas><div class="chart-empty d-none" data-chart-empty="bankMonthChart">{{ t('No spending data for this period.') }}</div></div>
+      </div>
+      <div class="bank-chart-card">
+        <div class="bank-chart-title">{{ t('Annual spending') }} · {{ selected_year }}</div>
+        <div class="bank-chart-wrap"><canvas id="bankYearChart" aria-label="{{ t('Annual spending by bank') }}"></canvas><div class="chart-empty d-none" data-chart-empty="bankYearChart">{{ t('No spending data for this period.') }}</div></div>
+      </div>
+      <div class="bank-chart-card bank-chart-card-wide">
+        <div class="bank-chart-title">{{ t('Total spending') }}</div>
+        <div class="bank-chart-wrap"><canvas id="bankTotalChart" aria-label="{{ t('Total spending by bank') }}"></canvas><div class="chart-empty d-none" data-chart-empty="bankTotalChart">{{ t('No spending data for this period.') }}</div></div>
+      </div>
+      <div class="bank-chart-card bank-chart-card-wide">
+        <div class="bank-chart-title">{{ t('Spending comparison') }}</div>
+        <div class="bank-chart-wrap"><canvas id="spendingComparisonChart" aria-label="{{ t('Spending comparison') }}"></canvas><div class="chart-empty d-none" data-chart-empty="spendingComparisonChart">{{ t('No spending data for this period.') }}</div></div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if payment_methods_section == 'relationships' %}
+  <div class="panel">
+    <div class="fw-semibold">{{ t('Payment method relationships') }}</div>
+    <div class="text-muted small mb-3">{{ t('Accounts and cards linked to each bank.') }}</div>
+    <div class="dependency-map">
+      {% for bank in banks %}
+      {% set linked_accounts = payment_methods|selectattr('6', 'equalto', bank[0])|selectattr('2', 'equalto', 'bank_account')|list %}
+      {% set linked_cards = payment_methods|selectattr('6', 'equalto', bank[0])|selectattr('2', 'equalto', 'card')|list %}
+      <div class="dependency-row">
+        <a class="dependency-bank-node text-decoration-none" href="/payment-methods/banks/{{ bank[0] }}">
+          <div class="dependency-bank-name">{{ bank[1] }}</div>
+          <div class="dependency-bank-meta">{{ t('Bank') }} · {{ t('Active') if bank[2] else t('Inactive') }}</div>
+        </a>
+        <div class="dependency-branches">
+          <div class="dependency-branch">
+            <div class="dependency-branch-title"><span>{{ t('Accounts') }}</span><span>{{ number(linked_accounts|length) }}</span></div>
+            {% for method in linked_accounts %}
+            <a class="dependency-node text-decoration-none text-reset" style="--node-color:#49a078" href="/payment-methods/{{ method[0] }}">
+              <span class="text-truncate">{{ method[1] }}</span>
+              <span class="badge {% if method[5] %}text-bg-success{% else %}text-bg-secondary{% endif %}">{{ t('Active') if method[5] else t('Inactive') }}</span>
+            </a>
+            {% else %}<div class="dependency-empty">{{ t('No records found.') }}</div>{% endfor %}
+          </div>
+          <div class="dependency-branch">
+            <div class="dependency-branch-title"><span>{{ t('Cards') }}</span><span>{{ number(linked_cards|length) }}</span></div>
+            {% for method in linked_cards %}
+            <a class="dependency-node text-decoration-none text-reset" style="--node-color:#8168b3" href="/payment-methods/{{ method[0] }}">
+              <span class="text-truncate">{{ method[1] }}</span>
+              <span class="badge {% if method[5] %}text-bg-success{% else %}text-bg-secondary{% endif %}">{{ t('Active') if method[5] else t('Inactive') }}</span>
+            </a>
+            {% else %}<div class="dependency-empty">{{ t('No records found.') }}</div>{% endfor %}
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div class="text-muted">{{ t('No records found.') }}</div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if payment_methods_section == 'banks' %}
+  <div class="panel" id="banks-section">
+    <div class="fw-semibold mb-2">{{ t('Banks') }}</div>
     <div class="table-responsive">
       <table class="table table-sm align-middle mb-0">
         <thead>
@@ -139,12 +325,13 @@
             </td>
             <td class="text-end">
               <div class="pm-actions">
+                <a class="btn btn-sm btn-light bank-detail-btn" href="/payment-methods/banks/{{ bank[0] }}">{{ t('Details') }}</a>
                 <button class="btn btn-sm btn-outline-secondary bank-edit-btn" type="button">{{ t('Edit') }}</button>
                 <button class="btn btn-sm btn-light d-none bank-cancel-btn" type="button" title="{{ t('Cancel') }}">{{ t('Cancel') }}</button>
                 <button class="btn btn-sm btn-outline-primary d-none bank-save-btn" type="submit" form="bank-update-{{ bank[0] }}" title="{{ t('Save') }}">{{ t('Save') }}</button>
-                <button class="btn btn-sm btn-outline-danger d-none bank-delete-btn" type="button" data-delete-action="/management/banks/{{ bank[0] }}/delete" data-delete-name="{{ bank[1] }}" title="{{ t('Delete') }}">{{ t('Delete') }}</button>
+                <button class="btn btn-sm btn-outline-danger d-none bank-delete-btn" type="button" data-delete-action="/payment-methods/banks/{{ bank[0] }}/delete" data-delete-name="{{ bank[1] }}" title="{{ t('Delete') }}">{{ t('Delete') }}</button>
               </div>
-              <form id="bank-update-{{ bank[0] }}" method="post" action="/management/banks/{{ bank[0] }}/update"></form>
+              <form id="bank-update-{{ bank[0] }}" method="post" action="/payment-methods/banks/{{ bank[0] }}/update"></form>
             </td>
           </tr>
         {% else %}
@@ -154,42 +341,10 @@
       </table>
     </div>
   </div>
+  {% endif %}
 
-  <div class="panel">
-    <div class="fw-semibold mb-2">{{ t('Accounts') }}</div>
-    <form method="post" action="/management/payment-methods/add" class="row g-2 align-items-end compact-validation">
-      <input type="hidden" name="kind" value="bank_account">
-      <div class="col-md-3">
-        <label class="form-label">{{ t('Name') }}</label>
-        <input class="form-control" name="name" data-maxlength="40" required>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">{{ t('Bank') }}</label>
-        <select class="form-select" name="bank_id">
-          <option value="">{{ t('Select') }}</option>
-          {% for bank in banks if bank[2] %}
-          <option value="{{ bank[0] }}">{{ bank[1] }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">{{ t('Account number') }}</label>
-        <input class="form-control" name="account_ref">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">{{ t('Status') }}</label>
-        <select class="form-select" name="is_active">
-          <option value="1">{{ t('Active') }}</option>
-          <option value="0">{{ t('Inactive') }}</option>
-        </select>
-      </div>
-      <div class="col-md-1 d-grid">
-        <button class="btn btn-soft" type="submit">{{ t('Add') }}</button>
-      </div>
-    </form>
-  </div>
-
-  <div class="panel table-responsive">
+  {% if payment_methods_section == 'accounts' %}
+  <div class="panel table-responsive" id="accounts-section">
     <div class="fw-semibold mb-2">{{ t('Accounts') }}</div>
     <table class="table table-sm align-middle mb-0 pm-table">
       <colgroup>
@@ -213,7 +368,7 @@
         <tr>
           <td><input class="form-control form-control-sm pm-field" form="pm-update-{{ m[0] }}" name="name" data-maxlength="40" value="{{ m[1] }}" data-original="{{ m[1] }}" disabled required></td>
           <td>
-            <select class="form-select form-select-sm pm-field" form="pm-update-{{ m[0] }}" name="bank_id" data-original="{{ m[6] or '' }}" disabled>
+            <select class="form-select form-select-sm pm-field" form="pm-update-{{ m[0] }}" name="bank_id" data-original="{{ m[6] or '' }}" disabled required>
               <option value="">{{ t('Select') }}</option>
               {% for bank in banks %}
               <option value="{{ bank[0] }}" {% if m[6] == bank[0] %}selected{% endif %}>{{ bank[1] }}{% if not bank[2] %} ({{ t('Inactive') }}){% endif %}</option>
@@ -229,13 +384,14 @@
           </td>
           <td class="text-end">
             <div class="pm-actions">
+              <a class="btn btn-sm btn-light pm-detail-btn" href="/payment-methods/{{ m[0] }}">{{ t('Details') }}</a>
               <button class="btn btn-sm btn-outline-secondary pm-edit-btn" type="button">{{ t('Edit') }}</button>
               <button class="btn btn-sm btn-light d-none pm-cancel-btn" type="button" title="{{ t('Cancel') }}">{{ t('Cancel') }}</button>
               <button class="btn btn-sm btn-outline-primary d-none pm-save-btn" type="submit" form="pm-update-{{ m[0] }}" title="{{ t('Save') }}">{{ t('Save') }}</button>
-              <button class="btn btn-sm btn-outline-danger d-none pm-delete-btn" type="button" data-delete-action="/management/payment-methods/{{ m[0] }}/delete" data-delete-name="{{ m[1] }}" title="{{ t('Delete') }}">{{ t('Delete') }}</button>
+              <button class="btn btn-sm btn-outline-danger d-none pm-delete-btn" type="button" data-delete-action="/payment-methods/{{ m[0] }}/delete" data-delete-name="{{ m[1] }}" title="{{ t('Delete') }}">{{ t('Delete') }}</button>
             </div>
             <input type="hidden" form="pm-update-{{ m[0] }}" name="kind" value="bank_account">
-            <form id="pm-update-{{ m[0] }}" method="post" action="/management/payment-methods/{{ m[0] }}/update"></form>
+            <form id="pm-update-{{ m[0] }}" method="post" action="/payment-methods/{{ m[0] }}/update"></form>
           </td>
         </tr>
       {% else %}
@@ -244,42 +400,10 @@
       </tbody>
     </table>
   </div>
+  {% endif %}
 
-  <div class="panel">
-    <div class="fw-semibold mb-2">{{ t('Cards') }}</div>
-    <form method="post" action="/management/payment-methods/add" class="row g-2 align-items-end compact-validation">
-      <input type="hidden" name="kind" value="card">
-      <div class="col-md-3">
-        <label class="form-label">{{ t('Name') }}</label>
-        <input class="form-control" name="name" data-maxlength="40" required>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">{{ t('Bank') }}</label>
-        <select class="form-select" name="bank_id">
-          <option value="">{{ t('Select') }}</option>
-          {% for bank in banks if bank[2] %}
-          <option value="{{ bank[0] }}">{{ bank[1] }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">{{ t('Card number') }}</label>
-        <input class="form-control" name="account_ref">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">{{ t('Status') }}</label>
-        <select class="form-select" name="is_active">
-          <option value="1">{{ t('Active') }}</option>
-          <option value="0">{{ t('Inactive') }}</option>
-        </select>
-      </div>
-      <div class="col-md-1 d-grid">
-        <button class="btn btn-soft" type="submit">{{ t('Add') }}</button>
-      </div>
-    </form>
-  </div>
-
-  <div class="panel table-responsive">
+  {% if payment_methods_section == 'cards' %}
+  <div class="panel table-responsive" id="cards-section">
     <div class="fw-semibold mb-2">{{ t('Cards') }}</div>
     <table class="table table-sm align-middle mb-0 pm-table">
       <colgroup>
@@ -303,7 +427,7 @@
         <tr>
           <td><input class="form-control form-control-sm pm-field" form="pm-update-{{ m[0] }}" name="name" data-maxlength="40" value="{{ m[1] }}" data-original="{{ m[1] }}" disabled required></td>
           <td>
-            <select class="form-select form-select-sm pm-field" form="pm-update-{{ m[0] }}" name="bank_id" data-original="{{ m[6] or '' }}" disabled>
+            <select class="form-select form-select-sm pm-field" form="pm-update-{{ m[0] }}" name="bank_id" data-original="{{ m[6] or '' }}" disabled required>
               <option value="">{{ t('Select') }}</option>
               {% for bank in banks %}
               <option value="{{ bank[0] }}" {% if m[6] == bank[0] %}selected{% endif %}>{{ bank[1] }}{% if not bank[2] %} ({{ t('Inactive') }}){% endif %}</option>
@@ -319,13 +443,14 @@
           </td>
           <td class="text-end">
             <div class="pm-actions">
+              <a class="btn btn-sm btn-light pm-detail-btn" href="/payment-methods/{{ m[0] }}">{{ t('Details') }}</a>
               <button class="btn btn-sm btn-outline-secondary pm-edit-btn" type="button">{{ t('Edit') }}</button>
               <button class="btn btn-sm btn-light d-none pm-cancel-btn" type="button" title="{{ t('Cancel') }}">{{ t('Cancel') }}</button>
               <button class="btn btn-sm btn-outline-primary d-none pm-save-btn" type="submit" form="pm-update-{{ m[0] }}" title="{{ t('Save') }}">{{ t('Save') }}</button>
-              <button class="btn btn-sm btn-outline-danger d-none pm-delete-btn" type="button" data-delete-action="/management/payment-methods/{{ m[0] }}/delete" data-delete-name="{{ m[1] }}" title="{{ t('Delete') }}">{{ t('Delete') }}</button>
+              <button class="btn btn-sm btn-outline-danger d-none pm-delete-btn" type="button" data-delete-action="/payment-methods/{{ m[0] }}/delete" data-delete-name="{{ m[1] }}" title="{{ t('Delete') }}">{{ t('Delete') }}</button>
             </div>
             <input type="hidden" form="pm-update-{{ m[0] }}" name="kind" value="card">
-            <form id="pm-update-{{ m[0] }}" method="post" action="/management/payment-methods/{{ m[0] }}/update"></form>
+            <form id="pm-update-{{ m[0] }}" method="post" action="/payment-methods/{{ m[0] }}/update"></form>
           </td>
         </tr>
       {% else %}
@@ -334,6 +459,7 @@
       </tbody>
     </table>
   </div>
+  {% endif %}
 </div>
 
 <div class="modal fade" id="deletePaymentMethodModal" tabindex="-1" aria-hidden="true">
@@ -362,8 +488,200 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   (function () {
+    if (document.getElementById("bankMonthChart") && window.Chart) {
+      const chartScopes = {{ chart_scopes|tojson }};
+      let spendingCharts = [];
+      function createBankChart(canvasId, label, chartData, values, backgroundColor, borderColor) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const emptyState = document.querySelector(`[data-chart-empty="${canvasId}"]`);
+        const hasSpending = values.some((value) => Number(value || 0) !== 0);
+        canvas.classList.toggle("d-none", !hasSpending);
+        if (emptyState) emptyState.classList.toggle("d-none", hasSpending);
+        if (!hasSpending) return;
+        const sortedData = chartData.labels
+          .map((bank, index) => ({ bank, value: Number(values[index] || 0), url: chartData.urls[index] }))
+          .sort((a, b) => b.value - a.value || a.bank.localeCompare(b.bank));
+        const valueLabelsPlugin = {
+          id: "barValueLabels-" + canvasId,
+          afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            ctx.save();
+            ctx.fillStyle = "#526373";
+            ctx.font = "600 12px sans-serif";
+            ctx.textBaseline = "middle";
+            chart.getDatasetMeta(0).data.forEach((bar, index) => {
+              ctx.fillText(window.financeFormatMoney(sortedData[index].value), bar.x + 5, bar.y);
+            });
+            ctx.restore();
+          }
+        };
+        const chart = new window.Chart(canvas, {
+          type: "bar",
+          data: {
+            labels: sortedData.map((item) => item.bank),
+            datasets: [{ label, data: sortedData.map((item) => item.value), backgroundColor, borderColor, borderWidth: 1, borderRadius: 5 }]
+          },
+          plugins: [valueLabelsPlugin],
+          options: {
+            indexAxis: "y",
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: { padding: { right: 105 } },
+            onClick: (event, elements) => {
+              if (elements.length && sortedData[elements[0].index].url) {
+                window.location.href = sortedData[elements[0].index].url;
+              }
+            },
+            onHover: (event, elements) => {
+              canvas.style.cursor = elements.length ? "pointer" : "default";
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                displayColors: false,
+                bodyFont: { size: 14, weight: "600" },
+                padding: 10,
+                callbacks: {
+                  title: () => "",
+                  label: (context) => window.financeFormatMoney(context.raw)
+                }
+              }
+            },
+            scales: {
+              x: { beginAtZero: true, grace: "30%", grid: { color: "rgba(120, 140, 160, 0.12)" }, ticks: { callback: (value) => window.financeFormatMoney(value) } },
+              y: { grid: { display: false }, ticks: { autoSkip: false } }
+            }
+          }
+        });
+        spendingCharts.push(chart);
+      }
+
+      function createSpendingComparisonChart(chartData) {
+        const canvasId = "spendingComparisonChart";
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const emptyState = document.querySelector(`[data-chart-empty="${canvasId}"]`);
+        const values = [
+          chartData.month_spent.reduce((total, value) => total + Number(value || 0), 0),
+          chartData.year_spent.reduce((total, value) => total + Number(value || 0), 0),
+          chartData.total_spent.reduce((total, value) => total + Number(value || 0), 0)
+        ];
+        const hasSpending = values.some((value) => value !== 0);
+        canvas.classList.toggle("d-none", !hasSpending);
+        if (emptyState) emptyState.classList.toggle("d-none", hasSpending);
+        if (!hasSpending) return;
+        const comparisonLabelsPlugin = {
+          id: "comparisonValueLabels",
+          afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            ctx.save();
+            ctx.fillStyle = "#526373";
+            ctx.font = "600 12px sans-serif";
+            ctx.textAlign = "left";
+            ctx.textBaseline = "middle";
+            chart.getDatasetMeta(0).data.forEach((bar, index) => {
+              ctx.fillText(window.financeFormatMoney(values[index]), bar.x + 5, bar.y);
+            });
+            ctx.restore();
+          }
+        };
+        const chart = new window.Chart(canvas, {
+          type: "bar",
+          data: {
+            labels: [{{ t('Monthly spending')|tojson }}, {{ t('Annual spending')|tojson }} + " " + {{ selected_year|tojson }}, {{ t('Total spending')|tojson }}],
+            datasets: [{
+              data: values,
+              backgroundColor: ["rgba(91, 141, 184, 0.72)", "rgba(213, 138, 56, 0.72)", "rgba(129, 104, 179, 0.72)"],
+              borderColor: ["#5b8db8", "#d58a38", "#8168b3"],
+              borderWidth: 1,
+              borderRadius: 5
+            }]
+          },
+          plugins: [comparisonLabelsPlugin],
+          options: {
+            indexAxis: "y",
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: { padding: { right: 105 } },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                displayColors: false,
+                bodyFont: { size: 14, weight: "600" },
+                padding: 10,
+                callbacks: {
+                  title: () => "",
+                  label: (context) => window.financeFormatMoney(context.raw)
+                }
+              }
+            },
+            scales: {
+              x: { beginAtZero: true, grace: "30%", grid: { color: "rgba(120, 140, 160, 0.12)" }, ticks: { callback: (value) => window.financeFormatMoney(value) } },
+              y: { grid: { display: false }, ticks: { autoSkip: false } }
+            }
+          }
+        });
+        spendingCharts.push(chart);
+      }
+
+      function renderSpendingCharts(scope) {
+        const chartData = chartScopes[scope] || chartScopes.banks;
+        spendingCharts.forEach((chart) => chart.destroy());
+        spendingCharts = [];
+        createBankChart("bankMonthChart", {{ t('Monthly spending')|tojson }}, chartData, chartData.month_spent, "rgba(91, 141, 184, 0.72)", "#5b8db8");
+        createBankChart("bankYearChart", {{ t('Annual spending')|tojson }} + " " + {{ selected_year|tojson }}, chartData, chartData.year_spent, "rgba(213, 138, 56, 0.72)", "#d58a38");
+        createBankChart("bankTotalChart", {{ t('Total spending')|tojson }}, chartData, chartData.total_spent, "rgba(129, 104, 179, 0.72)", "#8168b3");
+        createSpendingComparisonChart(chartData);
+      }
+
+      document.querySelectorAll("[data-chart-scope]").forEach((button) => {
+        button.addEventListener("click", () => {
+          document.querySelectorAll("[data-chart-scope]").forEach((item) => {
+            const active = item === button;
+            item.classList.toggle("active", active);
+            item.setAttribute("aria-pressed", active ? "true" : "false");
+          });
+          const scopeInput = document.getElementById("chartScopeInput");
+          if (scopeInput) scopeInput.value = button.dataset.chartScope;
+          renderSpendingCharts(button.dataset.chartScope);
+        });
+      });
+      renderSpendingCharts({{ selected_scope|tojson }});
+    }
+
+    const createForm = document.getElementById("createPaymentResourceForm");
+    const createType = document.getElementById("createResourceType");
+    const createKind = document.getElementById("createResourceKind");
+    const createRefLabel = document.getElementById("createResourceRefLabel");
+    const paymentMethodFields = document.querySelectorAll('[data-create-field="payment-method"]');
+
+    function updateCreateForm() {
+      if (!createForm || !createType || !createKind) return;
+      const type = createType.value;
+      const isPaymentMethod = type === "bank_account" || type === "card";
+      createForm.action = isPaymentMethod ? "/payment-methods/add" : "/payment-methods/banks/add";
+      createKind.disabled = !isPaymentMethod;
+      createKind.value = type;
+      paymentMethodFields.forEach((field) => {
+        field.hidden = !isPaymentMethod;
+        field.querySelectorAll("input, select").forEach((control) => {
+          control.disabled = !isPaymentMethod;
+        });
+      });
+      if (createRefLabel) {
+        createRefLabel.textContent = type === "card" ? {{ t('Card number')|tojson }} : {{ t('Account number')|tojson }};
+      }
+    }
+
+    if (createType) {
+      createType.addEventListener("change", updateCreateForm);
+      updateCreateForm();
+    }
+
     const deleteModalEl = document.getElementById("deletePaymentMethodModal");
     const deleteModal = (deleteModalEl && window.bootstrap) ? new window.bootstrap.Modal(deleteModalEl) : null;
     const deleteForm = document.getElementById("pmDeleteForm");
@@ -372,11 +690,13 @@
     function setEditMode(row, on) {
       const fields = row.querySelectorAll(".pm-field");
       const editBtn = row.querySelector(".pm-edit-btn");
+      const detailBtn = row.querySelector(".pm-detail-btn");
       const cancelBtn = row.querySelector(".pm-cancel-btn");
       const saveBtn = row.querySelector(".pm-save-btn");
       const deleteBtn = row.querySelector(".pm-delete-btn");
       fields.forEach((f) => { f.disabled = !on; });
       if (editBtn) editBtn.classList.toggle("d-none", on);
+      if (detailBtn) detailBtn.classList.toggle("d-none", on);
       if (cancelBtn) cancelBtn.classList.toggle("d-none", !on);
       if (saveBtn) saveBtn.classList.toggle("d-none", !on);
       if (deleteBtn) deleteBtn.classList.toggle("d-none", !on);

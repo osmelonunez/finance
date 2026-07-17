@@ -21,7 +21,7 @@ from routes.auth import auth_bp
 from routes.backups import backups_bp
 from routes.setup import setup_bp
 from routes.loans import loans_bp
-from i18n import category_description, category_name, get_lang, t
+from i18n import category_description, category_name, format_money, format_number, get_lang, t
 from security import limiter
 from log_safety import redact_text
 from log_formatting import color_enabled, text_formatter
@@ -95,7 +95,7 @@ app = Flask(
     static_url_path="/static"
 )
 app.secret_key = os.environ.get("SECRET_KEY", DEFAULT_SECRET_KEY)
-app.config["APP_VERSION"] = os.environ.get("APP_VERSION", "3.4.1")
+app.config["APP_VERSION"] = os.environ.get("APP_VERSION", "3.5.0")
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -179,11 +179,13 @@ def inject_template_globals():
     lang = get_lang()
     return {
         "current_year": datetime.now().year,
-        "app_version": app.config.get("APP_VERSION", "3.4.1"),
+        "app_version": app.config.get("APP_VERSION", "3.5.0"),
         "current_lang": lang,
         "t": lambda text: t(text, lang),
         "cat_name": lambda name: category_name(name, lang),
         "cat_desc": lambda name, desc: category_description(name, desc, lang),
+        "money": lambda value: format_money(value, lang),
+        "number": lambda value, decimals=0: format_number(value, lang, decimals),
         "csrf_token": _ensure_csrf_token(),
     }
 

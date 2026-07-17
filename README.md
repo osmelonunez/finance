@@ -14,13 +14,13 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
 ## Current Version
 
-- Stable version: `3.4.1`
-- Release: `v3.4.1 - Loan Usage Editing`
-- Production compose image is pinned to `f1nanc3/finance:3.4.1`
+- Current development version: `3.5.0`
+- Planned release: `v3.5.0 - Accounts and Cards 2.0`
+- Production compose is prepared for `f1nanc3/finance:3.5.0`
 
 ## Core Features
 
-- Separate views: `Dashboard`, `Expenses`, `Incomes`, `Savings`, `Loans`, `Management`
+- Separate views: `Dashboard`, `Expenses`, `Incomes`, `Savings`, `Loans`, `Accounts & Cards`, `Management`
 - Dashboard with monthly and yearly charts, including loan debt indicators
 - Auth with roles: `admin`, `editor`, `user`
 - Rate limiting in auth endpoints
@@ -35,9 +35,16 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
   - SMTP + email reports
   - categories
   - system settings
-  - accounts
-  - cards
-  - banks
+- Top-level `Accounts & Cards` workspace at `/payment-methods`:
+  - KPI dashboard with bank/account/card and year selectors
+  - monthly, annual, total, and combined spending charts
+  - bank-to-account/card relationship view
+  - separate bank, account, and card management tabs
+  - one contextual form for creating banks, accounts, or cards
+- Bank, account, and card detail views with spending totals and server-side movement pagination
+- Dedicated expense filters for bank, account, and card
+- Accounts and cards require a bank; deletion is blocked while related data exists
+- Locale-aware number and monetary formatting across the application
 - Loans with bank, amount, term, monthly payment, description, status, and payment tracking
 - Loan types: no interest, interest-bearing loans, and mortgages with principal/interest split
 - Editable loan usage tracking to record what borrowed money is spent on without counting it as monthly income
@@ -120,7 +127,7 @@ Notes:
 ## Production Deploy (Prebuilt Image)
 
 Compose file:
-- `/Users/osmel/git/finance/docker/docker-compose.yaml`
+- `docker/docker-compose.yaml`
 
 Commands:
 
