@@ -159,6 +159,8 @@ app.config["SESSION_COOKIE_SAMESITE"] = os.environ.get("SESSION_COOKIE_SAMESITE"
 app.config["RATELIMIT_STORAGE_URI"] = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")
 app.config["RATELIMIT_STRATEGY"] = os.environ.get("RATELIMIT_STRATEGY", "fixed-window")
 app.config["RATELIMIT_HEADERS_ENABLED"] = True
+app.config["TESTING"] = (os.environ.get("APP_ENV") or "").strip().lower() == "testing"
+app.config["RATELIMIT_ENABLED"] = not app.config["TESTING"]
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 _validate_runtime_secrets()
 limiter.init_app(app)
@@ -171,7 +173,8 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(backups_bp)
 app.register_blueprint(setup_bp)
 app.register_blueprint(loans_bp)
-start_report_scheduler()
+if not app.config["TESTING"] and not _env_bool("FINANCE_DISABLE_SCHEDULERS", False):
+    start_report_scheduler()
 
 
 @app.context_processor
@@ -201,10 +204,11 @@ def require_login():
             return "Invalid CSRF token", 400
 
     g.request_started_at = time.time()
-    try:
-        maybe_run_scheduled_backup()
-    except Exception as exc:
-        logger.warning("scheduled_backup_check_failed error=%s", exc)
+    if not app.config["TESTING"]:
+        try:
+            maybe_run_scheduled_backup()
+        except Exception as exc:
+            logger.warning("scheduled_backup_check_failed error=%s", exc)
     public_paths = {
         "/login",
         "/register",

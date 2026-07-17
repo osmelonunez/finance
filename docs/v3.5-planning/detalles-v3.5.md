@@ -73,3 +73,5 @@ No requiere migración. Se utilizan las relaciones e índices existentes sobre `
 - Pruebas de integridad y estado activo/inactivo.
 - Validación del selector de año, cambio de ámbito, estados vacíos y formato monetario de las gráficas.
 - Health checks del contenedor de desarrollo.
+- Suite de regresión ejecutable con `make test-release`, PostgreSQL aislado e inventario automático de rutas y métodos.
+- Catálogo de cobertura en `docs/testing/endpoints.md` e informe Markdown histórico por cada ejecución.

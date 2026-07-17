@@ -142,6 +142,8 @@ Incluye:
 - Vista Relaciones ordenada por bancos con mayor numero de cuentas y tarjetas vinculadas.
 - Formato monetario y numerico localizado en toda la aplicacion.
 - Redirecciones compatibles desde las antiguas rutas de Gestion y rutas renombradas.
+- Suite automatica de regresion de release con PostgreSQL aislado, inventario de rutas, permisos, CSRF y flujos CRUD.
+- Catalogo versionado de endpoints e informes Markdown por cada ejecucion de pruebas.
 - No requiere migracion de base de datos.
 - [Detalle de v3.5 en espanol](docs/v3.5-planning/detalles-v3.5.md)
 - [v3.5 details in English](docs/v3.5-planning/v3.5-details.md)

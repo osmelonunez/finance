@@ -62,3 +62,5 @@ Esta versión convierte bancos, cuentas y tarjetas en un espacio funcional indep
 - Construcción y arranque de la imagen de producción.
 - Comprobación de health checks y conexión a la base de datos.
 - Revisión manual de navegación, permisos, integridad, filtros, paginación, estados vacíos y ambos idiomas.
+- Suite automática de regresión con inventario de rutas, comprobación de métodos, autenticación, roles, CSRF y flujos CRUD sobre PostgreSQL aislado.
+- Resultado de referencia: 275 pruebas superadas y 69% de cobertura, con un mínimo obligatorio del 65%.

@@ -164,6 +164,24 @@ Dependency audit:
 make audit-deps
 ```
 
+## Automated tests
+
+Tests run in isolated containers and use a temporary PostgreSQL database named `finance_test`. The suite rejects any `DATABASE_URL` whose database name does not end in `_test`.
+
+```bash
+make test-unit      # validators and numeric formatting
+make test-routes    # routes, methods, authentication, permissions, and CSRF
+make test-release   # complete suite with a coverage report
+make test-endpoints # regenerate the Markdown endpoint catalog
+make test-clean     # manually clean the test environment
+```
+
+The route inventory is read directly from Flask. Every new route is included in the sweep, and every new POST endpoint must explicitly declare its test payload.
+
+- Versioned catalog: [`docs/testing/endpoints.md`](docs/testing/endpoints.md).
+- Latest report: `test-reports/latest.md`.
+- Local history: `test-reports/finance-test-report-YYYYMMDD-HHMMSS.md`.
+
 ## Production Environment Variables (Important)
 
 Required in production:

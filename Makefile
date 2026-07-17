@@ -1,5 +1,6 @@
 COMPOSE=docker compose -f tools/docker/docker-compose.yaml
 COMPOSE_PROD=docker compose -f docker/docker-compose.yaml
+COMPOSE_TEST=docker compose -p finance-tests -f tools/docker/docker-compose.test.yaml
 IMAGE_REPO?=f1nanc3/finance
 VERSION?=3.5.0
 PLATFORMS?=linux/amd64,linux/arm64
@@ -38,3 +39,22 @@ restart-prod:
 
 audit-deps:
 	pip-audit -r backend/requirements.txt
+
+test-unit:
+	@trap '$(COMPOSE_TEST) down -v --remove-orphans' EXIT; \
+		$(COMPOSE_TEST) run --rm --build --no-deps tests pytest -m unit
+
+test-routes:
+	@trap '$(COMPOSE_TEST) down -v --remove-orphans' EXIT; \
+		$(COMPOSE_TEST) run --rm --build tests pytest -m routes
+
+test-release:
+	@trap '$(COMPOSE_TEST) down -v --remove-orphans' EXIT; \
+		$(COMPOSE_TEST) run --rm --build tests pytest --cov=backend --cov-report=term-missing --cov-fail-under=65
+
+test-clean:
+	$(COMPOSE_TEST) down -v --remove-orphans
+
+test-endpoints:
+	@trap '$(COMPOSE_TEST) down -v --remove-orphans' EXIT; \
+		$(COMPOSE_TEST) run --rm --build --no-deps tests python tests/endpoint_reporting.py

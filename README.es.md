@@ -164,6 +164,24 @@ Auditoría de dependencias:
 make audit-deps
 ```
 
+## Pruebas automáticas
+
+Las pruebas se ejecutan en contenedores aislados y utilizan una base PostgreSQL temporal llamada `finance_test`. La suite rechaza cualquier `DATABASE_URL` cuyo nombre de base de datos no termine en `_test`.
+
+```bash
+make test-unit      # validadores y formato numérico
+make test-routes    # rutas, métodos, autenticación, permisos y CSRF
+make test-release   # suite completa con informe de cobertura
+make test-endpoints # regenerar el catálogo Markdown de endpoints
+make test-clean     # limpieza manual del entorno de pruebas
+```
+
+El inventario se obtiene directamente de Flask. Cada ruta nueva se incorpora al barrido y cualquier endpoint POST nuevo debe declarar explícitamente su payload de prueba.
+
+- Catálogo versionado: [`docs/testing/endpoints.md`](docs/testing/endpoints.md).
+- Informe más reciente: `test-reports/latest.md`.
+- Histórico local: `test-reports/finance-test-report-YYYYMMDD-HHMMSS.md`.
+
 ## Variables Importantes para Producción
 
 Obligatorias en producción:
