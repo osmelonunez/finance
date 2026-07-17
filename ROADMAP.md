@@ -145,6 +145,8 @@ Incluye:
 - No requiere migracion de base de datos.
 - [Detalle de v3.5 en espanol](docs/v3.5-planning/detalles-v3.5.md)
 - [v3.5 details in English](docs/v3.5-planning/v3.5-details.md)
+- [Notas de release en espanol](docs/v3.5-release/notas-v3.5.0.md)
+- [Release notes in English](docs/v3.5-release/v3.5.0-release-notes.md)
 
 ## Ideas futuras
 
@@ -153,6 +155,8 @@ Estas ideas no estan comprometidas todavia y pueden moverse segun prioridad.
 ### Presupuestos por categoria
 
 Objetivo: controlar gasto mensual esperado frente a gasto real.
+
+Navegacion futura: candidato a acceso principal como `Presupuestos` cuando el modulo este implementado.
 
 Ideas:
 - Presupuesto mensual por categoria.
@@ -173,9 +177,25 @@ Ideas:
 - Plantillas de mapeo por banco.
 - Reglas basicas por concepto/categoria.
 
+### Informes y analitica
+
+Objetivo: ofrecer una vista dedicada para analizar la evolucion financiera y generar informes reutilizables.
+
+Navegacion futura: candidato a acceso principal como `Informes` cuando disponga de contenido suficiente para funcionar como modulo independiente.
+
+Ideas:
+- Comparativas configurables por mes, trimestre y año.
+- Evolucion de ingresos, gastos, ahorro y balance.
+- Comparativas avanzadas entre periodos (MoM/YoY).
+- Filtros por categoria, banco, cuenta, tarjeta y prestamo.
+- Exportacion de informes a PDF y otros formatos.
+- Informes guardados o configuraciones reutilizables.
+
 ### Cierre mensual
 
 Objetivo: crear un flujo guiado para revisar y cerrar cada mes.
+
+Navegacion futura: candidato a acceso principal como `Cierre mensual` si se consolida como un flujo recurrente; tambien puede integrarse en Dashboard.
 
 Ideas:
 - Checklist de cierre mensual.
@@ -213,12 +233,10 @@ Ideas:
 ### Otras ideas a valorar
 
 - Adjuntar facturas/recibos a gastos.
-- Exportacion de reportes a PDF.
 - Plantillas de reportes `v2` y opciones de branding.
 - Evolucion de i18n hacia estructura modular.
 - Notificaciones internas y recordatorios.
 - Reglas automaticas por categoria/origen/cuenta.
-- Comparativas avanzadas por periodos (MoM/YoY).
 - Soporte multi-moneda.
 - API tokens para integraciones externas.
 - Metricas operativas basicas: latencias por ruta y tasa de errores.
