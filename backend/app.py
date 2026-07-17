@@ -21,7 +21,7 @@ from routes.auth import auth_bp
 from routes.backups import backups_bp
 from routes.setup import setup_bp
 from routes.loans import loans_bp
-from i18n import category_description, category_name, get_lang, t
+from i18n import category_description, category_name, format_money, format_number, get_lang, t
 from security import limiter
 from log_safety import redact_text
 from log_formatting import color_enabled, text_formatter
@@ -95,7 +95,7 @@ app = Flask(
     static_url_path="/static"
 )
 app.secret_key = os.environ.get("SECRET_KEY", DEFAULT_SECRET_KEY)
-app.config["APP_VERSION"] = os.environ.get("APP_VERSION", "3.4.1")
+app.config["APP_VERSION"] = os.environ.get("APP_VERSION", "3.5.0")
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -159,6 +159,8 @@ app.config["SESSION_COOKIE_SAMESITE"] = os.environ.get("SESSION_COOKIE_SAMESITE"
 app.config["RATELIMIT_STORAGE_URI"] = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")
 app.config["RATELIMIT_STRATEGY"] = os.environ.get("RATELIMIT_STRATEGY", "fixed-window")
 app.config["RATELIMIT_HEADERS_ENABLED"] = True
+app.config["TESTING"] = (os.environ.get("APP_ENV") or "").strip().lower() == "testing"
+app.config["RATELIMIT_ENABLED"] = not app.config["TESTING"]
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 _validate_runtime_secrets()
 limiter.init_app(app)
@@ -171,7 +173,8 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(backups_bp)
 app.register_blueprint(setup_bp)
 app.register_blueprint(loans_bp)
-start_report_scheduler()
+if not app.config["TESTING"] and not _env_bool("FINANCE_DISABLE_SCHEDULERS", False):
+    start_report_scheduler()
 
 
 @app.context_processor
@@ -179,11 +182,13 @@ def inject_template_globals():
     lang = get_lang()
     return {
         "current_year": datetime.now().year,
-        "app_version": app.config.get("APP_VERSION", "3.4.1"),
+        "app_version": app.config.get("APP_VERSION", "3.5.0"),
         "current_lang": lang,
         "t": lambda text: t(text, lang),
         "cat_name": lambda name: category_name(name, lang),
         "cat_desc": lambda name, desc: category_description(name, desc, lang),
+        "money": lambda value: format_money(value, lang),
+        "number": lambda value, decimals=0: format_number(value, lang, decimals),
         "csrf_token": _ensure_csrf_token(),
     }
 
@@ -199,10 +204,11 @@ def require_login():
             return "Invalid CSRF token", 400
 
     g.request_started_at = time.time()
-    try:
-        maybe_run_scheduled_backup()
-    except Exception as exc:
-        logger.warning("scheduled_backup_check_failed error=%s", exc)
+    if not app.config["TESTING"]:
+        try:
+            maybe_run_scheduled_backup()
+        except Exception as exc:
+            logger.warning("scheduled_backup_check_failed error=%s", exc)
     public_paths = {
         "/login",
         "/register",

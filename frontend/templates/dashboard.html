@@ -63,21 +63,21 @@
     <div class="col-md-2">
         <div class="card card-soft kpi-card p-3">
             <h6>{{ t('Income') }}</h6>
-            <h5 class="text-success">{{ "%.2f"|format(monthly_income) }}</h5>
+            <h5 class="text-success">{{ money(monthly_income) }}</h5>
         </div>
     </div>
 
     <div class="col-md-2">
         <div class="card card-soft kpi-card p-3">
             <h6>{{ t('Expense') }}</h6>
-            <h5 class="text-danger">{{ "%.2f"|format(monthly_expense) }}</h5>
+            <h5 class="text-danger">{{ money(monthly_expense) }}</h5>
         </div>
     </div>
 
     <div class="col-md-2">
         <div class="card card-soft kpi-card p-3">
             <h6>{{ t('Saving') }}</h6>
-            <h5 style="color:#fd7e14">{{ "%.2f"|format(monthly_saving) }}</h5>
+            <h5 style="color:#fd7e14">{{ money(monthly_saving) }}</h5>
         </div>
     </div>
 
@@ -85,7 +85,7 @@
         <div class="card card-soft kpi-card p-3">
             <h6>{{ t('Balance') }}</h6>
             <h5 class="{{ 'text-success' if monthly_balance >= 0 else 'text-danger' }}">
-                {{ "%.2f"|format(monthly_balance) }}
+                {{ money(monthly_balance) }}
             </h5>
         </div>
     </div>
@@ -93,7 +93,7 @@
     <div class="col-md-4">
         <div class="card card-soft kpi-card p-3">
             <h6>{{ t('Saving Total') }}</h6>
-            <h4 style="color:#fd7e14">{{ "%.2f"|format(saving_total) }}</h4>
+            <h4 style="color:#fd7e14">{{ money(saving_total) }}</h4>
         </div>
     </div>
 </div>
@@ -103,28 +103,28 @@
     <div class="col-md-3">
         <div class="card card-soft kpi-card p-3">
             <h6>{{ t('Active loans') }}</h6>
-            <h5 style="color:#5d87ad">{{ active_loan_count }}</h5>
+            <h5 style="color:#5d87ad">{{ number(active_loan_count) }}</h5>
         </div>
     </div>
 
     <div class="col-md-3">
         <div class="card card-soft kpi-card p-3">
             <h6>{{ t('Loan monthly payment') }}</h6>
-            <h5 class="text-danger">{{ "%.2f"|format(loan_monthly_payment) }}</h5>
+            <h5 class="text-danger">{{ money(loan_monthly_payment) }}</h5>
         </div>
     </div>
 
     <div class="col-md-3">
         <div class="card card-soft kpi-card p-3">
             <h6>{{ t('Pending this year') }}</h6>
-            <h5 class="text-danger">{{ "%.2f"|format(loan_pending_this_year) }}</h5>
+            <h5 class="text-danger">{{ money(loan_pending_this_year) }}</h5>
         </div>
     </div>
 
     <div class="col-md-3">
         <div class="card card-soft kpi-card p-3">
             <h6>{{ t('Total pending debt') }}</h6>
-            <h5 class="text-danger">{{ "%.2f"|format(loan_pending_debt) }}</h5>
+            <h5 class="text-danger">{{ money(loan_pending_debt) }}</h5>
         </div>
     </div>
 </div>
@@ -194,6 +194,14 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.10.0/dist/locales/bootstrap-datepicker.es.min.js"></script>
 
 <script>
+Chart.defaults.locale = {{ ('es-ES' if current_lang == 'es' else 'en-US')|tojson }};
+Chart.defaults.plugins.tooltip.callbacks.label = (context) => {
+    const label = context.dataset.label || context.label || '';
+    const value = typeof context.parsed === 'number' ? context.parsed : (context.parsed.y ?? context.parsed.x ?? 0);
+    return (label ? label + ': ' : '') + window.financeFormatMoney(value);
+};
+Chart.defaults.scales.linear.ticks.callback = (value) => window.financeFormatMoney(value);
+
 /* DATEPICKER */
 $('#monthPicker').datepicker({
     format: "yyyy-mm",

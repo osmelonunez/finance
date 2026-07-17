@@ -71,10 +71,10 @@
     {% for m in monthly_totals %}
         <tr>
             <td>{{ m[0] }}</td>
-            <td class="text-success">{{ "%.2f"|format(m[1]) }}</td>
-            <td class="text-danger">{{ "%.2f"|format(m[2]) }}</td>
+            <td class="text-success">{{ money(m[1]) }}</td>
+            <td class="text-danger">{{ money(m[2]) }}</td>
             <td class="{{ 'text-success' if (m[1] - m[2]) >= 0 else 'text-danger' }}">
-                {{ "%.2f"|format(m[1] - m[2]) }}
+                {{ money(m[1] - m[2]) }}
             </td>
         </tr>
     {% endfor %}
@@ -99,7 +99,7 @@
         <tr>
             <td>{{ e[0] }}</td>
             <td>{{ e[1] }}</td>
-            <td>{{ "%.2f"|format(e[2]) }}</td>
+            <td>{{ money(e[2]) }}</td>
             <td>{{ e[3] }}</td>
             <td>{{ e[4] }}</td>
             <td>
@@ -126,7 +126,7 @@
 
         <li class="page-item disabled">
             <span class="page-link">
-                Page {{ page }} of {{ total_pages }}
+                Page {{ number(page) }} of {{ number(total_pages) }}
             </span>
         </li>
 

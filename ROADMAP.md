@@ -109,7 +109,7 @@ Validacion:
 
 ### v3.4.1 - Edicion de usos de prestamo
 
-Estado: preparado para release.
+Estado: completado.
 
 Objetivo: completar la gestion de los usos de prestamo sin introducir cambios de esquema.
 
@@ -121,25 +121,44 @@ Incluye:
 - [Notas de release en espanol](docs/v3.4.1-release/notas-v3.4.1.md)
 - [Release notes in English](docs/v3.4.1-release/v3.4.1-release-notes.md)
 
+### v3.5.0 - Cuentas y tarjetas 2.0
+
+Estado: completado.
+
+Objetivo: mejorar el modelo funcional de cuentas/tarjetas y su relacion con bancos y gastos.
+
+Incluye:
+- Bloqueo explicito de eliminacion cuando existen movimientos asociados.
+- Estado activo/inactivo aplicado en altas, ediciones y duplicados de movimientos.
+- Desactivacion automatica de cuentas y tarjetas al desactivar su banco.
+- Banco obligatorio para crear o editar cuentas y tarjetas, validado en UI y backend.
+- Espacio independiente `/payment-methods`, fuera de Gestion, con navegacion KPI, Relaciones, Bancos, Cuentas y Tarjetas.
+- Formulario unico y contextual para crear bancos, cuentas o tarjetas.
+- Vistas de detalle para bancos, cuentas y tarjetas con estado, referencia, metricas de gasto y numero de movimientos.
+- Historial paginado de movimientos, cargado en bloques de diez desde el servidor.
+- Filtros de gastos independientes por banco, cuenta y tarjeta.
+- KPI con conteos de entidades activas, gasto mensual y graficas por banco, cuenta o tarjeta.
+- Selector de año, estados vacios y graficas de gasto mensual, anual, total y comparativa.
+- Vista Relaciones ordenada por bancos con mayor numero de cuentas y tarjetas vinculadas.
+- Formato monetario y numerico localizado en toda la aplicacion.
+- Redirecciones compatibles desde las antiguas rutas de Gestion y rutas renombradas.
+- Suite automatica de regresion de release con PostgreSQL aislado, inventario de rutas, permisos, CSRF y flujos CRUD.
+- Catalogo versionado de endpoints e informes Markdown por cada ejecucion de pruebas.
+- No requiere migracion de base de datos.
+- [Detalle de v3.5 en espanol](docs/v3.5-planning/detalles-v3.5.md)
+- [v3.5 details in English](docs/v3.5-planning/v3.5-details.md)
+- [Notas de release en espanol](docs/v3.5-release/notas-v3.5.0.md)
+- [Release notes in English](docs/v3.5-release/v3.5.0-release-notes.md)
+
 ## Ideas futuras
 
 Estas ideas no estan comprometidas todavia y pueden moverse segun prioridad.
 
-### Cuentas y tarjetas 2.0
-
-Objetivo: mejorar el modelo funcional de cuentas/tarjetas y su relacion con bancos y gastos.
-
-Ideas:
-- Estado activo/inactivo para cuentas y tarjetas.
-- Evitar eliminacion si existen registros asociados.
-- Vista de detalle de cuenta/tarjeta.
-- Resumen de gasto por cuenta/tarjeta.
-- Resumen por banco con cuentas y tarjetas vinculadas.
-- Mejoras en filtros por banco, cuenta y tarjeta.
-
 ### Presupuestos por categoria
 
 Objetivo: controlar gasto mensual esperado frente a gasto real.
+
+Navegacion futura: candidato a acceso principal como `Presupuestos` cuando el modulo este implementado.
 
 Ideas:
 - Presupuesto mensual por categoria.
@@ -160,9 +179,25 @@ Ideas:
 - Plantillas de mapeo por banco.
 - Reglas basicas por concepto/categoria.
 
+### Informes y analitica
+
+Objetivo: ofrecer una vista dedicada para analizar la evolucion financiera y generar informes reutilizables.
+
+Navegacion futura: candidato a acceso principal como `Informes` cuando disponga de contenido suficiente para funcionar como modulo independiente.
+
+Ideas:
+- Comparativas configurables por mes, trimestre y año.
+- Evolucion de ingresos, gastos, ahorro y balance.
+- Comparativas avanzadas entre periodos (MoM/YoY).
+- Filtros por categoria, banco, cuenta, tarjeta y prestamo.
+- Exportacion de informes a PDF y otros formatos.
+- Informes guardados o configuraciones reutilizables.
+
 ### Cierre mensual
 
 Objetivo: crear un flujo guiado para revisar y cerrar cada mes.
+
+Navegacion futura: candidato a acceso principal como `Cierre mensual` si se consolida como un flujo recurrente; tambien puede integrarse en Dashboard.
 
 Ideas:
 - Checklist de cierre mensual.
@@ -200,12 +235,10 @@ Ideas:
 ### Otras ideas a valorar
 
 - Adjuntar facturas/recibos a gastos.
-- Exportacion de reportes a PDF.
 - Plantillas de reportes `v2` y opciones de branding.
 - Evolucion de i18n hacia estructura modular.
 - Notificaciones internas y recordatorios.
 - Reglas automaticas por categoria/origen/cuenta.
-- Comparativas avanzadas por periodos (MoM/YoY).
 - Soporte multi-moneda.
 - API tokens para integraciones externas.
 - Metricas operativas basicas: latencias por ruta y tasa de errores.

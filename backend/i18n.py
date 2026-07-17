@@ -1,7 +1,33 @@
 from flask import request, session
+from decimal import Decimal, InvalidOperation
 
 
 SUPPORTED_LANGS = ("en", "es")
+
+
+def format_money(value, lang=None):
+    """Format a monetary value with locale-aware thousands and decimal separators."""
+    try:
+        amount = Decimal(str(value or 0))
+    except (InvalidOperation, TypeError, ValueError):
+        amount = Decimal("0")
+    formatted = f"{amount:,.2f}"
+    if (lang or get_lang()) == "es":
+        return formatted.replace(",", "_").replace(".", ",").replace("_", ".")
+    return formatted
+
+
+def format_number(value, lang=None, decimals=0):
+    """Format a number using explicit groups of three digits for every locale."""
+    try:
+        number = Decimal(str(value or 0))
+    except (InvalidOperation, TypeError, ValueError):
+        number = Decimal("0")
+    precision = max(0, int(decimals or 0))
+    formatted = f"{number:,.{precision}f}"
+    if (lang or get_lang()) == "es":
+        return formatted.replace(",", "_").replace(".", ",").replace("_", ".")
+    return formatted
 
 DEFAULT_CATEGORY_I18N = {
     "Basic Expenses": {
@@ -365,6 +391,28 @@ TRANSLATIONS = {
         "Bank account": "Cuenta bancaria",
         "Bank": "Banco",
         "Banks": "Bancos",
+        "Active banks": "Bancos activos",
+        "Active accounts": "Cuentas activas",
+        "Active cards": "Tarjetas activas",
+        "Financial summary": "Resumen financiero",
+        "Summary": "Resumen",
+        "KPI": "KPI",
+        "Relationships": "Relaciones",
+        "Payment method relationships": "Relaciones de métodos de pago",
+        "Bank details": "Detalles del banco",
+        "Payment method": "Método de pago",
+        "Payment methods": "Métodos de pago",
+        "Active payment methods": "Métodos de pago activos",
+        "Last edited": "Última edición",
+        "Accounts and cards linked to each bank.": "Cuentas y tarjetas vinculadas a cada banco.",
+        "No linked accounts or cards.": "No hay cuentas ni tarjetas vinculadas.",
+        "Monthly spending by bank": "Gasto mensual por banco",
+        "Annual spending by bank": "Gasto anual por banco",
+        "Total spending by bank": "Gasto total por banco",
+        "Review active methods and spending by bank.": "Consulta los métodos activos y el gasto por banco.",
+        "Manage banks and their status.": "Gestiona los bancos y su estado.",
+        "Manage bank accounts and view their details.": "Gestiona las cuentas bancarias y consulta sus detalles.",
+        "Manage cards and view their details.": "Gestiona las tarjetas y consulta sus detalles.",
         "Bank name": "Nombre del banco",
         "Bank name is required.": "El nombre del banco es obligatorio.",
         "Bank created.": "Banco creado.",
@@ -392,6 +440,25 @@ TRANSLATIONS = {
         "Visible columns": "Columnas visibles",
         "Account/Card": "Cuenta/Tarjeta",
         "Cannot delete payment method. It is used by expenses.": "No se puede eliminar el método de pago. Está asociado a gastos.",
+        "Select an active bank.": "Selecciona un banco activo.",
+        "An account or card cannot be active when its bank is inactive.": "Una cuenta o tarjeta no puede estar activa si su banco está inactivo.",
+        "Select an active account or card.": "Selecciona una cuenta o tarjeta activa.",
+        "Bank summary": "Resumen por banco",
+        "Active methods": "Métodos activos",
+        "Spent this month": "Gastado este mes",
+        "Spent this year": "Gastado este año",
+        "Monthly spending": "Gasto mensual",
+        "Annual spending": "Gasto anual",
+        "Total spending": "Gasto total",
+        "Spending comparison": "Comparativa de gasto",
+        "Year": "Año",
+        "No spending data for this period.": "No hay datos de gasto para este periodo.",
+        "Total spent": "Gasto total",
+        "Movement count": "Número de movimientos",
+        "View movements": "Ver movimientos",
+        "Recent movements": "Últimos movimientos",
+        "Movements": "Movimientos",
+        "Last 10 movements": "Últimos 10 movimientos",
         "Deferred payment": "Pago aplazado",
         "You are removing deferred payment. Apply change only to this record or to the full deferred series?": "Vas a quitar el pago aplazado. ¿Aplicar el cambio solo a este registro o a toda la serie aplazada?",
         "Only this record": "Solo este registro",

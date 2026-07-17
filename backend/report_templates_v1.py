@@ -1,5 +1,7 @@
 import os
 
+from i18n import format_money
+
 
 def _public_url() -> str:
     return (os.environ.get("APP_PUBLIC_URL") or "").strip().rstrip("/")
@@ -16,6 +18,7 @@ def render_report_html_v1(
     category_summary,
     texts,
     include_top_expenses=True,
+    lang="en",
 ):
     max_value = max(float(income), float(expense), float(saving), 1.0)
 
@@ -29,7 +32,7 @@ def render_report_html_v1(
             f"<tr>"
             f"<td style='padding:8px 10px;border-bottom:1px solid #edf1f5;color:#2f3b47;'>{idx}</td>"
             f"<td style='padding:8px 10px;border-bottom:1px solid #edf1f5;color:#2f3b47;word-break:break-word;overflow-wrap:anywhere;'>{concept}</td>"
-            f"<td style='padding:8px 10px;border-bottom:1px solid #edf1f5;color:#2f3b47;text-align:right;'>{total_amount:.2f}</td>"
+            f"<td style='padding:8px 10px;border-bottom:1px solid #edf1f5;color:#2f3b47;text-align:right;'>{format_money(total_amount, lang)}</td>"
             f"</tr>"
         )
     if not rows_html:
@@ -46,7 +49,7 @@ def render_report_html_v1(
             f"<tr>"
             f"<td style='padding:8px 10px;border-bottom:1px solid #edf1f5;color:#2f3b47;'>{idx}</td>"
             f"<td style='padding:8px 10px;border-bottom:1px solid #edf1f5;color:#2f3b47;word-break:break-word;overflow-wrap:anywhere;'>{category_name}</td>"
-            f"<td style='padding:8px 10px;border-bottom:1px solid #edf1f5;color:#2f3b47;text-align:right;'>{total_amount:.2f}</td>"
+            f"<td style='padding:8px 10px;border-bottom:1px solid #edf1f5;color:#2f3b47;text-align:right;'>{format_money(total_amount, lang)}</td>"
             f"</tr>"
         )
     if not category_rows_html:
@@ -113,7 +116,7 @@ def render_report_html_v1(
                 <div style="height:14px;width:{bar_width(income)}%;background:#29a35f;"></div>
               </div>
             </td>
-            <td style="width:100px;text-align:right;color:#1e7f4a;padding-left:8px;">{float(income):.2f}</td>
+            <td style="width:100px;text-align:right;color:#1e7f4a;padding-left:8px;">{format_money(income, lang)}</td>
           </tr>
           <tr>
             <td style="width:92px;color:#2f3b47;padding:6px 0;">{texts['expense']}</td>
@@ -122,7 +125,7 @@ def render_report_html_v1(
                 <div style="height:14px;width:{bar_width(expense)}%;background:#d74c4c;"></div>
               </div>
             </td>
-            <td style="width:100px;text-align:right;color:#b13636;padding-left:8px;">{float(expense):.2f}</td>
+            <td style="width:100px;text-align:right;color:#b13636;padding-left:8px;">{format_money(expense, lang)}</td>
           </tr>
           <tr>
             <td style="width:92px;color:#2f3b47;padding:6px 0;">{texts['saving']}</td>
@@ -131,13 +134,13 @@ def render_report_html_v1(
                 <div style="height:14px;width:{bar_width(saving)}%;background:#e79831;"></div>
               </div>
             </td>
-            <td style="width:100px;text-align:right;color:#b06a17;padding-left:8px;">{float(saving):.2f}</td>
+            <td style="width:100px;text-align:right;color:#b06a17;padding-left:8px;">{format_money(saving, lang)}</td>
           </tr>
         </table>
 
         <div style="padding:10px 12px;border:1px solid #dfe7f0;border-radius:10px;background:#f8fbff;margin-bottom:14px;">
           <span style="color:#5a6b7b;">{texts['balance']}:</span>
-          <span style="font-weight:700;color:{'#1e7f4a' if float(balance) >= 0 else '#b13636'};margin-left:6px;">{float(balance):.2f}</span>
+          <span style="font-weight:700;color:{'#1e7f4a' if float(balance) >= 0 else '#b13636'};margin-left:6px;">{format_money(balance, lang)}</span>
         </div>
 
         <div style="font-weight:700;color:#2f3b47;margin:14px 0 8px 0;">{texts['category_summary']}</div>

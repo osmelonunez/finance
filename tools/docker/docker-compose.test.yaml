@@ -1,0 +1,39 @@
+services:
+  test-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: finance_test
+      POSTGRES_USER: finance_test
+      POSTGRES_PASSWORD: finance_test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finance_test -d finance_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    tmpfs:
+      - /var/lib/postgresql/data
+
+  tests:
+    build:
+      context: ../..
+      dockerfile: tools/docker/Dockerfile.test
+    depends_on:
+      test-db:
+        condition: service_healthy
+    environment:
+      APP_ENV: testing
+      DATABASE_URL: postgresql://finance_test:finance_test@test-db:5432/finance_test
+      SECRET_KEY: finance-test-secret
+      SMTP_ENCRYPTION_KEY: finance-test-smtp-key
+      DB_CONFIG_ENCRYPTION_KEY: finance-test-db-key
+      SESSION_COOKIE_SECURE: "false"
+      FINANCE_DISABLE_SCHEDULERS: "true"
+      BACKUP_DIR: /tmp/finance-test-backups
+      FINANCE_ENDPOINT_CATALOG: /app/docs/testing/endpoints.md
+      FINANCE_TEST_REPORT_DIR: /app/test-reports
+      LOG_FORMAT: text
+      LOG_COLOR: "false"
+    volumes:
+      - ../../docs/testing:/app/docs/testing
+      - ../../test-reports:/app/test-reports
+    command: pytest

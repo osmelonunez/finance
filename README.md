@@ -14,13 +14,13 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
 ## Current Version
 
-- Stable version: `3.4.1`
-- Release: `v3.4.1 - Loan Usage Editing`
-- Production compose image is pinned to `f1nanc3/finance:3.4.1`
+- Current version: `3.5.0`
+- Release: `v3.5.0 - Accounts and Cards 2.0`
+- Production compose is prepared for `f1nanc3/finance:3.5.0`
 
 ## Core Features
 
-- Separate views: `Dashboard`, `Expenses`, `Incomes`, `Savings`, `Loans`, `Management`
+- Separate views: `Dashboard`, `Expenses`, `Incomes`, `Savings`, `Loans`, `Accounts & Cards`, `Management`
 - Dashboard with monthly and yearly charts, including loan debt indicators
 - Auth with roles: `admin`, `editor`, `user`
 - Rate limiting in auth endpoints
@@ -35,9 +35,16 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
   - SMTP + email reports
   - categories
   - system settings
-  - accounts
-  - cards
-  - banks
+- Top-level `Accounts & Cards` workspace at `/payment-methods`:
+  - KPI dashboard with bank/account/card and year selectors
+  - monthly, annual, total, and combined spending charts
+  - bank-to-account/card relationship view
+  - separate bank, account, and card management tabs
+  - one contextual form for creating banks, accounts, or cards
+- Bank, account, and card detail views with spending totals and server-side movement pagination
+- Dedicated expense filters for bank, account, and card
+- Accounts and cards require a bank; deletion is blocked while related data exists
+- Locale-aware number and monetary formatting across the application
 - Loans with bank, amount, term, monthly payment, description, status, and payment tracking
 - Loan types: no interest, interest-bearing loans, and mortgages with principal/interest split
 - Editable loan usage tracking to record what borrowed money is spent on without counting it as monthly income
@@ -64,6 +71,9 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
 ### Loan Detail
 ![Loan Detail](docs/screenshots/loan-detail.png)
+
+### Accounts & Cards KPI
+![Accounts & Cards KPI](docs/screenshots/payment-methods-kpi.png)
 
 ### Management
 ![Management](docs/screenshots/management.png)
@@ -120,7 +130,7 @@ Notes:
 ## Production Deploy (Prebuilt Image)
 
 Compose file:
-- `/Users/osmel/git/finance/docker/docker-compose.yaml`
+- `docker/docker-compose.yaml`
 
 Commands:
 
@@ -153,6 +163,24 @@ Dependency audit:
 ```bash
 make audit-deps
 ```
+
+## Automated tests
+
+Tests run in isolated containers and use a temporary PostgreSQL database named `finance_test`. The suite rejects any `DATABASE_URL` whose database name does not end in `_test`.
+
+```bash
+make test-unit      # validators and numeric formatting
+make test-routes    # routes, methods, authentication, permissions, and CSRF
+make test-release   # complete suite with a coverage report
+make test-endpoints # regenerate the Markdown endpoint catalog
+make test-clean     # manually clean the test environment
+```
+
+The route inventory is read directly from Flask. Every new route is included in the sweep, and every new POST endpoint must explicitly declare its test payload.
+
+- Versioned catalog: [`docs/testing/endpoints.md`](docs/testing/endpoints.md).
+- Latest report: `test-reports/latest.md`.
+- Local history: `test-reports/finance-test-report-YYYYMMDD-HHMMSS.md`.
 
 ## Production Environment Variables (Important)
 

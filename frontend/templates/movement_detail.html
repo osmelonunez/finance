@@ -45,7 +45,7 @@
         </div>
         <div class="col-md-2">
             <div class="detail-label">{{ t('Amount') }}</div>
-            <div class="detail-value">{{ "%.2f"|format(expense[2]) }}</div>
+            <div class="detail-value">{{ money(expense[2]) }}</div>
         </div>
         <div class="col-md-2">
             <div class="detail-label">{{ t('Date') }}</div>
@@ -84,11 +84,11 @@
         {% if expense[4] == 'expense' and expense[17] and expense[20] is not none %}
         <div class="col-md-4">
             <div class="detail-label">{{ t('Principal') }}</div>
-            <div class="detail-value text-success">{{ "%.2f"|format(expense[20]) }}</div>
+            <div class="detail-value text-success">{{ money(expense[20]) }}</div>
         </div>
         <div class="col-md-4">
             <div class="detail-label">{{ t('Interest') }}</div>
-            <div class="detail-value text-danger">{{ "%.2f"|format(expense[21]) }}</div>
+            <div class="detail-value text-danger">{{ money(expense[21]) }}</div>
         </div>
         {% endif %}
         <div class="col-md-12">
@@ -138,7 +138,7 @@
         <div class="mb-2">{{ t('This action cannot be undone. Delete this record?') }}</div>
         <div class="alert alert-warning py-2 mb-0">
             <strong>{{ expense[1] }}</strong>
-            <div class="small">{{ expense[3] }} · {{ "%.2f"|format(expense[2]) }}</div>
+            <div class="small">{{ expense[3] }} · {{ money(expense[2]) }}</div>
         </div>
       </div>
       <div class="modal-footer">

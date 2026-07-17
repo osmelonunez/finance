@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+  .pm-detail-shell { max-width: 1050px; }
+  .pm-detail-card { border: 1px solid #dfe7f0; border-radius: 14px; background: #fff; padding: 18px; }
+  .pm-metric { border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; padding: 14px; height: 100%; }
+  .pm-metric-label { color: #64748b; font-size: 0.82rem; }
+  .pm-metric-value { color: #243447; font-size: 1.35rem; font-weight: 700; }
+  .pm-meta { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .pm-meta-item { border-top: 1px solid #e7edf3; padding-top: 10px; }
+  @media (max-width: 768px) { .pm-meta { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<div class="pm-detail-shell">
+  {% include '_payment_methods_nav.html' %}
+  <div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+      <a href="/payment-methods/{{ 'accounts' if payment_method[2] == 'bank_account' else 'cards' }}" class="text-decoration-none small">← {{ t('Accounts & Cards') }}</a>
+      <h3 class="mb-1 mt-2">{{ payment_method[1] }}</h3>
+      <span class="badge {{ 'text-bg-success' if payment_method[4] else 'text-bg-secondary' }}">
+        {{ t('Active') if payment_method[4] else t('Inactive') }}
+      </span>
+      <span class="badge text-bg-light border">
+        {{ t('Card') if payment_method[2] == 'card' else t('Bank account') }}
+      </span>
+    </div>
+    <a href="/records/expense?{{ 'card_id' if payment_method[2] == 'card' else 'account_id' }}={{ payment_method[0] }}" class="btn btn-soft">{{ t('View movements') }}</a>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-4"><div class="pm-metric"><div class="pm-metric-label">{{ t('Total spent') }}</div><div class="pm-metric-value">{{ money(total_spent) }}</div></div></div>
+    <div class="col-md-4"><div class="pm-metric"><div class="pm-metric-label">{{ t('Spent this month') }}</div><div class="pm-metric-value">{{ money(month_spent) }}</div></div></div>
+    <div class="col-md-4"><div class="pm-metric"><div class="pm-metric-label">{{ t('Movement count') }}</div><div class="pm-metric-value">{{ number(movement_count) }}</div></div></div>
+  </div>
+
+  <div class="pm-detail-card mb-3">
+    <h6 class="mb-3">{{ t('Details') }}</h6>
+    <div class="pm-meta">
+      <div class="pm-meta-item"><div class="text-muted small">{{ t('Bank') }}</div><div>{% if payment_method[7] %}<a href="/payment-methods/banks/{{ payment_method[7] }}">{{ payment_method[8] }}</a>{% else %}-{% endif %}{% if payment_method[8] and not payment_method[9] %} ({{ t('Inactive') }}){% endif %}</div></div>
+      <div class="pm-meta-item"><div class="text-muted small">{{ t('Account number') if payment_method[2] == 'bank_account' else t('Card number') }}</div><div>{{ payment_method[3] or '-' }}</div></div>
+      <div class="pm-meta-item"><div class="text-muted small">{{ t('Created') }}</div><div>{{ payment_method[5].strftime('%Y-%m-%d %H:%M') if payment_method[5] else '-' }}</div></div>
+      <div class="pm-meta-item"><div class="text-muted small">{{ t('Last edited') }}</div><div>{{ payment_method[6].strftime('%Y-%m-%d %H:%M') if payment_method[6] else '-' }}</div></div>
+    </div>
+  </div>
+
+  <div class="pm-detail-card">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h6 class="mb-0">{{ t('Movements') }}</h6>
+      <span class="text-muted small">{{ t('Page') }} {{ number(page) }} {{ t('of') }} {{ number(total_pages) }}</span>
+    </div>
+    {% if recent_records %}
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead><tr><th>{{ t('Concept') }}</th><th>{{ t('Category') }}</th><th>{{ t('Date') }}</th><th>{{ t('Source') }}</th><th class="text-end">{{ t('Amount') }}</th></tr></thead>
+        <tbody>
+        {% for record in recent_records %}
+          <tr class="row-link" role="button" data-href="/records/{{ record[0] }}?from=expense&return_to={{ request.full_path|urlencode }}">
+            <td><a class="text-decoration-none text-body" href="/records/{{ record[0] }}?from=expense&return_to={{ request.full_path|urlencode }}">{{ record[1] }}</a></td>
+            <td>{{ cat_name(record[5]) if record[5] else '-' }}</td>
+            <td>{{ record[3] }}</td>
+            <td>{{ t('Monthly') if record[4] == 'monthly' else (t('Saving') if record[4] == 'saving' else '-') }}</td>
+            <td class="text-end">{{ money(record[2]) }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if total_pages > 1 %}
+    <nav class="mt-3" aria-label="{{ t('Movements') }}">
+      <ul class="pagination pagination-sm justify-content-center mb-0">
+        <li class="page-item {{ 'disabled' if page <= 1 }}"><a class="page-link" href="?page={{ page - 1 }}">{{ t('Previous') }}</a></li>
+        {% for page_number in range(1, total_pages + 1) %}
+          {% if page_number == 1 or page_number == total_pages or (page_number >= page - 2 and page_number <= page + 2) %}
+          <li class="page-item {{ 'active' if page_number == page }}"><a class="page-link" href="?page={{ page_number }}">{{ number(page_number) }}</a></li>
+          {% elif page_number == 2 and page > 4 or page_number == total_pages - 1 and page < total_pages - 3 %}
+          <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+        <li class="page-item {{ 'disabled' if page >= total_pages }}"><a class="page-link" href="?page={{ page + 1 }}">{{ t('Next') }}</a></li>
+      </ul>
+    </nav>
+    {% endif %}
+    {% else %}
+      <div class="alert alert-light border mb-0">{{ t('No movements yet') }}</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

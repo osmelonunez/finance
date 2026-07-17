@@ -6,7 +6,7 @@ from datetime import datetime
 
 from db import get_db
 from email_service import send_email
-from i18n import category_name
+from i18n import category_name, format_money
 from report_templates import render_report_html
 
 
@@ -343,10 +343,10 @@ def send_monthly_report(test=False, recipients_override=None):
                 subject = texts["subject_monthly"].format(period=period_key)
                 body = (
                     f"{texts['monthly_body_intro'].format(period=period_key)}\n\n"
-                    f"{texts['income']}: {income:.2f}\n"
-                    f"{texts['expense']}: {expense:.2f}\n"
-                    f"{texts['saving']}: {saving:.2f}\n"
-                    f"{texts['balance']}: {balance:.2f}\n"
+                    f"{texts['income']}: {format_money(income, lang)}\n"
+                    f"{texts['expense']}: {format_money(expense, lang)}\n"
+                    f"{texts['saving']}: {format_money(saving, lang)}\n"
+                    f"{texts['balance']}: {format_money(balance, lang)}\n"
                 )
                 if _public_url():
                     body += f"\n{texts['open_finance_line']}: {_public_url()}\n"
@@ -362,6 +362,7 @@ def send_monthly_report(test=False, recipients_override=None):
                     category_summary=localized_categories,
                     texts=texts,
                     include_top_expenses=True,
+                    lang=lang,
                 )
                 ok = send_email(lang_recipients, subject, body, html_body=html_body)
                 all_ok = all_ok and ok
@@ -413,10 +414,10 @@ def send_yearly_report(test=False, recipients_override=None):
                 subject = texts["subject_yearly"].format(period=period_key)
                 body = (
                     f"{texts['yearly_body_intro'].format(period=period_key)}\n\n"
-                    f"{texts['income']}: {income:.2f}\n"
-                    f"{texts['expense']}: {expense:.2f}\n"
-                    f"{texts['saving']}: {saving:.2f}\n"
-                    f"{texts['balance']}: {balance:.2f}\n"
+                    f"{texts['income']}: {format_money(income, lang)}\n"
+                    f"{texts['expense']}: {format_money(expense, lang)}\n"
+                    f"{texts['saving']}: {format_money(saving, lang)}\n"
+                    f"{texts['balance']}: {format_money(balance, lang)}\n"
                 )
                 if _public_url():
                     body += f"\n{texts['open_finance_line']}: {_public_url()}\n"
@@ -432,6 +433,7 @@ def send_yearly_report(test=False, recipients_override=None):
                     category_summary=localized_categories,
                     texts=texts,
                     include_top_expenses=False,
+                    lang=lang,
                 )
                 ok = send_email(lang_recipients, subject, body, html_body=html_body)
                 all_ok = all_ok and ok

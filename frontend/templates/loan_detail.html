@@ -296,60 +296,60 @@
     <div class="row g-3 mb-3">
         <div class="col-md">
             <div class="detail-label">{{ t('Requested') }}</div>
-            <div class="detail-value">{{ "%.2f"|format(loan[3]) }}</div>
+            <div class="detail-value">{{ money(loan[3]) }}</div>
         </div>
         <div class="col-md">
             <div class="detail-label">{{ t('Total to repay') }}</div>
-            <div class="detail-value" style="color:#5d87ad">{{ "%.2f"|format(total_to_repay) }}</div>
+            <div class="detail-value" style="color:#5d87ad">{{ money(total_to_repay) }}</div>
         </div>
         <div class="col-md">
             <div class="detail-label">{{ t('Paid') }}</div>
-            <div class="detail-value text-success">{{ "%.2f"|format(paid) }}</div>
+            <div class="detail-value text-success">{{ money(paid) }}</div>
         </div>
         <div class="col-md">
             <div class="detail-label">{{ t('Pending') }}</div>
-            <div class="detail-value text-danger">{{ "%.2f"|format(pending if pending > 0 else 0) }}</div>
+            <div class="detail-value text-danger">{{ money(pending if pending > 0 else 0) }}</div>
         </div>
         <div class="col-md">
             <div class="detail-label">{{ t('Available') }}</div>
-            <div class="detail-value {{ 'text-success' if available >= 0 else 'text-danger' }}">{{ "%.2f"|format(available) }}</div>
+            <div class="detail-value {{ 'text-success' if available >= 0 else 'text-danger' }}">{{ money(available) }}</div>
         </div>
     </div>
 
     <div class="row g-3 mb-3">
         <div class="col-md">
             <div class="detail-label">{{ t('Installments') }}</div>
-            <div class="detail-value">{{ loan[10] }}/{{ loan[4] }}</div>
+            <div class="detail-value">{{ number(loan[10]) }}/{{ number(loan[4]) }}</div>
         </div>
         <div class="col-md">
             <div class="detail-label">{{ t('Monthly payment') }}</div>
-            <div class="detail-value">{{ "%.2f"|format(loan[5]) if loan[5] else '-' }}</div>
+            <div class="detail-value">{{ money(loan[5]) if loan[5] else '-' }}</div>
         </div>
         <div class="col-md">
             <div class="detail-label">{{ t('Monthly principal') }}</div>
-            <div class="detail-value text-success">{{ "%.2f"|format(loan[14]) if loan[14] else '-' }}</div>
+            <div class="detail-value text-success">{{ money(loan[14]) if loan[14] else '-' }}</div>
         </div>
         <div class="col-md">
             <div class="detail-label">{{ t('Monthly interest') }}</div>
-            <div class="detail-value text-danger">{{ "%.2f"|format(loan[15]) if loan[15] is not none else '-' }}</div>
+            <div class="detail-value text-danger">{{ money(loan[15]) if loan[15] is not none else '-' }}</div>
         </div>
         <div class="col-md">
             <div class="detail-label">{{ t('Estimated interest') }}</div>
-            <div class="detail-value">{{ "%.2f"|format(estimated_interest) if is_interest_bearing and estimated_interest is not none else '-' }}</div>
+            <div class="detail-value">{{ money(estimated_interest) if is_interest_bearing and estimated_interest is not none else '-' }}</div>
         </div>
     </div>
 
     <div class="row g-3">
         <div class="col-md-12">
             <div class="detail-label mb-1">{{ t('Usage progress') }}</div>
-            <div class="progress progress-tooltip" data-tooltip="{{ "%.2f"|format(usage_total) }} / {{ "%.2f"|format(loan[3]) }}">
+            <div class="progress progress-tooltip" data-tooltip="{{ money(usage_total) }} / {{ money(loan[3]) }}">
                 <div class="progress-bar progress-bar-usage" style="width: {{ usage_percent }}%;"></div>
             </div>
             <div class="text-muted small mt-1">{{ "%.0f"|format(usage_percent) }}% {{ t('used') }}</div>
         </div>
         <div class="col-md-12">
             <div class="detail-label mb-1">{{ t('Payment progress') }}</div>
-            <div class="progress progress-tooltip" data-tooltip="{{ "%.2f"|format(paid) }} / {{ "%.2f"|format(payment_progress_total) }}">
+            <div class="progress progress-tooltip" data-tooltip="{{ money(paid) }} / {{ money(payment_progress_total) }}">
                 <div class="progress-bar progress-bar-payment" style="width: {{ percent }}%;"></div>
             </div>
             <div class="text-muted small mt-1">{{ "%.0f"|format(percent) }}% {{ t('paid') }}</div>
@@ -637,7 +637,7 @@
                         data-bs-target="#deleteUsageModal"
                         data-delete-url="/loans/{{ loan[0] }}/usages/{{ usage[0] }}/delete?usage_page={{ usage_page }}"
                         data-usage-concept="{{ usage[1] }}"
-                        data-usage-amount="{{ "%.2f"|format(usage[2]) }}"
+                        data-usage-amount="{{ money(usage[2]) }}"
                     >
                         {{ t('Delete') }}
                     </button>
@@ -694,10 +694,10 @@
                 <td>{{ payment[3] }}</td>
                 <td>{{ payment[1] }}</td>
                 <td>{{ t('Monthly') if payment[4] == 'monthly' else payment[4] or '-' }}</td>
-                <td class="text-end">{{ "%.2f"|format(payment[2]) }}</td>
+                <td class="text-end">{{ money(payment[2]) }}</td>
                 {% if loan[12] %}
-                <td class="text-end text-success">{{ "%.2f"|format(payment[6]) if payment[6] is not none else '-' }}</td>
-                <td class="text-end text-danger">{{ "%.2f"|format(payment[7]) if payment[7] is not none else '-' }}</td>
+                <td class="text-end text-success">{{ money(payment[6]) if payment[6] is not none else '-' }}</td>
+                <td class="text-end text-danger">{{ money(payment[7]) if payment[7] is not none else '-' }}</td>
                 {% endif %}
                 <td class="text-end"><a href="/records/{{ payment[0] }}?from=expense&return_to={{ request.full_path|urlencode }}" class="btn btn-sm btn-light">{{ t('Details') }}</a></td>
             </tr>

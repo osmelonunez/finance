@@ -1,5 +1,5 @@
 # OS X
-.DS_Store
+**/.DS_Store
 
 .env
 .env.*
@@ -8,3 +8,7 @@ backups
 config
 __pycache__
 *.py[cod]
+
+# Generated test execution reports (keep the usage guide).
+test-reports/*.md
+!test-reports/README.md

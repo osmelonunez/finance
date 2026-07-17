@@ -71,31 +71,31 @@
     <div class="col-md">
         <div class="card card-soft p-3 h-100">
             <h6>{{ t('Requested total') }}</h6>
-            <h5>{{ "%.2f"|format(total_principal) }}</h5>
+            <h5>{{ money(total_principal) }}</h5>
         </div>
     </div>
     <div class="col-md">
         <div class="card card-soft p-3 h-100">
             <h6>{{ t('Total to repay') }}</h6>
-            <h5>{{ "%.2f"|format(total_repayment) }}</h5>
+            <h5>{{ money(total_repayment) }}</h5>
         </div>
     </div>
     <div class="col-md">
         <div class="card card-soft p-3 h-100">
             <h6>{{ t('Paid') }}</h6>
-            <h5 class="text-success">{{ "%.2f"|format(total_paid) }}</h5>
+            <h5 class="text-success">{{ money(total_paid) }}</h5>
         </div>
     </div>
     <div class="col-md">
         <div class="card card-soft p-3 h-100">
             <h6>{{ t('Pending debt') }}</h6>
-            <h5 class="text-danger">{{ "%.2f"|format(total_pending) }}</h5>
+            <h5 class="text-danger">{{ money(total_pending) }}</h5>
         </div>
     </div>
     <div class="col-md">
         <div class="card card-soft p-3 h-100">
             <h6>{{ t('Active loans') }}</h6>
-            <h4 style="color:#5d87ad">{{ active_count }}</h4>
+            <h4 style="color:#5d87ad">{{ number(active_count) }}</h4>
         </div>
     </div>
 </div>
@@ -148,17 +148,17 @@
                     <div class="fw-semibold">{{ loan[1] }}</div>
                 </td>
                 <td>{{ loan[2] }}</td>
-                <td class="text-end">{{ "%.2f"|format(loan[3]) }}</td>
-                <td class="text-end">{{ "%.2f"|format(total_to_repay) }}</td>
-                <td>{{ loan[10] }}/{{ loan[4] }}</td>
-                <td class="text-end">{{ "%.2f"|format(loan[5]) if loan[5] else '-' }}</td>
+                <td class="text-end">{{ money(loan[3]) }}</td>
+                <td class="text-end">{{ money(total_to_repay) }}</td>
+                <td>{{ number(loan[10]) }}/{{ number(loan[4]) }}</td>
+                <td class="text-end">{{ money(loan[5]) if loan[5] else '-' }}</td>
                 <td style="min-width: 160px;">
                     <div class="progress">
                         <div class="progress-bar" style="width: {{ percent }}%;"></div>
                     </div>
                     <div class="text-muted small mt-1">{{ "%.0f"|format(percent) }}%</div>
                 </td>
-                <td class="text-end">{{ "%.2f"|format(pending if pending > 0 else 0) }}</td>
+                <td class="text-end">{{ money(pending if pending > 0 else 0) }}</td>
                 <td><span class="status-pill">{{ t(loan[8]|capitalize) }}</span></td>
             </tr>
         {% endfor %}
