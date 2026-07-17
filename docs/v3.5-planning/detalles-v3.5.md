@@ -62,7 +62,7 @@ No requiere migración. Se utilizan las relaciones e índices existentes sobre `
 
 - Versión de aplicación: `3.5.0`.
 - Imagen de producción: `f1nanc3/finance:3.5.0`.
-- Tag Git previsto: `v3.5.0`.
+- Tag Git: `v3.5.0`.
 
 ## Validación realizada
 

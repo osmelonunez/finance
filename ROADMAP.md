@@ -123,7 +123,7 @@ Incluye:
 
 ### v3.5.0 - Cuentas y tarjetas 2.0
 
-Estado: implementacion completada, pendiente de release.
+Estado: completado.
 
 Objetivo: mejorar el modelo funcional de cuentas/tarjetas y su relacion con bancos y gastos.
 

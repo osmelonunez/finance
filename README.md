@@ -14,8 +14,8 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
 ## Current Version
 
-- Current development version: `3.5.0`
-- Planned release: `v3.5.0 - Accounts and Cards 2.0`
+- Current version: `3.5.0`
+- Release: `v3.5.0 - Accounts and Cards 2.0`
 - Production compose is prepared for `f1nanc3/finance:3.5.0`
 
 ## Core Features

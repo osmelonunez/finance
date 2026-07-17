@@ -14,8 +14,8 @@ Repositorio: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
 ## Versión Actual
 
-- Versión actual de desarrollo: `3.5.0`
-- Release prevista: `v3.5.0 - Cuentas y tarjetas 2.0`
+- Versión actual: `3.5.0`
+- Release: `v3.5.0 - Cuentas y tarjetas 2.0`
 - El compose de producción está preparado para `f1nanc3/finance:3.5.0`
 
 ## Funcionalidades Principales

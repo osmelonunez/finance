@@ -52,8 +52,8 @@ Esta versión convierte bancos, cuentas y tarjetas en un espacio funcional indep
 
 - Imagen: `f1nanc3/finance:3.5.0`
 - Imagen flotante: `f1nanc3/finance:latest`
-- Tag Git previsto: `v3.5.0`
-- Nombre previsto de la release: `Finance v3.5.0`
+- Tag Git: `v3.5.0`
+- Nombre de la release: `Finance v3.5.0`
 
 ## Validación
 
