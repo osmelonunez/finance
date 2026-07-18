@@ -14,13 +14,13 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
 ## Current Version
 
-- Current version: `3.5.0`
-- Release: `v3.5.0 - Accounts and Cards 2.0`
-- Production compose is prepared for `f1nanc3/finance:3.5.0`
+- Current version: `3.6.0`
+- Release: `v3.6.0 - Banking and Loan Integration`
+- Production compose is prepared for `f1nanc3/finance:3.6.0`
 
 ## Core Features
 
-- Separate views: `Dashboard`, `Expenses`, `Incomes`, `Savings`, `Loans`, `Accounts & Cards`, `Management`
+- Separate views: `Dashboard`, `Expenses`, `Incomes`, `Savings`, `Loans`, `Banking`, `Management`
 - Dashboard with monthly and yearly charts, including loan debt indicators
 - Auth with roles: `admin`, `editor`, `user`
 - Rate limiting in auth endpoints
@@ -35,15 +35,17 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
   - SMTP + email reports
   - categories
   - system settings
-- Top-level `Accounts & Cards` workspace at `/payment-methods`:
+- Top-level `Banking` workspace at `/payment-methods`:
   - KPI dashboard with bank/account/card and year selectors
   - monthly, annual, total, and combined spending charts
-  - bank-to-account/card relationship view
+  - bank-to-account-to-card relationship view with direct account/card connectors
   - separate bank, account, and card management tabs
   - one contextual form for creating banks, accounts, or cards
 - Bank, account, and card detail views with spending totals and server-side movement pagination
+- Bank details include associated loans and principal, outstanding debt, amortized amount, and monthly-payment KPIs
+- Bank spending includes loan payments (principal and interest), while loan capital usages remain informational and are not treated as personal spending or available balance
 - Dedicated expense filters for bank, account, and card
-- Accounts and cards require a bank; deletion is blocked while related data exists
+- Accounts require a bank and cards require an account; deletion is blocked while related data exists
 - Locale-aware number and monetary formatting across the application
 - Loans with bank, amount, term, monthly payment, description, status, and payment tracking
 - Loan types: no interest, interest-bearing loans, and mortgages with principal/interest split
@@ -72,8 +74,8 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 ### Loan Detail
 ![Loan Detail](docs/screenshots/loan-detail.png)
 
-### Accounts & Cards KPI
-![Accounts & Cards KPI](docs/screenshots/payment-methods-kpi.png)
+### Banking KPI
+![Banking KPI](docs/screenshots/payment-methods-kpi.png)
 
 ### Management
 ![Management](docs/screenshots/management.png)

@@ -110,12 +110,13 @@ def _reset_and_seed_database():
             )
             cur.execute(
                 """
-                INSERT INTO payment_methods (id, name, kind, bank_name, bank_id, account_ref, is_active)
+                INSERT INTO payment_methods (id, name, kind, bank_name, bank_id, account_ref, is_active, parent_account_id)
                 VALUES
-                    (1, 'Test Card', 'card', 'Test Bank', 1, 'CARD-001', TRUE),
-                    (2, 'Test Account', 'bank_account', 'Test Bank', 1, 'ACC-001', TRUE),
-                    (3, 'Inactive Card', 'card', 'Inactive Bank', 2, 'CARD-002', FALSE),
-                    (4, 'Unused Card', 'card', 'Test Bank', 1, 'CARD-004', TRUE)
+                    (2, 'Test Account', 'bank_account', 'Test Bank', 1, 'ACC-001', TRUE, NULL),
+                    (5, 'Inactive Account', 'bank_account', 'Inactive Bank', 2, 'ACC-002', FALSE, NULL),
+                    (1, 'Test Card', 'card', 'Test Bank', 1, 'CARD-001', TRUE, 2),
+                    (3, 'Inactive Card', 'card', 'Inactive Bank', 2, 'CARD-002', FALSE, 5),
+                    (4, 'Unused Card', 'card', 'Test Bank', 1, 'CARD-004', TRUE, 2)
                 """
             )
             cur.execute(

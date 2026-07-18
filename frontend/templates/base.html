@@ -221,7 +221,7 @@
         <a class="nav-link {{ 'active' if current_page=='saving' else '' }}" href="/records/saving">{{ t('Savings') }}</a>
         <a class="nav-link {{ 'active' if current_page=='loans' else '' }}" href="/loans">{{ t('Loans') }}</a>
         {% if session.get('role') in ['admin', 'editor'] %}
-        <a class="nav-link {{ 'active' if current_page=='payment_methods' else '' }}" href="/payment-methods">{{ t('Accounts & Cards') }}</a>
+        <a class="nav-link {{ 'active' if current_page=='payment_methods' else '' }}" href="/payment-methods">{{ t('Banking') }}</a>
         <a class="nav-link {{ 'active' if current_page=='management' else '' }}" href="/management">{{ t('Management') }}</a>
         {% endif %}
     </div>

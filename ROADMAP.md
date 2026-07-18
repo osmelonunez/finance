@@ -121,34 +121,37 @@ Incluye:
 - [Notas de release en espanol](docs/v3.4.1-release/notas-v3.4.1.md)
 - [Release notes in English](docs/v3.4.1-release/v3.4.1-release-notes.md)
 
-### v3.5.0 - Cuentas y tarjetas 2.0
+### v3.6.0 - Banca e integracion de prestamos
 
 Estado: completado.
 
-Objetivo: mejorar el modelo funcional de cuentas/tarjetas y su relacion con bancos y gastos.
+Objetivo: consolidar bancos, cuentas y tarjetas como un espacio bancario coherente e integrar la informacion financiera de los prestamos sin confundir deuda, capital utilizado y saldo disponible.
 
 Incluye:
 - Bloqueo explicito de eliminacion cuando existen movimientos asociados.
 - Estado activo/inactivo aplicado en altas, ediciones y duplicados de movimientos.
 - Desactivacion automatica de cuentas y tarjetas al desactivar su banco.
-- Banco obligatorio para crear o editar cuentas y tarjetas, validado en UI y backend.
-- Espacio independiente `/payment-methods`, fuera de Gestion, con navegacion KPI, Relaciones, Bancos, Cuentas y Tarjetas.
+- Banco obligatorio para crear o editar cuentas; cuenta activa obligatoria para crear o editar tarjetas, validado en UI y backend.
+- Espacio independiente `Banca` en `/payment-methods`, fuera de Gestion, con navegacion KPI, Relaciones, Bancos, Cuentas y Tarjetas.
 - Formulario unico y contextual para crear bancos, cuentas o tarjetas.
 - Vistas de detalle para bancos, cuentas y tarjetas con estado, referencia, metricas de gasto y numero de movimientos.
 - Historial paginado de movimientos, cargado en bloques de diez desde el servidor.
 - Filtros de gastos independientes por banco, cuenta y tarjeta.
 - KPI con conteos de entidades activas, gasto mensual y graficas por banco, cuenta o tarjeta.
 - Selector de año, estados vacios y graficas de gasto mensual, anual, total y comparativa.
-- Vista Relaciones ordenada por bancos con mayor numero de cuentas y tarjetas vinculadas.
+- Vista Relaciones ordenada por bancos con mayor numero de cuentas y tarjetas vinculadas y jerarquia visual Banco → Cuenta → Tarjeta.
+- Tarjetas vinculadas a cuentas mediante conexiones directas, con compatibilidad para datos existentes todavía sin asignar.
+- Prestamos asociados visibles en el detalle del banco, incluso cuando el banco no tiene cuentas.
+- KPI bancarios de capital prestado, deuda pendiente, importe amortizado y cuota mensual.
+- Mensaje especifico para bancos sin saldo que solo tienen prestamos, sin crear cuentas ficticias ni inferir saldo disponible.
+- Los pagos de prestamos, incluidos capital e intereses, forman parte del gasto del banco; los usos del capital prestado no se contabilizan como gasto propio.
 - Formato monetario y numerico localizado en toda la aplicacion.
 - Redirecciones compatibles desde las antiguas rutas de Gestion y rutas renombradas.
 - Suite automatica de regresion de release con PostgreSQL aislado, inventario de rutas, permisos, CSRF y flujos CRUD.
 - Catalogo versionado de endpoints e informes Markdown por cada ejecucion de pruebas.
-- No requiere migracion de base de datos.
-- [Detalle de v3.5 en espanol](docs/v3.5-planning/detalles-v3.5.md)
-- [v3.5 details in English](docs/v3.5-planning/v3.5-details.md)
-- [Notas de release en espanol](docs/v3.5-release/notas-v3.5.0.md)
-- [Release notes in English](docs/v3.5-release/v3.5.0-release-notes.md)
+- Migracion `015_cards_linked_to_accounts.sql` para la relacion tarjeta-cuenta.
+- [Notas de release en espanol](docs/v3.6-release/notas-v3.6.0.md)
+- [Release notes in English](docs/v3.6-release/v3.6.0-release-notes.md)
 
 ## Ideas futuras
 

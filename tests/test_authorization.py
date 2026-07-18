@@ -22,6 +22,12 @@ pytestmark = [pytest.mark.routes, pytest.mark.integration]
         ("admin", "/payment-methods/kpi", True),
         ("editor", "/payment-methods/kpi", True),
         ("user", "/payment-methods/kpi", False),
+        ("admin", "/payment-methods/relationships", True),
+        ("editor", "/payment-methods/relationships", True),
+        ("user", "/payment-methods/relationships", False),
+        ("admin", "/payment-methods/banks/1", True),
+        ("editor", "/payment-methods/banks/1", True),
+        ("user", "/payment-methods/banks/1", False),
     ],
 )
 def test_role_access_matrix(client, login_as, role, path, allowed):

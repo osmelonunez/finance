@@ -24,9 +24,13 @@ DEMO_SQL_PATH = os.path.join(os.path.dirname(__file__), "..", "sql", "demo_data_
 DEMO_TAG = "[DEMO_SEED_MANAGEMENT]"
 DEMO_BANK_NAMES = ("ING", "Santander", "CaixaBank", "BBVA")
 DEMO_PAYMENT_METHOD_NAMES = (
-    "Demo - Main Card",
-    "Demo - ING Secondary Card",
-    "Demo - Current Account",
+    "Demo - ING Card - Person 1",
+    "Demo - ING Card - Person 2",
+    "Demo - ING Shared Card 1",
+    "Demo - ING Shared Card 2",
+    "Demo - ING Account - Person 1",
+    "Demo - ING Account - Person 2",
+    "Demo - ING Shared Account",
     "Demo - Shared Card",
     "Demo - Santander Account",
     "Demo - BBVA Card",
@@ -245,9 +249,11 @@ def _load_payment_methods():
             cur.execute(
                 """
                 SELECT pm.id, pm.name, pm.kind, pm.bank_name, pm.account_ref, pm.is_active,
-                       pm.bank_id, COALESCE(b.name, pm.bank_name) AS bank_display
+                       pm.bank_id, COALESCE(b.name, pm.bank_name) AS bank_display,
+                       pm.parent_account_id, parent.name AS parent_account_name
                 FROM payment_methods pm
                 LEFT JOIN banks b ON pm.bank_id = b.id
+                LEFT JOIN payment_methods parent ON parent.id=pm.parent_account_id
                 ORDER BY pm.name ASC
                 """
             )
@@ -274,23 +280,57 @@ def _load_bank_summaries(selected_year):
         with conn.cursor() as cur:
             cur.execute(
                 """
+                WITH method_totals AS (
+                    SELECT
+                        pm.bank_id,
+                        COUNT(*) FILTER (WHERE pm.kind='bank_account') AS account_count,
+                        COUNT(*) FILTER (WHERE pm.kind='card') AS card_count,
+                        COUNT(*) FILTER (WHERE pm.is_active=TRUE) AS active_method_count
+                    FROM payment_methods pm
+                    GROUP BY pm.bank_id
+                ),
+                method_spending AS (
+                    SELECT
+                        pm.bank_id,
+                        COALESCE(SUM(r.amount), 0) AS total_spent,
+                        COALESCE(SUM(r.amount) FILTER (WHERE r.date=TO_CHAR(CURRENT_DATE, 'YYYY-MM')), 0) AS month_spent,
+                        COALESCE(SUM(r.amount) FILTER (WHERE LEFT(r.date, 4)=%s), 0) AS year_spent
+                    FROM payment_methods pm
+                    JOIN records r ON r.payment_method_id=pm.id
+                        AND r.type='expense'
+                        AND COALESCE(r.is_loan_payment, FALSE)=FALSE
+                    GROUP BY pm.bank_id
+                ),
+                loan_payment_spending AS (
+                    SELECT
+                        l.bank_id,
+                        COALESCE(SUM(r.amount), 0) AS total_spent,
+                        COALESCE(SUM(r.amount) FILTER (WHERE r.date=TO_CHAR(CURRENT_DATE, 'YYYY-MM')), 0) AS month_spent,
+                        COALESCE(SUM(r.amount) FILTER (WHERE LEFT(r.date, 4)=%s), 0) AS year_spent
+                    FROM loans l
+                    JOIN records r ON r.loan_id=l.id
+                        AND r.type='expense'
+                        AND r.is_loan_payment=TRUE
+                    WHERE l.bank_id IS NOT NULL
+                    GROUP BY l.bank_id
+                )
                 SELECT
                     b.id,
                     b.name,
                     b.is_active,
-                    COUNT(DISTINCT pm.id) FILTER (WHERE pm.kind='bank_account') AS account_count,
-                    COUNT(DISTINCT pm.id) FILTER (WHERE pm.kind='card') AS card_count,
-                    COUNT(DISTINCT pm.id) FILTER (WHERE pm.is_active=TRUE) AS active_method_count,
-                    COALESCE(SUM(r.amount), 0) AS total_spent,
-                    COALESCE(SUM(r.amount) FILTER (WHERE r.date=TO_CHAR(CURRENT_DATE, 'YYYY-MM')), 0) AS month_spent,
-                    COALESCE(SUM(r.amount) FILTER (WHERE LEFT(r.date, 4)=%s), 0) AS year_spent
+                    COALESCE(mt.account_count, 0),
+                    COALESCE(mt.card_count, 0),
+                    COALESCE(mt.active_method_count, 0),
+                    COALESCE(ms.total_spent, 0) + COALESCE(lps.total_spent, 0) AS total_spent,
+                    COALESCE(ms.month_spent, 0) + COALESCE(lps.month_spent, 0) AS month_spent,
+                    COALESCE(ms.year_spent, 0) + COALESCE(lps.year_spent, 0) AS year_spent
                 FROM banks b
-                LEFT JOIN payment_methods pm ON pm.bank_id=b.id
-                LEFT JOIN records r ON r.payment_method_id=pm.id AND r.type='expense'
-                GROUP BY b.id
+                LEFT JOIN method_totals mt ON mt.bank_id=b.id
+                LEFT JOIN method_spending ms ON ms.bank_id=b.id
+                LEFT JOIN loan_payment_spending lps ON lps.bank_id=b.id
                 ORDER BY b.name
                 """,
-                (str(selected_year),),
+                (str(selected_year), str(selected_year)),
             )
             return cur.fetchall()
 
@@ -612,10 +652,10 @@ def payment_methods_section(section):
     bank_summaries = _load_bank_summaries(selected_year)
     method_summaries = _load_payment_method_summaries(selected_year)
     if section == "relationships":
-        method_count_by_bank = {}
+        relationship_count_by_bank = {}
         for method in payment_methods:
-            method_count_by_bank[method[6]] = method_count_by_bank.get(method[6], 0) + 1
-        banks.sort(key=lambda bank: (-method_count_by_bank.get(bank[0], 0), bank[1].lower()))
+            relationship_count_by_bank[method[6]] = relationship_count_by_bank.get(method[6], 0) + 1
+        banks.sort(key=lambda bank: (-relationship_count_by_bank.get(bank[0], 0), bank[1].lower()))
     return render_template(
         "management_payment_methods.html",
         payment_methods=payment_methods,
@@ -676,9 +716,11 @@ def payment_method_detail(method_id):
                 SELECT pm.id, pm.name, pm.kind, pm.account_ref, pm.is_active,
                        pm.created_at, pm.updated_at, pm.bank_id,
                        COALESCE(b.name, pm.bank_name) AS bank_name,
-                       COALESCE(b.is_active, FALSE) AS bank_is_active
+                       COALESCE(b.is_active, FALSE) AS bank_is_active,
+                       pm.parent_account_id, parent.name AS parent_account_name
                 FROM payment_methods pm
                 LEFT JOIN banks b ON b.id=pm.bank_id
+                LEFT JOIN payment_methods parent ON parent.id=pm.parent_account_id
                 WHERE pm.id=%s
                 """,
                 (method_id,),
@@ -745,14 +787,26 @@ def bank_detail(bank_id):
                 return redirect(url_for("management.payment_methods_section", section="banks"))
             cur.execute(
                 """
-                SELECT id, name, kind, account_ref, is_active
-                FROM payment_methods
-                WHERE bank_id=%s
-                ORDER BY kind, name
+                SELECT pm.id, pm.name, pm.kind, pm.account_ref, pm.is_active, parent.name
+                FROM payment_methods pm
+                LEFT JOIN payment_methods parent ON parent.id=pm.parent_account_id
+                WHERE pm.bank_id=%s
+                ORDER BY pm.kind, pm.name
                 """,
                 (bank_id,),
             )
             linked_methods = cur.fetchall()
+            cur.execute(
+                """
+                SELECT id, name, status, principal_amount, monthly_payment,
+                       COALESCE(total_repayment_amount, principal_amount)
+                FROM loans
+                WHERE bank_id=%s
+                ORDER BY status, name
+                """,
+                (bank_id,),
+            )
+            linked_loans = cur.fetchall()
             cur.execute(
                 """
                 SELECT
@@ -762,11 +816,29 @@ def bank_detail(bank_id):
                     COUNT(r.id)
                 FROM records r
                 JOIN payment_methods pm ON pm.id=r.payment_method_id
-                WHERE pm.bank_id=%s AND r.type='expense'
+                WHERE pm.bank_id=%s
+                  AND r.type='expense'
+                  AND COALESCE(r.is_loan_payment, FALSE)=FALSE
                 """,
                 (bank_id,),
             )
             totals = cur.fetchone()
+            cur.execute(
+                """
+                SELECT
+                    COALESCE(SUM(r.amount), 0),
+                    COALESCE(SUM(r.amount) FILTER (WHERE r.date=TO_CHAR(CURRENT_DATE, 'YYYY-MM')), 0),
+                    COALESCE(SUM(r.amount) FILTER (WHERE LEFT(r.date, 4)=TO_CHAR(CURRENT_DATE, 'YYYY')), 0),
+                    COUNT(r.id)
+                FROM records r
+                JOIN loans l ON l.id=r.loan_id
+                WHERE l.bank_id=%s
+                  AND r.type='expense'
+                  AND r.is_loan_payment=TRUE
+                """,
+                (bank_id,),
+            )
+            loan_payment_spending = cur.fetchone()
             per_page = 10
             total_pages = max(1, (totals[3] + per_page - 1) // per_page)
             page = request.args.get("page", 1, type=int) or 1
@@ -784,19 +856,43 @@ def bank_detail(bank_id):
                 (bank_id, per_page, (page - 1) * per_page),
             )
             recent_records = cur.fetchall()
+            cur.execute(
+                """
+                SELECT
+                    COALESCE(SUM(l.principal_amount), 0),
+                    COALESCE(SUM(paid.paid_amount), 0),
+                    COALESCE(SUM(CASE WHEN l.status='active' THEN l.monthly_payment ELSE 0 END), 0),
+                    COALESCE(SUM(COALESCE(l.total_repayment_amount, l.principal_amount)), 0)
+                FROM loans l
+                LEFT JOIN (
+                    SELECT loan_id, SUM(amount) AS paid_amount
+                    FROM records
+                    WHERE type='expense' AND is_loan_payment=TRUE
+                    GROUP BY loan_id
+                ) paid ON paid.loan_id=l.id
+                WHERE l.bank_id=%s AND l.status <> 'cancelled'
+                """,
+                (bank_id,),
+            )
+            loan_totals = cur.fetchone()
     return render_template(
         "bank_detail.html",
         bank=bank,
         accounts=[method for method in linked_methods if method[2] == "bank_account"],
         cards=[method for method in linked_methods if method[2] == "card"],
+        loans=linked_loans,
         active_method_count=sum(1 for method in linked_methods if method[4]),
-        total_spent=totals[0],
-        month_spent=totals[1],
-        year_spent=totals[2],
-        movement_count=totals[3],
+        total_spent=totals[0] + loan_payment_spending[0],
+        month_spent=totals[1] + loan_payment_spending[1],
+        year_spent=totals[2] + loan_payment_spending[2],
+        movement_count=totals[3] + loan_payment_spending[3],
         recent_records=recent_records,
         page=page,
         total_pages=total_pages,
+        loan_principal=loan_totals[0],
+        loan_amortized=loan_totals[1],
+        loan_monthly_payment=loan_totals[2],
+        loan_pending=max(loan_totals[3] - loan_totals[1], 0),
         payment_methods_section="banks",
         current_page="payment_methods",
         management_section="payment_methods",
@@ -826,6 +922,7 @@ def add_payment_method():
     )
     kind = (request.form.get("kind") or "card").strip()
     bank_id = _parse_int_or_none(request.form.get("bank_id"))
+    parent_account_id = _parse_int_or_none(request.form.get("parent_account_id"))
     account_ref = (request.form.get("account_ref") or "").strip()
     is_active = (request.form.get("is_active") or "1") == "1"
     if kind not in {"card", "bank_account"}:
@@ -833,23 +930,36 @@ def add_payment_method():
     if name_error:
         session["management_err"] = t(name_error)
         return redirect(url_for("management.payment_methods_section", section="accounts" if kind == "bank_account" else "cards"))
-    if bank_id is None:
+    if kind == "card" and parent_account_id is None:
+        session["management_err"] = t("Select an active account.")
+        return redirect(url_for("management.payment_methods_section", section="cards"))
+    if kind == "bank_account" and bank_id is None:
         session["management_err"] = t("Select an active bank.")
         return redirect(url_for("management.payment_methods_section", section="accounts" if kind == "bank_account" else "cards"))
     try:
         with get_db() as conn:
             with conn.cursor() as cur:
+                if kind == "card":
+                    cur.execute(
+                        "SELECT bank_id FROM payment_methods WHERE id=%s AND kind='bank_account' AND is_active=TRUE",
+                        (parent_account_id,),
+                    )
+                    account_row = cur.fetchone()
+                    if not account_row:
+                        session["management_err"] = t("Select an active account.")
+                        return redirect(url_for("management.payment_methods_section", section="cards"))
+                    bank_id = account_row[0]
                 cur.execute("SELECT 1 FROM banks WHERE id=%s AND is_active=TRUE", (bank_id,))
                 if not cur.fetchone():
                     session["management_err"] = t("Select an active bank.")
                     return redirect(url_for("management.payment_methods_section", section="accounts" if kind == "bank_account" else "cards"))
                 cur.execute(
                     """
-                    INSERT INTO payment_methods (name, kind, bank_id, bank_name, account_ref, is_active, updated_at)
-                    VALUES (%s, %s, %s, (SELECT name FROM banks WHERE id=%s), %s, %s, NOW())
+                    INSERT INTO payment_methods (name, kind, bank_id, bank_name, account_ref, is_active, parent_account_id, updated_at)
+                    VALUES (%s, %s, %s, (SELECT name FROM banks WHERE id=%s), %s, %s, %s, NOW())
                     RETURNING id
                     """,
-                    (name, kind, bank_id, bank_id, account_ref or None, is_active),
+                    (name, kind, bank_id, bank_id, account_ref or None, is_active, parent_account_id if kind == "card" else None),
                 )
                 method_id = cur.fetchone()[0]
                 conn.commit()
@@ -881,6 +991,7 @@ def update_payment_method(method_id):
     )
     kind = (request.form.get("kind") or "card").strip()
     bank_id = _parse_int_or_none(request.form.get("bank_id"))
+    parent_account_id = _parse_int_or_none(request.form.get("parent_account_id"))
     account_ref = (request.form.get("account_ref") or "").strip()
     is_active = (request.form.get("is_active") or "0") == "1"
     if kind not in {"card", "bank_account"}:
@@ -888,12 +999,25 @@ def update_payment_method(method_id):
     if name_error:
         session["management_err"] = t(name_error)
         return redirect(url_for("management.payment_methods_section", section="accounts" if kind == "bank_account" else "cards"))
-    if bank_id is None:
+    if kind == "card" and parent_account_id is None:
+        session["management_err"] = t("Select an active account.")
+        return redirect(url_for("management.payment_methods_section", section="cards"))
+    if kind == "bank_account" and bank_id is None:
         session["management_err"] = t("Select an active bank.")
         return redirect(url_for("management.payment_methods_section", section="accounts" if kind == "bank_account" else "cards"))
     try:
         with get_db() as conn:
             with conn.cursor() as cur:
+                if kind == "card":
+                    cur.execute(
+                        "SELECT bank_id FROM payment_methods WHERE id=%s AND kind='bank_account' AND is_active=TRUE",
+                        (parent_account_id,),
+                    )
+                    account_row = cur.fetchone()
+                    if not account_row:
+                        session["management_err"] = t("Select an active account.")
+                        return redirect(url_for("management.payment_methods_section", section="cards"))
+                    bank_id = account_row[0]
                 cur.execute("SELECT bank_id FROM payment_methods WHERE id=%s", (method_id,))
                 current_row = cur.fetchone()
                 if not current_row:
@@ -917,13 +1041,19 @@ def update_payment_method(method_id):
                         bank_id=%s,
                         bank_name=(SELECT name FROM banks WHERE id=%s),
                         account_ref=%s,
+                        parent_account_id=%s,
                         is_active=%s,
                         updated_at=NOW()
                     WHERE id=%s
                     """,
-                    (name, kind, bank_id, bank_id, account_ref or None, is_active, method_id),
+                    (name, kind, bank_id, bank_id, account_ref or None, parent_account_id if kind == "card" else None, is_active, method_id),
                 )
                 updated = cur.rowcount
+                if kind == "bank_account" and not is_active:
+                    cur.execute(
+                        "UPDATE payment_methods SET is_active=FALSE, updated_at=NOW() WHERE parent_account_id=%s",
+                        (method_id,),
+                    )
                 conn.commit()
         logger.info(
             "payment_method_update user=%s id=%s name=%s kind=%s bank_id=%s active=%s updated=%s",
@@ -1107,6 +1237,10 @@ def delete_payment_method(method_id):
                     method_id,
                 )
                 session["management_err"] = t("Cannot delete payment method. It is used by expenses.")
+                return redirect(url_for("management.payment_methods_section", section=section))
+            cur.execute("SELECT 1 FROM payment_methods WHERE parent_account_id=%s LIMIT 1", (method_id,))
+            if cur.fetchone():
+                session["management_err"] = t("Cannot delete account. It has linked cards.")
                 return redirect(url_for("management.payment_methods_section", section=section))
             cur.execute("DELETE FROM payment_methods WHERE id=%s", (method_id,))
             deleted = cur.rowcount

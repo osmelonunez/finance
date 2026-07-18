@@ -8,7 +8,7 @@ def _post(client, path, data):
     return client.post(path, data={**data, "csrf_token": "test-csrf-token"}, follow_redirects=False)
 
 
-def test_account_or_card_requires_a_bank(admin_client, db_query):
+def test_card_requires_an_account(admin_client, db_query):
     response = _post(
         admin_client,
         "/payment-methods/add",
@@ -18,11 +18,17 @@ def test_account_or_card_requires_a_bank(admin_client, db_query):
     assert db_query("SELECT COUNT(*) FROM payment_methods WHERE name='Orphan Card'")[0] == 0
 
 
-def test_account_or_card_requires_an_active_bank(admin_client, db_query):
+def test_card_requires_an_active_account(admin_client, db_query):
+    db_query(
+        """INSERT INTO payment_methods (name, kind, bank_name, bank_id, account_ref, is_active)
+           VALUES ('Inactive account', 'bank_account', 'Inactive Bank', 2, 'ACC-INACTIVE', FALSE)""",
+        fetch="none",
+    )
+    account_id = db_query("SELECT id FROM payment_methods WHERE name='Inactive account'")[0]
     _post(
         admin_client,
         "/payment-methods/add",
-        {"name": "Inactive Bank Card", "kind": "card", "bank_id": "2", "is_active": "1"},
+        {"name": "Inactive Bank Card", "kind": "card", "parent_account_id": str(account_id), "is_active": "1"},
     )
     assert db_query("SELECT COUNT(*) FROM payment_methods WHERE name='Inactive Bank Card'")[0] == 0
 
@@ -34,15 +40,15 @@ def test_valid_card_is_created(admin_client, db_query):
         {
             "name": "New Test Card",
             "kind": "card",
-            "bank_id": "1",
+            "parent_account_id": "2",
             "account_ref": "NEW-001",
             "is_active": "1",
         },
     )
     assert response.status_code == 302
     assert db_query(
-        "SELECT kind, bank_id, is_active FROM payment_methods WHERE name='New Test Card'"
-    ) == ("card", 1, True)
+        "SELECT kind, bank_id, parent_account_id, is_active FROM payment_methods WHERE name='New Test Card'"
+    ) == ("card", 1, 2, True)
 
 
 def test_payment_method_with_movements_cannot_be_deleted(admin_client, db_query):
@@ -53,6 +59,11 @@ def test_payment_method_with_movements_cannot_be_deleted(admin_client, db_query)
 def test_unused_payment_method_can_be_deleted(admin_client, db_query):
     _post(admin_client, "/payment-methods/4/delete", {})
     assert db_query("SELECT COUNT(*) FROM payment_methods WHERE id=4")[0] == 0
+
+
+def test_account_with_linked_cards_cannot_be_deleted(admin_client, db_query):
+    _post(admin_client, "/payment-methods/2/delete", {})
+    assert db_query("SELECT COUNT(*) FROM payment_methods WHERE id=2")[0] == 1
 
 
 def test_deactivating_bank_deactivates_linked_methods(admin_client, db_query):

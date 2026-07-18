@@ -21,6 +21,10 @@ DECLARE
 BEGIN
     DELETE FROM records WHERE comment = demo_tag;
 
+    DELETE FROM payment_methods
+    WHERE name IN ('Demo - Main Card', 'Demo - ING Secondary Card', 'Demo - Current Account')
+      AND NOT EXISTS (SELECT 1 FROM records r WHERE r.payment_method_id=payment_methods.id);
+
     INSERT INTO settings (key, value)
     VALUES ('initial_saving', 300)
     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
@@ -35,15 +39,13 @@ BEGIN
     SET is_active = TRUE,
         updated_at = NOW();
 
-    INSERT INTO payment_methods (name, kind, bank_id, bank_name, account_ref, is_active, updated_at)
+    INSERT INTO payment_methods (name, kind, bank_id, bank_name, account_ref, is_active, parent_account_id, updated_at)
     VALUES
-        ('Demo - Main Card', 'card', (SELECT id FROM banks WHERE name='ING'), 'ING', '**** 1234', TRUE, NOW()),
-        ('Demo - ING Secondary Card', 'card', (SELECT id FROM banks WHERE name='ING'), 'ING', '**** 5678', TRUE, NOW()),
-        ('Demo - Shared Card', 'card', (SELECT id FROM banks WHERE name='Santander'), 'Santander', '**** 9876', TRUE, NOW()),
-        ('Demo - Current Account', 'bank_account', (SELECT id FROM banks WHERE name='ING'), 'ING', 'ES91 0000 0000 0000 0000', TRUE, NOW()),
-        ('Demo - Santander Account', 'bank_account', (SELECT id FROM banks WHERE name='Santander'), 'Santander', 'ES92 0000 0000 0000 0000', TRUE, NOW()),
-        ('Demo - BBVA Card', 'card', (SELECT id FROM banks WHERE name='BBVA'), 'BBVA', '**** 2468', TRUE, NOW()),
-        ('Demo - BBVA Account', 'bank_account', (SELECT id FROM banks WHERE name='BBVA'), 'BBVA', 'ES93 0000 0000 0000 0000', TRUE, NOW())
+        ('Demo - ING Account - Person 1', 'bank_account', (SELECT id FROM banks WHERE name='ING'), 'ING', 'ES91 0000 0000 0000 0001', TRUE, NULL, NOW()),
+        ('Demo - ING Account - Person 2', 'bank_account', (SELECT id FROM banks WHERE name='ING'), 'ING', 'ES91 0000 0000 0000 0002', TRUE, NULL, NOW()),
+        ('Demo - ING Shared Account', 'bank_account', (SELECT id FROM banks WHERE name='ING'), 'ING', 'ES91 0000 0000 0000 0003', TRUE, NULL, NOW()),
+        ('Demo - Santander Account', 'bank_account', (SELECT id FROM banks WHERE name='Santander'), 'Santander', 'ES92 0000 0000 0000 0000', TRUE, NULL, NOW()),
+        ('Demo - BBVA Account', 'bank_account', (SELECT id FROM banks WHERE name='BBVA'), 'BBVA', 'ES93 0000 0000 0000 0000', TRUE, NULL, NOW())
     ON CONFLICT (name) DO UPDATE
     SET
         kind = EXCLUDED.kind,
@@ -51,6 +53,25 @@ BEGIN
         bank_name = EXCLUDED.bank_name,
         account_ref = EXCLUDED.account_ref,
         is_active = EXCLUDED.is_active,
+        parent_account_id = NULL,
+        updated_at = NOW();
+
+    INSERT INTO payment_methods (name, kind, bank_id, bank_name, account_ref, is_active, parent_account_id, updated_at)
+    VALUES
+        ('Demo - ING Card - Person 1', 'card', (SELECT id FROM banks WHERE name='ING'), 'ING', '**** 1234', TRUE, (SELECT id FROM payment_methods WHERE name='Demo - ING Account - Person 1'), NOW()),
+        ('Demo - ING Card - Person 2', 'card', (SELECT id FROM banks WHERE name='ING'), 'ING', '**** 5678', TRUE, (SELECT id FROM payment_methods WHERE name='Demo - ING Account - Person 2'), NOW()),
+        ('Demo - ING Shared Card 1', 'card', (SELECT id FROM banks WHERE name='ING'), 'ING', '**** 3456', TRUE, (SELECT id FROM payment_methods WHERE name='Demo - ING Shared Account'), NOW()),
+        ('Demo - ING Shared Card 2', 'card', (SELECT id FROM banks WHERE name='ING'), 'ING', '**** 7890', TRUE, (SELECT id FROM payment_methods WHERE name='Demo - ING Shared Account'), NOW()),
+        ('Demo - Shared Card', 'card', (SELECT id FROM banks WHERE name='Santander'), 'Santander', '**** 9876', TRUE, (SELECT id FROM payment_methods WHERE name='Demo - Santander Account'), NOW()),
+        ('Demo - BBVA Card', 'card', (SELECT id FROM banks WHERE name='BBVA'), 'BBVA', '**** 2468', TRUE, (SELECT id FROM payment_methods WHERE name='Demo - BBVA Account'), NOW())
+    ON CONFLICT (name) DO UPDATE
+    SET
+        kind = EXCLUDED.kind,
+        bank_id = EXCLUDED.bank_id,
+        bank_name = EXCLUDED.bank_name,
+        account_ref = EXCLUDED.account_ref,
+        is_active = EXCLUDED.is_active,
+        parent_account_id = EXCLUDED.parent_account_id,
         updated_at = NOW();
 
     SELECT username
@@ -235,14 +256,14 @@ BEGIN
             VALUES
                 (
                     'Universidad',
-                    'Demo - Current Account',
+                    'Demo - ING Account - Person 1',
                     MAKE_DATE(EXTRACT(YEAR FROM CURRENT_DATE)::int, 1, 1),
                     24,
                     4800.00::numeric
                 ),
                 (
                     'Reforma',
-                    'Demo - Main Card',
+                    'Demo - ING Card - Person 1',
                     MAKE_DATE(EXTRACT(YEAR FROM CURRENT_DATE)::int, 3, 1),
                     18,
                     4400.00::numeric
@@ -256,7 +277,7 @@ BEGIN
                 ),
                 (
                     'Hipoteca vivienda',
-                    'Demo - Current Account',
+                    'Demo - ING Account - Person 1',
                     MAKE_DATE(EXTRACT(YEAR FROM CURRENT_DATE)::int - 1, 2, 1),
                     EXTRACT(MONTH FROM CURRENT_DATE)::int + 11,
                     (532.50 * (EXTRACT(MONTH FROM CURRENT_DATE)::int + 11))::numeric
@@ -313,14 +334,14 @@ BEGIN
                 ('Payroll - Main Job',       1600.00, 'income',  NULL::TEXT,     NULL::TEXT,      NULL::TEXT,                 NULL::INT),
                 ('Payroll - Secondary Job',  2000.00, 'income',  NULL::TEXT,     NULL::TEXT,      NULL::TEXT,                 NULL::INT),
                 ('Monthly Saving',            200.00, 'saving',  NULL::TEXT,     NULL::TEXT,      NULL::TEXT,                 NULL::INT),
-                ('Rent / Mortgage',           450.00, 'expense', 'monthly',      'Basic Expenses', 'Demo - Current Account',   NULL::INT),
-                ('Utilities',                 140.00, 'expense', 'monthly',      'Basic Expenses', 'Demo - Current Account',   NULL::INT),
+                ('Rent / Mortgage',           450.00, 'expense', 'monthly',      'Basic Expenses', 'Demo - ING Account - Person 1', NULL::INT),
+                ('Utilities',                 140.00, 'expense', 'monthly',      'Basic Expenses', 'Demo - ING Account - Person 1', NULL::INT),
                 ('Groceries',                 330.00, 'expense', 'monthly',      'Food',           'Demo - Shared Card',       NULL::INT),
-                ('Transport',                  95.00, 'expense', 'monthly',      'Transport',      'Demo - Main Card',         NULL::INT),
-                ('Gym',                        40.00, 'expense', 'monthly',      'Sports',         'Demo - Main Card',         NULL::INT),
+                ('Transport',                  95.00, 'expense', 'monthly',      'Transport',      'Demo - ING Card - Person 1', NULL::INT),
+                ('Gym',                        40.00, 'expense', 'monthly',      'Sports',         'Demo - ING Card - Person 1', NULL::INT),
                 ('Streaming subscriptions',    22.00, 'expense', 'monthly',      'Subscriptions',  'Demo - Shared Card',       NULL::INT),
-                ('Leisure activities',        120.00, 'expense', 'monthly',      'Leisure',        'Demo - Main Card',         NULL::INT),
-                ('Laptop installment',        180.00, 'expense', 'monthly',      'Home',           'Demo - Main Card',         3)
+                ('Leisure activities',        120.00, 'expense', 'monthly',      'Leisure',        'Demo - ING Card - Person 1', NULL::INT),
+                ('Laptop installment',        180.00, 'expense', 'monthly',      'Home',           'Demo - ING Card - Person 1', 3)
         ) AS v(concept, base_amount, type, source, category_name, payment_method_name, deferred_total)
         LEFT JOIN categories c ON c.name = v.category_name
         LEFT JOIN payment_methods pm ON pm.name = v.payment_method_name
@@ -455,6 +476,13 @@ BEGIN
     DELETE FROM settings WHERE key = 'initial_saving';
     DELETE FROM payment_methods pm
     WHERE pm.name IN (
+        'Demo - ING Card - Person 1',
+        'Demo - ING Card - Person 2',
+        'Demo - ING Shared Card 1',
+        'Demo - ING Shared Card 2',
+        'Demo - ING Account - Person 1',
+        'Demo - ING Account - Person 2',
+        'Demo - ING Shared Account',
         'Demo - Main Card',
         'Demo - ING Secondary Card',
         'Demo - Shared Card',
