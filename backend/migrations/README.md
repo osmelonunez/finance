@@ -30,6 +30,7 @@ Las migraciones viven en esta carpeta como ficheros SQL planos. El runner de la 
 - `012_loan_interest_rate_text.sql`: permite guardar el interes de hipoteca como texto descriptivo.
 - `013_loan_type_and_repayment.sql`: agrega tipo de prestamo y total previsto a devolver.
 - `014_data_robustness_constraints.sql`: agrega limites de longitud defensivos para textos principales: conceptos y nombres a 40 caracteres, comentarios y descripciones a 500.
+- `015_cards_linked_to_accounts.sql`: vincula cada tarjeta con su cuenta mediante `parent_account_id`, conservando de forma compatible las tarjetas existentes sin cuenta asignada.
 
 ## English
 
@@ -61,3 +62,4 @@ Migrations live in this folder as plain SQL files. The app runner (`backend/migr
 - `012_loan_interest_rate_text.sql`: allows mortgage interest to be stored as descriptive text.
 - `013_loan_type_and_repayment.sql`: adds loan type and expected total repayment.
 - `014_data_robustness_constraints.sql`: adds defensive length limits for primary text fields: concepts and names to 40 characters, comments and descriptions to 500.
+- `015_cards_linked_to_accounts.sql`: links each card to its account through `parent_account_id`, while compatibly preserving existing cards that do not yet have an assigned account.

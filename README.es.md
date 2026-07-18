@@ -14,13 +14,13 @@ Repositorio: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
 ## Versión Actual
 
-- Versión actual: `3.5.0`
-- Release: `v3.5.0 - Cuentas y tarjetas 2.0`
-- El compose de producción está preparado para `f1nanc3/finance:3.5.0`
+- Versión actual: `3.6.0`
+- Release: `v3.6.0 - Banca e integración de préstamos`
+- El compose de producción está preparado para `f1nanc3/finance:3.6.0`
 
 ## Funcionalidades Principales
 
-- Vistas separadas: `Panel`, `Gastos`, `Ingresos`, `Ahorros`, `Préstamos`, `Cuentas y tarjetas`, `Gestión`
+- Vistas separadas: `Panel`, `Gastos`, `Ingresos`, `Ahorros`, `Préstamos`, `Banca`, `Gestión`
 - Dashboard con gráficas mensuales y anuales, incluyendo indicadores de deuda de préstamos
 - Autenticación con roles: `admin`, `editor`, `user`
 - Rate limiting en endpoints de autenticación
@@ -35,15 +35,17 @@ Repositorio: [osmelonunez/finance](https://github.com/osmelonunez/finance)
   - SMTP + reportes por correo
   - categorías
   - ajustes del sistema
-- Espacio independiente `Cuentas y tarjetas` en `/payment-methods`:
+- Espacio independiente `Banca` en `/payment-methods`:
   - panel KPI con selectores de banco/cuenta/tarjeta y año
   - gráficas de gasto mensual, anual, total y comparativa
-  - vista de relaciones entre bancos, cuentas y tarjetas
+  - vista de relaciones Banco → Cuenta → Tarjeta con conexiones directas entre cada cuenta y sus tarjetas
   - pestañas separadas para gestionar bancos, cuentas y tarjetas
   - un único formulario contextual para crear bancos, cuentas o tarjetas
 - Detalle de bancos, cuentas y tarjetas con totales de gasto y paginación de movimientos en servidor
+- El detalle de banco muestra sus préstamos asociados y KPI de capital, deuda pendiente, importe amortizado y cuota mensual
+- El gasto bancario incluye los pagos de préstamos (capital e intereses); los usos del capital son informativos y no se consideran gasto propio ni saldo disponible
 - Filtros de gastos específicos por banco, cuenta y tarjeta
-- Las cuentas y tarjetas requieren un banco y no pueden eliminarse mientras tengan datos relacionados
+- Las cuentas requieren un banco y las tarjetas requieren una cuenta; no pueden eliminarse mientras tengan datos relacionados
 - Formato monetario y numérico adaptado al idioma en toda la aplicación
 - Préstamos con banco, cantidad, plazo, cuota mensual, descripción, estado y seguimiento de pagos
 - Tipos de préstamo: sin intereses, con intereses e hipotecas con separación de amortización/intereses
@@ -72,8 +74,8 @@ Repositorio: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 ### Detalle de préstamo
 ![Loan Detail](docs/screenshots/loan-detail.png)
 
-### KPI de cuentas y tarjetas
-![Accounts & Cards KPI](docs/screenshots/payment-methods-kpi.png)
+### KPI de Banca
+![Banking KPI](docs/screenshots/payment-methods-kpi.png)
 
 ### Gestión
 ![Management](docs/screenshots/management.png)

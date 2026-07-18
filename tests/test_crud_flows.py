@@ -81,3 +81,56 @@ def test_bank_detail_pagination_loads_second_page(admin_client, db_query):
     response = admin_client.get("/payment-methods/banks/1?page=2")
     assert response.status_code == 200
     assert b"Paginated expense 00" in response.data
+
+
+def test_bank_relationships_show_cards_with_accounts_and_exclude_loans(admin_client, db_query):
+    db_query(
+        """INSERT INTO loans (name, bank_name, bank_id, principal_amount, term_months, monthly_payment,
+                              start_date, status, loan_type, created_by)
+           VALUES ('Only-bank loan', 'Empty Bank', 3, 3000, 12, 250, '2026-01', 'active', 'standard', 'admin_test')""",
+        fetch="none",
+    )
+    response = admin_client.get("/payment-methods/relationships")
+    assert response.status_code == 200
+    assert b"Only-bank loan" not in response.data
+    assert b"Test Card" in response.data
+    assert b"Test Account" in response.data
+    assert b'class="dependency-links-svg"' in response.data
+    assert b'data-account-node="2"' in response.data
+    assert b'data-parent-account-node="2"' in response.data
+    assert response.data.index(b"Test Bank") < response.data.index(b"Empty Bank")
+
+
+def test_bank_graphs_and_detail_add_associated_loan_payments_not_usages(admin_client):
+    response = admin_client.get("/payment-methods/kpi?scope=banks&year=2026")
+    assert response.status_code == 200
+    assert b'"labels": ["Empty Bank", "Inactive Bank", "Test Bank"]' in response.data
+    assert b'"total_spent": [0.0, 0.0, 1334.56]' in response.data
+
+    detail = admin_client.get("/payment-methods/banks/1")
+    assert detail.status_code == 200
+    assert b"1.334,56" in detail.data
+    assert b"1.409,56" not in detail.data
+    assert "Pagos recientes de préstamos".encode() not in detail.data
+    assert "Usos recientes de préstamos".encode() not in detail.data
+
+
+def test_loan_only_bank_has_debt_kpis_without_balance(admin_client, db_query):
+    db_query(
+        """INSERT INTO loans (name, bank_name, bank_id, principal_amount, term_months, monthly_payment,
+                              start_date, status, loan_type, total_repayment_amount, created_by)
+           VALUES ('Loan-only debt', 'Empty Bank', 3, 3000, 12, 275, '2026-01', 'active',
+                   'interest', 3300, 'admin_test')""",
+        fetch="none",
+    )
+    response = admin_client.get("/payment-methods/banks/3")
+    assert response.status_code == 200
+    assert "Sin información de saldo: este banco solo tiene préstamos asociados".encode() in response.data
+    assert "Capital prestado".encode() in response.data
+    assert "Deuda pendiente".encode() in response.data
+    assert "Importe amortizado".encode() in response.data
+    assert "Cuota mensual".encode() in response.data
+    assert b"Loan-only debt" in response.data
+    assert b"3.000,00" in response.data
+    assert b"3.300,00" in response.data
+    assert b"275,00" in response.data

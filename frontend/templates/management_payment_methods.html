@@ -130,15 +130,24 @@
   .dependency-branch { position: relative; min-width: 0; padding: 10px; border: 1px solid #e0e8f0; border-radius: 10px; background: #fff; }
   .dependency-branch::before { content: ""; position: absolute; right: 100%; top: 50%; width: 17px; border-top: 2px solid #c4d3e1; }
   .dependency-branch-title { display: flex; justify-content: space-between; margin-bottom: 8px; color: #68798a; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; }
-  .dependency-node { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; padding: 7px 9px; border-left: 3px solid var(--node-color, #7da9ca); border-radius: 7px; background: #f7f9fc; }
+  .dependency-node { position: relative; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; padding: 7px 9px; border-left: 3px solid var(--node-color, #7da9ca); border-radius: 7px; background: #f7f9fc; }
   .dependency-node:last-child { margin-bottom: 0; }
   .dependency-empty { color: #8795a3; font-size: 0.8rem; }
+  .dependency-account-group { margin-bottom: 10px; padding: 8px; border: 1px solid #dce9e2; border-radius: 9px; background: #f8fcfa; }
+  .dependency-account-group:last-of-type { margin-bottom: 0; }
+  .dependency-account-node { margin-bottom: 7px; background: #edf8f2; }
+  .dependency-type { flex: 0 0 auto; color: #627385; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.04em; }
+  .dependency-card-list { margin-left: 12px; padding: 7px 0 0 10px; border-left: 2px solid #cfc3e5; }
+  .dependency-card-list-title { display: flex; justify-content: space-between; margin-bottom: 5px; color: #725d9d; font-size: 0.68rem; font-weight: 800; text-transform: uppercase; }
+  .dependency-card-node { background: #f5f1fb; }
+  .dependency-links-svg { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+  .dependency-link-line { fill: none; stroke: #a998c8; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   @media (max-width: 767.98px) {
     .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .bank-chart-grid { grid-template-columns: 1fr; }
     .bank-chart-card-wide { grid-column: auto; }
     .dependency-row { grid-template-columns: 1fr; gap: 10px; }
-    .dependency-bank-node::after, .dependency-branches::before, .dependency-branch::before { display: none; }
+    .dependency-bank-node::after, .dependency-branches::before, .dependency-branch::before, .dependency-links-svg { display: none; }
     .dependency-branches { padding-left: 0; }
   }
   @media (max-width: 520px) {
@@ -148,7 +157,7 @@
 
 <div class="mg-shell">
   <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
-    <h4 class="mb-0">{{ t('Accounts & Cards') }}</h4>
+    <h4 class="mb-0">{{ t('Banking') }}</h4>
     <a class="btn btn-sm btn-light" href="/payment-methods">{{ t('Back') }}</a>
   </div>
 
@@ -179,6 +188,15 @@
           <option value="">{{ t('Select') }}</option>
           {% for bank in banks if bank[2] %}
           <option value="{{ bank[0] }}">{{ bank[1] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3 create-fields" data-create-field="card-account" hidden>
+        <label class="form-label" for="createResourceAccount">{{ t('Linked account') }}</label>
+        <select class="form-select" id="createResourceAccount" name="parent_account_id" disabled required>
+          <option value="">{{ t('Select') }}</option>
+          {% for account in payment_methods if account[2] == 'bank_account' and account[5] %}
+          <option value="{{ account[0] }}">{{ account[1] }} · {{ account[7] }}</option>
           {% endfor %}
         </select>
       </div>
@@ -241,19 +259,19 @@
     </div>
     <div class="bank-chart-grid">
       <div class="bank-chart-card">
-        <div class="bank-chart-title">{{ t('Monthly spending') }}</div>
+        <div class="bank-chart-title" id="monthChartTitle">{{ t('Monthly spending') }}</div>
         <div class="bank-chart-wrap"><canvas id="bankMonthChart" aria-label="{{ t('Monthly spending by bank') }}"></canvas><div class="chart-empty d-none" data-chart-empty="bankMonthChart">{{ t('No spending data for this period.') }}</div></div>
       </div>
       <div class="bank-chart-card">
-        <div class="bank-chart-title">{{ t('Annual spending') }} · {{ selected_year }}</div>
+        <div class="bank-chart-title" id="yearChartTitle">{{ t('Annual spending') }} · {{ selected_year }}</div>
         <div class="bank-chart-wrap"><canvas id="bankYearChart" aria-label="{{ t('Annual spending by bank') }}"></canvas><div class="chart-empty d-none" data-chart-empty="bankYearChart">{{ t('No spending data for this period.') }}</div></div>
       </div>
       <div class="bank-chart-card bank-chart-card-wide">
-        <div class="bank-chart-title">{{ t('Total spending') }}</div>
+        <div class="bank-chart-title" id="totalChartTitle">{{ t('Total spending') }}</div>
         <div class="bank-chart-wrap"><canvas id="bankTotalChart" aria-label="{{ t('Total spending by bank') }}"></canvas><div class="chart-empty d-none" data-chart-empty="bankTotalChart">{{ t('No spending data for this period.') }}</div></div>
       </div>
       <div class="bank-chart-card bank-chart-card-wide">
-        <div class="bank-chart-title">{{ t('Spending comparison') }}</div>
+        <div class="bank-chart-title" id="comparisonChartTitle">{{ t('Spending comparison') }}</div>
         <div class="bank-chart-wrap"><canvas id="spendingComparisonChart" aria-label="{{ t('Spending comparison') }}"></canvas><div class="chart-empty d-none" data-chart-empty="spendingComparisonChart">{{ t('No spending data for this period.') }}</div></div>
       </div>
     </div>
@@ -274,21 +292,22 @@
           <div class="dependency-bank-meta">{{ t('Bank') }} · {{ t('Active') if bank[2] else t('Inactive') }}</div>
         </a>
         <div class="dependency-branches">
+          <svg class="dependency-links-svg" aria-hidden="true"></svg>
           <div class="dependency-branch">
             <div class="dependency-branch-title"><span>{{ t('Accounts') }}</span><span>{{ number(linked_accounts|length) }}</span></div>
             {% for method in linked_accounts %}
-            <a class="dependency-node text-decoration-none text-reset" style="--node-color:#49a078" href="/payment-methods/{{ method[0] }}">
-              <span class="text-truncate">{{ method[1] }}</span>
+            <a class="dependency-node dependency-account-node text-decoration-none text-reset" style="--node-color:#49a078" href="/payment-methods/{{ method[0] }}" data-account-node="{{ method[0] }}">
+              <span class="text-truncate flex-grow-1">{{ method[1] }}</span>
               <span class="badge {% if method[5] %}text-bg-success{% else %}text-bg-secondary{% endif %}">{{ t('Active') if method[5] else t('Inactive') }}</span>
             </a>
             {% else %}<div class="dependency-empty">{{ t('No records found.') }}</div>{% endfor %}
           </div>
           <div class="dependency-branch">
             <div class="dependency-branch-title"><span>{{ t('Cards') }}</span><span>{{ number(linked_cards|length) }}</span></div>
-            {% for method in linked_cards %}
-            <a class="dependency-node text-decoration-none text-reset" style="--node-color:#8168b3" href="/payment-methods/{{ method[0] }}">
-              <span class="text-truncate">{{ method[1] }}</span>
-              <span class="badge {% if method[5] %}text-bg-success{% else %}text-bg-secondary{% endif %}">{{ t('Active') if method[5] else t('Inactive') }}</span>
+            {% for card in linked_cards %}
+            <a class="dependency-node dependency-card-node text-decoration-none text-reset" style="--node-color:#8168b3" href="/payment-methods/{{ card[0] }}" data-parent-account-node="{{ card[8] or '' }}">
+              <span class="text-truncate flex-grow-1"><span class="d-block">{{ card[1] }}</span><span class="text-muted small">{{ card[9] or t('Unassigned') }}</span></span>
+              <span class="badge {% if card[5] %}text-bg-success{% else %}text-bg-secondary{% endif %}">{{ t('Active') if card[5] else t('Inactive') }}</span>
             </a>
             {% else %}<div class="dependency-empty">{{ t('No records found.') }}</div>{% endfor %}
           </div>
@@ -416,7 +435,7 @@
       <thead>
         <tr class="pm-row">
           <th>{{ t('Name') }}</th>
-          <th>{{ t('Bank') }}</th>
+          <th>{{ t('Linked account') }}</th>
           <th>{{ t('Card number') }}</th>
           <th>{{ t('Status') }}</th>
           <th class="text-end">{{ t('Action') }}</th>
@@ -427,10 +446,10 @@
         <tr>
           <td><input class="form-control form-control-sm pm-field" form="pm-update-{{ m[0] }}" name="name" data-maxlength="40" value="{{ m[1] }}" data-original="{{ m[1] }}" disabled required></td>
           <td>
-            <select class="form-select form-select-sm pm-field" form="pm-update-{{ m[0] }}" name="bank_id" data-original="{{ m[6] or '' }}" disabled required>
+            <select class="form-select form-select-sm pm-field" form="pm-update-{{ m[0] }}" name="parent_account_id" data-original="{{ m[8] or '' }}" disabled required>
               <option value="">{{ t('Select') }}</option>
-              {% for bank in banks %}
-              <option value="{{ bank[0] }}" {% if m[6] == bank[0] %}selected{% endif %}>{{ bank[1] }}{% if not bank[2] %} ({{ t('Inactive') }}){% endif %}</option>
+              {% for account in payment_methods if account[2] == 'bank_account' %}
+              <option value="{{ account[0] }}" {% if m[8] == account[0] %}selected{% endif %}>{{ account[1] }} · {{ account[7] }}{% if not account[5] %} ({{ t('Inactive') }}){% endif %}</option>
               {% endfor %}
             </select>
           </td>
@@ -491,6 +510,34 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   (function () {
+    function drawRelationshipLines() {
+      document.querySelectorAll(".dependency-branches").forEach((container) => {
+        const svg = container.querySelector(".dependency-links-svg");
+        if (!svg) return;
+        svg.replaceChildren();
+        const containerRect = container.getBoundingClientRect();
+        container.querySelectorAll("[data-parent-account-node]").forEach((card) => {
+          const accountId = card.dataset.parentAccountNode;
+          if (!accountId) return;
+          const account = container.querySelector(`[data-account-node="${accountId}"]`);
+          if (!account) return;
+          const accountRect = account.getBoundingClientRect();
+          const cardRect = card.getBoundingClientRect();
+          const startX = accountRect.right - containerRect.left;
+          const startY = accountRect.top + accountRect.height / 2 - containerRect.top;
+          const endX = cardRect.left - containerRect.left;
+          const endY = cardRect.top + cardRect.height / 2 - containerRect.top;
+          const middleX = startX + (endX - startX) / 2;
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          path.setAttribute("class", "dependency-link-line");
+          path.setAttribute("d", `M ${startX} ${startY} H ${middleX} V ${endY} H ${endX}`);
+          svg.appendChild(path);
+        });
+      });
+    }
+    drawRelationshipLines();
+    window.addEventListener("resize", drawRelationshipLines);
+
     if (document.getElementById("bankMonthChart") && window.Chart) {
       const chartScopes = {{ chart_scopes|tojson }};
       let spendingCharts = [];
@@ -560,7 +607,7 @@
         spendingCharts.push(chart);
       }
 
-      function createSpendingComparisonChart(chartData) {
+      function createSpendingComparisonChart(chartData, labels) {
         const canvasId = "spendingComparisonChart";
         const canvas = document.getElementById(canvasId);
         if (!canvas) return;
@@ -592,7 +639,7 @@
         const chart = new window.Chart(canvas, {
           type: "bar",
           data: {
-            labels: [{{ t('Monthly spending')|tojson }}, {{ t('Annual spending')|tojson }} + " " + {{ selected_year|tojson }}, {{ t('Total spending')|tojson }}],
+            labels: [labels.month, labels.year + " " + {{ selected_year|tojson }}, labels.total],
             datasets: [{
               data: values,
               backgroundColor: ["rgba(91, 141, 184, 0.72)", "rgba(213, 138, 56, 0.72)", "rgba(129, 104, 179, 0.72)"],
@@ -630,12 +677,25 @@
 
       function renderSpendingCharts(scope) {
         const chartData = chartScopes[scope] || chartScopes.banks;
+        const labels = {
+          month: {{ t('Monthly spending')|tojson }},
+          year: {{ t('Annual spending')|tojson }},
+          total: {{ t('Total spending')|tojson }},
+          comparison: {{ t('Spending comparison')|tojson }}
+        };
+        document.getElementById("monthChartTitle").textContent = labels.month;
+        document.getElementById("yearChartTitle").textContent = labels.year + " · " + {{ selected_year|tojson }};
+        document.getElementById("totalChartTitle").textContent = labels.total;
+        document.getElementById("comparisonChartTitle").textContent = labels.comparison;
+        document.querySelectorAll("[data-chart-empty]").forEach((item) => {
+          item.textContent = {{ t('No spending data for this period.')|tojson }};
+        });
         spendingCharts.forEach((chart) => chart.destroy());
         spendingCharts = [];
-        createBankChart("bankMonthChart", {{ t('Monthly spending')|tojson }}, chartData, chartData.month_spent, "rgba(91, 141, 184, 0.72)", "#5b8db8");
-        createBankChart("bankYearChart", {{ t('Annual spending')|tojson }} + " " + {{ selected_year|tojson }}, chartData, chartData.year_spent, "rgba(213, 138, 56, 0.72)", "#d58a38");
-        createBankChart("bankTotalChart", {{ t('Total spending')|tojson }}, chartData, chartData.total_spent, "rgba(129, 104, 179, 0.72)", "#8168b3");
-        createSpendingComparisonChart(chartData);
+        createBankChart("bankMonthChart", labels.month, chartData, chartData.month_spent, "rgba(91, 141, 184, 0.72)", "#5b8db8");
+        createBankChart("bankYearChart", labels.year + " " + {{ selected_year|tojson }}, chartData, chartData.year_spent, "rgba(213, 138, 56, 0.72)", "#d58a38");
+        createBankChart("bankTotalChart", labels.total, chartData, chartData.total_spent, "rgba(129, 104, 179, 0.72)", "#8168b3");
+        createSpendingComparisonChart(chartData, labels);
       }
 
       document.querySelectorAll("[data-chart-scope]").forEach((button) => {
@@ -658,6 +718,7 @@
     const createKind = document.getElementById("createResourceKind");
     const createRefLabel = document.getElementById("createResourceRefLabel");
     const paymentMethodFields = document.querySelectorAll('[data-create-field="payment-method"]');
+    const cardAccountFields = document.querySelectorAll('[data-create-field="card-account"]');
 
     function updateCreateForm() {
       if (!createForm || !createType || !createKind) return;
@@ -667,10 +728,16 @@
       createKind.disabled = !isPaymentMethod;
       createKind.value = type;
       paymentMethodFields.forEach((field) => {
-        field.hidden = !isPaymentMethod;
+        const enabled = isPaymentMethod && type !== "card";
+        field.hidden = !enabled;
         field.querySelectorAll("input, select").forEach((control) => {
-          control.disabled = !isPaymentMethod;
+          control.disabled = !enabled;
         });
+      });
+      cardAccountFields.forEach((field) => {
+        const enabled = type === "card";
+        field.hidden = !enabled;
+        field.querySelectorAll("select").forEach((control) => { control.disabled = !enabled; });
       });
       if (createRefLabel) {
         createRefLabel.textContent = type === "card" ? {{ t('Card number')|tojson }} : {{ t('Account number')|tojson }};

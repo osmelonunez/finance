@@ -16,7 +16,7 @@
   {% include '_payment_methods_nav.html' %}
   <div class="d-flex justify-content-between align-items-start mb-3">
     <div>
-      <a href="/payment-methods/{{ 'accounts' if payment_method[2] == 'bank_account' else 'cards' }}" class="text-decoration-none small">← {{ t('Accounts & Cards') }}</a>
+      <a href="/payment-methods/{{ 'accounts' if payment_method[2] == 'bank_account' else 'cards' }}" class="text-decoration-none small">← {{ t('Banking') }}</a>
       <h3 class="mb-1 mt-2">{{ payment_method[1] }}</h3>
       <span class="badge {{ 'text-bg-success' if payment_method[4] else 'text-bg-secondary' }}">
         {{ t('Active') if payment_method[4] else t('Inactive') }}
@@ -38,6 +38,7 @@
     <h6 class="mb-3">{{ t('Details') }}</h6>
     <div class="pm-meta">
       <div class="pm-meta-item"><div class="text-muted small">{{ t('Bank') }}</div><div>{% if payment_method[7] %}<a href="/payment-methods/banks/{{ payment_method[7] }}">{{ payment_method[8] }}</a>{% else %}-{% endif %}{% if payment_method[8] and not payment_method[9] %} ({{ t('Inactive') }}){% endif %}</div></div>
+      {% if payment_method[2] == 'card' %}<div class="pm-meta-item"><div class="text-muted small">{{ t('Linked account') }}</div><div>{% if payment_method[10] %}<a href="/payment-methods/{{ payment_method[10] }}">{{ payment_method[11] }}</a>{% else %}{{ t('Unassigned') }}{% endif %}</div></div>{% endif %}
       <div class="pm-meta-item"><div class="text-muted small">{{ t('Account number') if payment_method[2] == 'bank_account' else t('Card number') }}</div><div>{{ payment_method[3] or '-' }}</div></div>
       <div class="pm-meta-item"><div class="text-muted small">{{ t('Created') }}</div><div>{{ payment_method[5].strftime('%Y-%m-%d %H:%M') if payment_method[5] else '-' }}</div></div>
       <div class="pm-meta-item"><div class="text-muted small">{{ t('Last edited') }}</div><div>{{ payment_method[6].strftime('%Y-%m-%d %H:%M') if payment_method[6] else '-' }}</div></div>

@@ -4,7 +4,7 @@
   .pm-section-tabs a:hover { background: #f4f8fc; }
   .pm-section-tabs a.active { background: #eef4fb; color: #2f3b47; font-weight: 600; }
 </style>
-<nav class="pm-section-tabs" aria-label="{{ t('Accounts & Cards') }}">
+<nav class="pm-section-tabs" aria-label="{{ t('Banking') }}">
   <a class="{% if payment_methods_section == 'kpi' %}active{% endif %}" href="/payment-methods/kpi">{{ t('KPI') }}</a>
   <a class="{% if payment_methods_section == 'relationships' %}active{% endif %}" href="/payment-methods/relationships">{{ t('Relationships') }}</a>
   <a class="{% if payment_methods_section == 'banks' %}active{% endif %}" href="/payment-methods/banks">{{ t('Banks') }}</a>
