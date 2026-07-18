@@ -153,6 +153,21 @@ Incluye:
 - [Notas de release en espanol](docs/v3.6-release/notas-v3.6.0.md)
 - [Release notes in English](docs/v3.6-release/v3.6.0-release-notes.md)
 
+### v3.6.1 - Nombres de cuentas y tarjetas por contexto
+
+Estado: preparado.
+
+Objetivo: corregir la unicidad global heredada de los metodos de pago para permitir nombres naturales repetidos cuando pertenecen a entidades padre diferentes.
+
+Incluye:
+- Nombres de cuenta unicos dentro de cada banco, pero reutilizables entre bancos distintos.
+- Nombres de tarjeta sin restriccion de unicidad; la identidad de cada tarjeta depende de su `id`.
+- Migraciones compatibles `016_payment_method_names_scoped_to_parent.sql` y `017_card_names_not_unique.sql`.
+- Mensajes de validacion especificos en español e ingles.
+- Pruebas de integridad para duplicados permitidos y bloqueados.
+- [Notas del hotfix en espanol](docs/v3.6.1-release/notas-v3.6.1.md)
+- [Hotfix notes in English](docs/v3.6.1-release/v3.6.1-release-notes.md)
+
 ## Ideas futuras
 
 Estas ideas no estan comprometidas todavia y pueden moverse segun prioridad.

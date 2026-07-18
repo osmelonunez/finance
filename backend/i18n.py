@@ -447,6 +447,7 @@ TRANSLATIONS = {
         "Payment method updated.": "Método de pago actualizado.",
         "Payment method deleted.": "Método de pago eliminado.",
         "Name already exists.": "El nombre ya existe.",
+        "An account with this name already exists in the selected bank.": "Ya existe una cuenta con este nombre en el banco seleccionado.",
         "Delete this record?": "¿Eliminar este registro?",
         "No records found.": "No se encontraron registros.",
         "No movements yet": "Aún no hay movimientos",

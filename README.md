@@ -14,9 +14,9 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
 ## Current Version
 
-- Current version: `3.6.0`
-- Release: `v3.6.0 - Banking and Loan Integration`
-- Production compose is prepared for `f1nanc3/finance:3.6.0`
+- Current version: `3.6.1`
+- Release: `v3.6.1 - Scoped Account and Card Names`
+- Production compose is prepared for `f1nanc3/finance:3.6.1`
 
 ## Core Features
 
@@ -46,6 +46,7 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 - Bank spending includes loan payments (principal and interest), while loan capital usages remain informational and are not treated as personal spending or available balance
 - Dedicated expense filters for bank, account, and card
 - Accounts require a bank and cards require an account; deletion is blocked while related data exists
+- Account names may be reused across different banks; card names may be repeated because cards are identified by ID
 - Locale-aware number and monetary formatting across the application
 - Loans with bank, amount, term, monthly payment, description, status, and payment tracking
 - Loan types: no interest, interest-bearing loans, and mortgages with principal/interest split

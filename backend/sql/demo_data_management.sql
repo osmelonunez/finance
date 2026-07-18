@@ -46,7 +46,7 @@ BEGIN
         ('Demo - ING Shared Account', 'bank_account', (SELECT id FROM banks WHERE name='ING'), 'ING', 'ES91 0000 0000 0000 0003', TRUE, NULL, NOW()),
         ('Demo - Santander Account', 'bank_account', (SELECT id FROM banks WHERE name='Santander'), 'Santander', 'ES92 0000 0000 0000 0000', TRUE, NULL, NOW()),
         ('Demo - BBVA Account', 'bank_account', (SELECT id FROM banks WHERE name='BBVA'), 'BBVA', 'ES93 0000 0000 0000 0000', TRUE, NULL, NOW())
-    ON CONFLICT (name) DO UPDATE
+    ON CONFLICT (bank_id, name) WHERE kind = 'bank_account' DO UPDATE
     SET
         kind = EXCLUDED.kind,
         bank_id = EXCLUDED.bank_id,
@@ -56,23 +56,28 @@ BEGIN
         parent_account_id = NULL,
         updated_at = NOW();
 
-    INSERT INTO payment_methods (name, kind, bank_id, bank_name, account_ref, is_active, parent_account_id, updated_at)
-    VALUES
-        ('Demo - ING Card - Person 1', 'card', (SELECT id FROM banks WHERE name='ING'), 'ING', '**** 1234', TRUE, (SELECT id FROM payment_methods WHERE name='Demo - ING Account - Person 1'), NOW()),
-        ('Demo - ING Card - Person 2', 'card', (SELECT id FROM banks WHERE name='ING'), 'ING', '**** 5678', TRUE, (SELECT id FROM payment_methods WHERE name='Demo - ING Account - Person 2'), NOW()),
-        ('Demo - ING Shared Card 1', 'card', (SELECT id FROM banks WHERE name='ING'), 'ING', '**** 3456', TRUE, (SELECT id FROM payment_methods WHERE name='Demo - ING Shared Account'), NOW()),
-        ('Demo - ING Shared Card 2', 'card', (SELECT id FROM banks WHERE name='ING'), 'ING', '**** 7890', TRUE, (SELECT id FROM payment_methods WHERE name='Demo - ING Shared Account'), NOW()),
-        ('Demo - Shared Card', 'card', (SELECT id FROM banks WHERE name='Santander'), 'Santander', '**** 9876', TRUE, (SELECT id FROM payment_methods WHERE name='Demo - Santander Account'), NOW()),
-        ('Demo - BBVA Card', 'card', (SELECT id FROM banks WHERE name='BBVA'), 'BBVA', '**** 2468', TRUE, (SELECT id FROM payment_methods WHERE name='Demo - BBVA Account'), NOW())
-    ON CONFLICT (name) DO UPDATE
-    SET
-        kind = EXCLUDED.kind,
-        bank_id = EXCLUDED.bank_id,
-        bank_name = EXCLUDED.bank_name,
-        account_ref = EXCLUDED.account_ref,
-        is_active = EXCLUDED.is_active,
-        parent_account_id = EXCLUDED.parent_account_id,
-        updated_at = NOW();
+    MERGE INTO payment_methods AS target
+    USING (VALUES
+        ('Demo - ING Card - Person 1', 'card', (SELECT id FROM banks WHERE name='ING'), 'ING', '**** 1234', TRUE, (SELECT pm.id FROM payment_methods pm JOIN banks b ON b.id=pm.bank_id WHERE pm.name='Demo - ING Account - Person 1' AND pm.kind='bank_account' AND b.name='ING'), NOW()),
+        ('Demo - ING Card - Person 2', 'card', (SELECT id FROM banks WHERE name='ING'), 'ING', '**** 5678', TRUE, (SELECT pm.id FROM payment_methods pm JOIN banks b ON b.id=pm.bank_id WHERE pm.name='Demo - ING Account - Person 2' AND pm.kind='bank_account' AND b.name='ING'), NOW()),
+        ('Demo - ING Shared Card 1', 'card', (SELECT id FROM banks WHERE name='ING'), 'ING', '**** 3456', TRUE, (SELECT pm.id FROM payment_methods pm JOIN banks b ON b.id=pm.bank_id WHERE pm.name='Demo - ING Shared Account' AND pm.kind='bank_account' AND b.name='ING'), NOW()),
+        ('Demo - ING Shared Card 2', 'card', (SELECT id FROM banks WHERE name='ING'), 'ING', '**** 7890', TRUE, (SELECT pm.id FROM payment_methods pm JOIN banks b ON b.id=pm.bank_id WHERE pm.name='Demo - ING Shared Account' AND pm.kind='bank_account' AND b.name='ING'), NOW()),
+        ('Demo - Shared Card', 'card', (SELECT id FROM banks WHERE name='Santander'), 'Santander', '**** 9876', TRUE, (SELECT pm.id FROM payment_methods pm JOIN banks b ON b.id=pm.bank_id WHERE pm.name='Demo - Santander Account' AND pm.kind='bank_account' AND b.name='Santander'), NOW()),
+        ('Demo - BBVA Card', 'card', (SELECT id FROM banks WHERE name='BBVA'), 'BBVA', '**** 2468', TRUE, (SELECT pm.id FROM payment_methods pm JOIN banks b ON b.id=pm.bank_id WHERE pm.name='Demo - BBVA Account' AND pm.kind='bank_account' AND b.name='BBVA'), NOW())
+    ) AS source(name, kind, bank_id, bank_name, account_ref, is_active, parent_account_id, updated_at)
+    ON target.kind = 'card'
+       AND target.name = source.name
+       AND target.parent_account_id = source.parent_account_id
+    WHEN MATCHED THEN
+        UPDATE SET
+            bank_id = source.bank_id,
+            bank_name = source.bank_name,
+            account_ref = source.account_ref,
+            is_active = source.is_active,
+            updated_at = NOW()
+    WHEN NOT MATCHED THEN
+        INSERT (name, kind, bank_id, bank_name, account_ref, is_active, parent_account_id, updated_at)
+        VALUES (source.name, source.kind, source.bank_id, source.bank_name, source.account_ref, source.is_active, source.parent_account_id, source.updated_at);
 
     SELECT username
     INTO actor_username

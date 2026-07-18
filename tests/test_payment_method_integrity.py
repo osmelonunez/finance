@@ -51,6 +51,58 @@ def test_valid_card_is_created(admin_client, db_query):
     ) == ("card", 1, 2, True)
 
 
+def test_account_name_can_be_reused_in_a_different_bank(admin_client, db_query):
+    response = _post(
+        admin_client,
+        "/payment-methods/add",
+        {"name": "Test Account", "kind": "bank_account", "bank_id": "3", "is_active": "1"},
+    )
+    assert response.status_code == 302
+    assert db_query(
+        "SELECT COUNT(*) FROM payment_methods WHERE name='Test Account' AND kind='bank_account'"
+    )[0] == 2
+
+
+def test_account_name_cannot_be_reused_in_the_same_bank(admin_client, db_query):
+    response = _post(
+        admin_client,
+        "/payment-methods/add",
+        {"name": "Test Account", "kind": "bank_account", "bank_id": "1", "is_active": "1"},
+    )
+    assert response.status_code == 302
+    assert db_query(
+        "SELECT COUNT(*) FROM payment_methods WHERE name='Test Account' AND bank_id=1"
+    )[0] == 1
+
+
+def test_card_name_can_be_reused_in_different_accounts(admin_client, db_query):
+    db_query(
+        """INSERT INTO payment_methods (name, kind, bank_name, bank_id, account_ref, is_active)
+           VALUES ('Second Account', 'bank_account', 'Test Bank', 1, 'ACC-SECOND', TRUE)
+           RETURNING id""",
+        fetch="none",
+    )
+    second_account_id = db_query("SELECT id FROM payment_methods WHERE name='Second Account'")[0]
+    _post(
+        admin_client,
+        "/payment-methods/add",
+        {"name": "Test Card", "kind": "card", "parent_account_id": str(second_account_id), "is_active": "1"},
+    )
+    assert db_query("SELECT COUNT(*) FROM payment_methods WHERE name='Test Card'")[0] == 2
+
+
+def test_card_name_can_be_reused_in_the_same_account(admin_client, db_query):
+    _post(
+        admin_client,
+        "/payment-methods/add",
+        {"name": "Test Card", "kind": "card", "parent_account_id": "2", "is_active": "1"},
+    )
+    assert db_query("SELECT COUNT(*) FROM payment_methods WHERE name='Test Card'")[0] == 2
+    assert db_query(
+        "SELECT COUNT(*) FROM payment_methods WHERE name='Test Card' AND parent_account_id=2"
+    )[0] == 2
+
+
 def test_payment_method_with_movements_cannot_be_deleted(admin_client, db_query):
     _post(admin_client, "/payment-methods/1/delete", {})
     assert db_query("SELECT COUNT(*) FROM payment_methods WHERE id=1")[0] == 1
