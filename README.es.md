@@ -14,9 +14,9 @@ Repositorio: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
 ## Versión Actual
 
-- Versión actual: `3.6.0`
-- Release: `v3.6.0 - Banca e integración de préstamos`
-- El compose de producción está preparado para `f1nanc3/finance:3.6.0`
+- Versión actual: `3.6.1`
+- Release: `v3.6.1 - Nombres de cuentas y tarjetas por contexto`
+- El compose de producción está preparado para `f1nanc3/finance:3.6.1`
 
 ## Funcionalidades Principales
 
@@ -46,6 +46,7 @@ Repositorio: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 - El gasto bancario incluye los pagos de préstamos (capital e intereses); los usos del capital son informativos y no se consideran gasto propio ni saldo disponible
 - Filtros de gastos específicos por banco, cuenta y tarjeta
 - Las cuentas requieren un banco y las tarjetas requieren una cuenta; no pueden eliminarse mientras tengan datos relacionados
+- Los nombres de cuenta pueden repetirse entre bancos distintos; los nombres de tarjeta pueden repetirse porque las tarjetas se identifican por ID
 - Formato monetario y numérico adaptado al idioma en toda la aplicación
 - Préstamos con banco, cantidad, plazo, cuota mensual, descripción, estado y seguimiento de pagos
 - Tipos de préstamo: sin intereses, con intereses e hipotecas con separación de amortización/intereses

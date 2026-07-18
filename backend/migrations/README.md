@@ -31,6 +31,8 @@ Las migraciones viven en esta carpeta como ficheros SQL planos. El runner de la 
 - `013_loan_type_and_repayment.sql`: agrega tipo de prestamo y total previsto a devolver.
 - `014_data_robustness_constraints.sql`: agrega limites de longitud defensivos para textos principales: conceptos y nombres a 40 caracteres, comentarios y descripciones a 500.
 - `015_cards_linked_to_accounts.sql`: vincula cada tarjeta con su cuenta mediante `parent_account_id`, conservando de forma compatible las tarjetas existentes sin cuenta asignada.
+- `016_payment_method_names_scoped_to_parent.sql`: sustituye la unicidad global por nombres de cuenta unicos dentro de cada banco y, como paso compatible, nombres de tarjeta unicos dentro de cada cuenta.
+- `017_card_names_not_unique.sql`: elimina la restriccion temporal de unicidad de nombres de tarjeta por cuenta; las tarjetas se identifican exclusivamente por `id`.
 
 ## English
 
@@ -63,3 +65,5 @@ Migrations live in this folder as plain SQL files. The app runner (`backend/migr
 - `013_loan_type_and_repayment.sql`: adds loan type and expected total repayment.
 - `014_data_robustness_constraints.sql`: adds defensive length limits for primary text fields: concepts and names to 40 characters, comments and descriptions to 500.
 - `015_cards_linked_to_accounts.sql`: links each card to its account through `parent_account_id`, while compatibly preserving existing cards that do not yet have an assigned account.
+- `016_payment_method_names_scoped_to_parent.sql`: replaces global uniqueness with account names unique within each bank and, as a compatible intermediate step, card names unique within each account.
+- `017_card_names_not_unique.sql`: removes the temporary per-account card-name uniqueness rule; cards are identified exclusively by `id`.

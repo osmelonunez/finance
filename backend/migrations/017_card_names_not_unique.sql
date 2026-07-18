@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS uq_payment_methods_card_name_account;

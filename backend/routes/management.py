@@ -953,6 +953,9 @@ def add_payment_method():
                 if not cur.fetchone():
                     session["management_err"] = t("Select an active bank.")
                     return redirect(url_for("management.payment_methods_section", section="accounts" if kind == "bank_account" else "cards"))
+                if kind == "bank_account" and _account_name_exists(cur, name, bank_id):
+                    session["management_err"] = t(_payment_method_duplicate_message(kind))
+                    return redirect(url_for("management.payment_methods_section", section="accounts" if kind == "bank_account" else "cards"))
                 cur.execute(
                     """
                     INSERT INTO payment_methods (name, kind, bank_id, bank_name, account_ref, is_active, parent_account_id, updated_at)
@@ -973,8 +976,8 @@ def add_payment_method():
             is_active,
         )
         session["management_msg"] = t("Payment method created.")
-    except Exception:
-        session["management_err"] = t("Name already exists.")
+    except psycopg2.IntegrityError:
+        session["management_err"] = t(_payment_method_duplicate_message(kind))
     return redirect(url_for("management.payment_methods_section", section="accounts" if kind == "bank_account" else "cards"))
 
 
@@ -1033,6 +1036,9 @@ def update_payment_method(method_id):
                     if not cur.fetchone():
                         session["management_err"] = t("An account or card cannot be active when its bank is inactive.")
                         return redirect(url_for("management.payment_methods_section", section="accounts" if kind == "bank_account" else "cards"))
+                if kind == "bank_account" and _account_name_exists(cur, name, bank_id, exclude_id=method_id):
+                    session["management_err"] = t(_payment_method_duplicate_message(kind))
+                    return redirect(url_for("management.payment_methods_section", section="accounts" if kind == "bank_account" else "cards"))
                 cur.execute(
                     """
                     UPDATE payment_methods
@@ -1066,8 +1072,8 @@ def update_payment_method(method_id):
             updated,
         )
         session["management_msg"] = t("Payment method updated.")
-    except Exception:
-        session["management_err"] = t("Name already exists.")
+    except psycopg2.IntegrityError:
+        session["management_err"] = t(_payment_method_duplicate_message(kind))
     return redirect(url_for("management.payment_methods_section", section="accounts" if kind == "bank_account" else "cards"))
 
 
@@ -1078,6 +1084,23 @@ def _parse_int_or_none(raw_value):
         return int(raw_value)
     except (TypeError, ValueError):
         return None
+
+
+def _account_name_exists(cur, name, bank_id, exclude_id=None):
+    params = [name, bank_id]
+    exclude_clause = ""
+    if exclude_id is not None:
+        exclude_clause = "AND id<>%s"
+        params.append(exclude_id)
+    cur.execute(
+        f"SELECT 1 FROM payment_methods WHERE name=%s AND kind='bank_account' AND bank_id=%s {exclude_clause} LIMIT 1",
+        tuple(params),
+    )
+    return cur.fetchone() is not None
+
+
+def _payment_method_duplicate_message(kind):
+    return "An account with this name already exists in the selected bank."
 
 
 @management_bp.route("/management/banks/add", methods=["POST"])
