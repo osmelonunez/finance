@@ -94,7 +94,7 @@
         <div class="expense-fields">
             <div class="expense-category-field">
                 <label class="form-label">{{ t('Category') }}</label>
-                <select class="form-control" name="category">
+                <select class="form-control" name="category" required>
                     <option value="">{{ t('Select') }}</option>
                     {% for c in categories %}
                     <option value="{{ c }}" {{ 'selected' if form_data and form_data.get('category') == c else '' }}>{{ cat_name(c) }}</option>
@@ -112,19 +112,12 @@
                        name="date"
                        value="{{ form_data.get('date', current_month) if form_data else current_month }}">
             </div>
-            <div id="sourceField">
-                <label class="form-label">{{ t('Source') }}</label>
-                <select class="form-control" name="source" id="sourceSelect">
-                    <option value="monthly" {{ 'selected' if not form_data or form_data.get('source', 'monthly') == 'monthly' else '' }}>{{ t('Monthly') }}</option>
-                    <option value="saving" {{ 'selected' if form_data and form_data.get('source') == 'saving' else '' }}>{{ t('Saving') }}</option>
-                </select>
-            </div>
             <div class="expense-account-field" id="accountField" style="{{ 'display:none;' if form_data and form_data.get('is_loan_payment') == '1' else '' }}">
                 <label class="form-label">{{ t('Account/Card') }}</label>
                 <select class="form-control" name="payment_method_id" id="paymentMethodSelect">
                     <option value="">{{ t('Select') }}</option>
                     {% for pm in payment_methods %}
-                    <option value="{{ pm[0] }}" {{ 'selected' if form_data and form_data.get('payment_method_id') == (pm[0]|string) else '' }}>{{ pm[1] }}</option>
+                    <option value="{{ pm[0] }}" {{ 'selected' if form_data and form_data.get('payment_method_id') == (pm[0]|string) else '' }}>[{{ t('Card') if pm[2] == 'card' else t('Savings account') if pm[3] == 'savings' else t('Current account') }}] {{ pm[1] }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -170,7 +163,7 @@
     </div>
     {% else %}
     <input type="hidden" name="type" value="{{ from_page }}">
-    <div class="col-md-6">
+    <div class="col-md-8">
         <div class="d-flex gap-3 align-items-start">
             <div>
                 <label class="form-label">{{ t('Amount') }}</label>
@@ -183,6 +176,17 @@
                        name="date"
                        value="{{ form_data.get('date', current_month) if form_data else current_month }}">
             </div>
+            {% if from_page == 'saving' %}
+            <div>
+                <label class="form-label">{{ t('Savings account') }}</label>
+                <select class="form-control" name="payment_method_id" required>
+                    <option value="">{{ t('Select') }}</option>
+                    {% for pm in payment_methods if pm[2] == 'bank_account' and pm[3] == 'savings' %}
+                    <option value="{{ pm[0] }}" {{ 'selected' if form_data and form_data.get('payment_method_id') == (pm[0]|string) else '' }}>[{{ t('Savings account') }}] {{ pm[1] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
         </div>
     </div>
     {% endif %}
@@ -251,7 +255,6 @@ $('#dateAdd').datepicker({
 });
 
 const typeSelect = document.getElementById('typeSelect');
-const sourceField = document.getElementById('sourceField');
 const recurrentCheck = document.getElementById('recurrentCheck');
 const dateWrapper = document.getElementById('dateAddWrapper');
 const monthsPicker = document.getElementById('monthsPicker');
@@ -265,26 +268,6 @@ const loanSelect = document.getElementById('loanSelect');
 const mortgageSplitWrap = document.getElementById('mortgageSplitWrap');
 const loanPrincipalAmount = document.getElementById('loanPrincipalAmount');
 const loanInterestAmount = document.getElementById('loanInterestAmount');
-
-function toggleSourceField() {
-    if (!sourceField) {
-        return;
-    }
-    if (!typeSelect) {
-        sourceField.style.display = '';
-        return;
-    }
-    const isExpense = typeSelect.value === 'expense';
-    sourceField.style.display = isExpense ? '' : 'none';
-    if (!isExpense) {
-        document.getElementById('sourceSelect').value = 'monthly';
-    }
-}
-
-if (typeSelect) {
-    typeSelect.addEventListener('change', toggleSourceField);
-}
-toggleSourceField();
 
 function toggleRecurrent() {
     if (deferredCheck && deferredCheck.checked) {

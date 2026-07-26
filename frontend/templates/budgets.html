@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.10.0/dist/css/bootstrap-datepicker.min.css" rel="stylesheet">
+<style>
+    .budget-card { border: 1px solid #e3e9f0; border-radius: 14px; box-shadow: 0 8px 18px rgba(24,54,88,.08); }
+    .budget-kpi { min-height: 105px; }
+    .budget-kpi .value { font-size: 1.35rem; font-weight: 700; }
+    .budget-row { padding: 1.1rem 0; border-bottom: 1px solid #edf1f5; }
+    .budget-row:last-child { border-bottom: 0; }
+    .budget-progress { height: 11px; background: #e9eef3; }
+    .budget-progress .progress-bar { min-width: 0; }
+    .budget-amount { max-width: 145px; }
+    .month-selector { width: 126px; cursor: pointer; }
+    .state-pill { font-size: .75rem; font-weight: 700; letter-spacing: .02em; }
+    .budget-meta { color: #687887; font-size: .88rem; }
+    @media (max-width: 767px) {
+        .budget-actions { margin-top: .8rem; }
+        .budget-amount { max-width: none; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h3 class="mb-1">{{ t('Budgets') }}</h3>
+        <div class="text-muted">{{ t('Compare expected monthly spending with actual spending by category.') }}</div>
+    </div>
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+        <a class="btn btn-outline-secondary" href="/budgets?month={{ previous_month }}&status={{ status_filter }}"
+           aria-label="{{ t('Previous month') }}">←</a>
+        <form method="get" id="monthForm">
+            <input type="hidden" name="status" value="{{ status_filter }}">
+            <input type="text" id="monthPicker" name="month" value="{{ month }}"
+                   class="form-control month-selector text-center" readonly>
+        </form>
+        {% if next_month %}
+        <a class="btn btn-outline-secondary" href="/budgets?month={{ next_month }}&status={{ status_filter }}"
+           aria-label="{{ t('Next month') }}">→</a>
+        <a class="btn btn-soft" href="/budgets">{{ t('Back to current month') }}</a>
+        {% endif %}
+        {% if session.get('role') in ['admin', 'editor'] %}
+        <a class="btn btn-outline-secondary" href="/categories">{{ t('Manage categories') }}</a>
+        {% endif %}
+    </div>
+</div>
+
+{% if error %}<div class="alert alert-danger">{{ t(error) }}</div>{% endif %}
+{% if is_current_month %}
+<div class="alert alert-info py-2">
+    {{ t('Current month: edit the active budget for each category. It will continue automatically in future months.') }}
+</div>
+{% else %}
+<div class="alert alert-secondary py-2">
+    {{ t('Historical month: budgets and actual spending are read-only.') }}
+</div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="budget-card budget-kpi p-3">
+            <div class="text-muted small mb-2">{{ t('Total budget') }}</div>
+            <div class="value">{{ money(summary.budget) }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="budget-card budget-kpi p-3">
+            <div class="text-muted small mb-2">{{ t('Actual spending') }}</div>
+            <div class="value text-danger">{{ money(summary.spent) }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="budget-card budget-kpi p-3">
+            <div class="text-muted small mb-2">{{ t('Remaining') }}</div>
+            <div class="value {{ 'text-danger' if summary.remaining < 0 else 'text-success' }}">{{ money(summary.remaining) }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="budget-card budget-kpi p-3">
+            <div class="text-muted small mb-2">{{ t('Categories at risk / exceeded') }}</div>
+            <div class="value">{{ summary.risk_count }} / <span class="text-danger">{{ summary.exceeded_count }}</span></div>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+    {% for key, label in [('all', 'All'), ('risk', 'At risk'), ('exceeded', 'Exceeded'), ('unbudgeted', 'Without budget')] %}
+    <a href="/budgets?month={{ month }}&status={{ key }}"
+       class="btn btn-sm {{ 'btn-primary' if status_filter == key else 'btn-outline-secondary' }}">{{ t(label) }}</a>
+    {% endfor %}
+</div>
+
+<div class="budget-card bg-white px-3 px-md-4">
+    {% for item in categories %}
+    <div class="budget-row"
+         data-category-id="{{ item.id }}"
+         data-budget-state="{{ item.state }}"
+         data-spent="{{ item.spent }}"
+         data-percentage="{{ item.percentage }}">
+        <div class="row align-items-center g-3">
+            <div class="col-md-3">
+                <div class="fw-semibold">{{ cat_name(item.name) }}</div>
+                {% if item.state == 'exceeded' %}
+                    <span class="badge text-bg-danger state-pill">{{ t('Exceeded') }}</span>
+                {% elif item.state == 'danger' %}
+                    <span class="badge text-bg-danger state-pill">90%</span>
+                {% elif item.state == 'warning' %}
+                    <span class="badge text-bg-warning state-pill">80%</span>
+                {% elif item.state == 'unbudgeted' %}
+                    <span class="badge text-bg-light state-pill">{{ t('Without budget') }}</span>
+                {% else %}
+                    <span class="badge text-bg-success state-pill">{{ t('On track') }}</span>
+                {% endif %}
+            </div>
+            <div class="col-md-5">
+                {% if item.budget %}
+                <div class="d-flex justify-content-between budget-meta mb-1">
+                    <span>{{ money(item.spent) }} / {{ money(item.budget) }}</span>
+                    <strong>{{ number(item.percentage, 0) }}%</strong>
+                </div>
+                <div class="progress budget-progress">
+                    <div class="progress-bar
+                        {% if item.state in ['danger', 'exceeded'] %}bg-danger
+                        {% elif item.state == 'warning' %}bg-warning
+                        {% else %}bg-success{% endif %}"
+                        style="width: {{ item.bar_percentage }}%"></div>
+                </div>
+                <div class="budget-meta mt-1">
+                    {% if item.remaining >= 0 %}
+                        {{ t('Remaining') }}: {{ money(item.remaining) }}
+                    {% else %}
+                        {{ t('Exceeded by') }}: {{ money(-item.remaining) }}
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="budget-meta">{{ t('Actual spending') }}: {{ money(item.spent) }}</div>
+                {% endif %}
+            </div>
+            <div class="col-md-4">
+                {% if is_current_month %}
+                <div class="d-flex gap-2 justify-content-md-end budget-actions">
+                    <form method="post" action="/budgets/{{ item.id }}/save" class="d-flex gap-2">
+                        <input type="number" name="amount" min="0.01" max="9999999999.99" step="0.01"
+                               value="{{ item.budget if item.budget else '' }}"
+                               class="form-control form-control-sm budget-amount"
+                               placeholder="{{ t('Monthly budget') }}" required>
+                        <button class="btn btn-sm btn-soft">{{ t('Save') }}</button>
+                    </form>
+                    {% if item.budget %}
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-outline-danger budget-remove"
+                        data-remove-action="/budgets/{{ item.id }}/remove"
+                        data-remove-name="{{ cat_name(item.name) }}">
+                        Remove
+                    </button>
+                    {% endif %}
+                </div>
+                {% elif item.budget %}
+                <div class="budget-meta text-md-end">
+                    {{ t('Applied budget') }}: {{ money(item.budget) }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="py-5 text-center text-muted">{{ t('No categories match this filter.') }}</div>
+    {% endfor %}
+</div>
+
+<div class="modal fade" id="removeBudgetModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">{{ t('Remove budget') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ t('Close') }}"></button>
+            </div>
+            <div class="modal-body">
+                <p>{{ t('This category will have no budget from the current month. Previous months will not change.') }}</p>
+                <div class="alert alert-warning py-2 mb-0">
+                    <strong id="removeBudgetName">-</strong>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ t('Cancel') }}</button>
+                <form method="post" id="removeBudgetForm">
+                    <button type="submit" class="btn btn-danger">{{ t('Remove budget') }}</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.10.0/dist/js/bootstrap-datepicker.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.10.0/dist/locales/bootstrap-datepicker.es.min.js"></script>
+<script>
+$('#monthPicker').datepicker({
+    format: "yyyy-mm",
+    startView: 1,
+    minViewMode: 1,
+    endDate: {{ current_month | tojson }},
+    autoclose: true,
+    language: {{ ('es' if current_lang == 'es' else 'en') | tojson }}
+}).on('changeDate', () => document.getElementById('monthForm').submit());
+
+const removeBudgetModalElement = document.getElementById('removeBudgetModal');
+const removeBudgetModal = removeBudgetModalElement && window.bootstrap
+    ? new bootstrap.Modal(removeBudgetModalElement)
+    : null;
+const removeBudgetForm = document.getElementById('removeBudgetForm');
+const removeBudgetName = document.getElementById('removeBudgetName');
+document.querySelectorAll('.budget-remove').forEach((button) => {
+    button.addEventListener('click', () => {
+        if (!removeBudgetModal || !removeBudgetForm || !removeBudgetName) return;
+        removeBudgetForm.setAttribute('action', button.dataset.removeAction || '');
+        removeBudgetName.textContent = button.dataset.removeName || '-';
+        removeBudgetModal.show();
+    });
+});
+</script>
+{% endblock %}

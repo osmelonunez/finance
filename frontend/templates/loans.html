@@ -65,6 +65,15 @@
         background: #eef3f8;
         color: #405265;
     }
+    .table-clean tbody tr.loan-excluded-row {
+        opacity: 0.68;
+    }
+    .table-clean tbody tr.loan-excluded-row > td {
+        background-color: #f1f3f5;
+    }
+    .table-clean tbody tr.loan-excluded-row:hover > td {
+        background-color: #e7eaee;
+    }
 </style>
 
 <div class="row g-4 mb-4">
@@ -143,7 +152,7 @@
             {% set pending = total_to_repay - paid %}
             {% set percent = (paid / total_to_repay * 100) if total_to_repay else 0 %}
             {% if percent > 100 %}{% set percent = 100 %}{% endif %}
-            <tr class="row-link" data-href="/loans/{{ loan[0] }}" style="cursor:pointer;">
+            <tr class="row-link{% if loan[11] %} loan-excluded-row{% endif %}" data-href="/loans/{{ loan[0] }}" style="cursor:pointer;">
                 <td>
                     <div class="fw-semibold">{{ loan[1] }}</div>
                 </td>

@@ -101,6 +101,15 @@ def _reset_and_seed_database():
             )
             cur.execute(
                 """
+                INSERT INTO category_budgets (id, category_id, month, amount, created_by, updated_by)
+                VALUES
+                    (1, 1, '2026-07', 1500, 'admin_test', 'admin_test'),
+                    (2, 2, '2026-07', 1000, 'admin_test', 'admin_test'),
+                    (3, 3, '2026-07', 500, 'admin_test', 'admin_test')
+                """
+            )
+            cur.execute(
+                """
                 INSERT INTO banks (id, name, is_active)
                 VALUES
                     (1, 'Test Bank', TRUE),
@@ -110,13 +119,17 @@ def _reset_and_seed_database():
             )
             cur.execute(
                 """
-                INSERT INTO payment_methods (id, name, kind, bank_name, bank_id, account_ref, is_active, parent_account_id)
+                INSERT INTO payment_methods (
+                    id, name, kind, bank_name, bank_id, account_ref, is_active,
+                    parent_account_id, account_type, initial_balance
+                )
                 VALUES
-                    (2, 'Test Account', 'bank_account', 'Test Bank', 1, 'ACC-001', TRUE, NULL),
-                    (5, 'Inactive Account', 'bank_account', 'Inactive Bank', 2, 'ACC-002', FALSE, NULL),
-                    (1, 'Test Card', 'card', 'Test Bank', 1, 'CARD-001', TRUE, 2),
-                    (3, 'Inactive Card', 'card', 'Inactive Bank', 2, 'CARD-002', FALSE, 5),
-                    (4, 'Unused Card', 'card', 'Test Bank', 1, 'CARD-004', TRUE, 2)
+                    (2, 'Test Account', 'bank_account', 'Test Bank', 1, 'ACC-001', TRUE, NULL, 'current', 0),
+                    (5, 'Inactive Account', 'bank_account', 'Inactive Bank', 2, 'ACC-002', FALSE, NULL, 'current', 0),
+                    (6, 'Test Savings', 'bank_account', 'Test Bank', 1, 'SAV-001', TRUE, NULL, 'savings', 1000),
+                    (1, 'Test Card', 'card', 'Test Bank', 1, 'CARD-001', TRUE, 2, NULL, 0),
+                    (3, 'Inactive Card', 'card', 'Inactive Bank', 2, 'CARD-002', FALSE, 5, NULL, 0),
+                    (4, 'Unused Card', 'card', 'Test Bank', 1, 'CARD-004', TRUE, 2, NULL, 0)
                 """
             )
             cur.execute(
@@ -140,14 +153,14 @@ def _reset_and_seed_database():
             cur.execute(
                 """
                 INSERT INTO records (
-                    id, concept, amount, date, type, source, comment, category_id,
+                    id, concept, amount, date, type, comment, category_id,
                     payment_method_id, loan_id, is_loan_payment, created_by
                 )
                 VALUES
-                    (1, 'Test expense', 1234.56, '2026-07', 'expense', 'monthly', 'Expense fixture', 1, 1, NULL, FALSE, 'admin_test'),
-                    (2, 'Test income', 2500, '2026-07', 'income', NULL, 'Income fixture', 2, NULL, NULL, FALSE, 'admin_test'),
-                    (3, 'Test saving', 500, '2026-07', 'saving', NULL, 'Saving fixture', 2, NULL, NULL, FALSE, 'admin_test'),
-                    (4, 'Test loan payment', 100, '2026-07', 'expense', 'monthly', 'Loan payment fixture', 1, 2, 1, TRUE, 'admin_test')
+                    (1, 'Test expense', 1234.56, '2026-07', 'expense', 'Expense fixture', 1, 1, NULL, FALSE, 'admin_test'),
+                    (2, 'Test income', 2500, '2026-07', 'income', 'Income fixture', 2, NULL, NULL, FALSE, 'admin_test'),
+                    (3, 'Test saving', 500, '2026-07', 'saving', 'Saving fixture', 2, 6, NULL, FALSE, 'admin_test'),
+                    (4, 'Test loan payment', 100, '2026-07', 'expense', 'Loan payment fixture', 1, 2, 1, TRUE, 'admin_test')
                 """
             )
             cur.execute(
@@ -177,7 +190,7 @@ def _reset_and_seed_database():
                 """
             )
 
-            for table in ("users", "categories", "banks", "payment_methods", "loans", "loan_usages", "records", "backup_runs"):
+            for table in ("users", "categories", "category_budgets", "banks", "payment_methods", "loans", "loan_usages", "records", "backup_runs"):
                 cur.execute(
                     sql.SQL(
                         "SELECT setval(pg_get_serial_sequence(%s, 'id'), "
@@ -207,6 +220,9 @@ def clean_database(request):
         return
     request.getfixturevalue("application")
     _reset_and_seed_database()
+    from dashboard_cache import invalidate_dashboard_cache
+
+    invalidate_dashboard_cache()
     yield
 
 

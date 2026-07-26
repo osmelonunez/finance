@@ -14,14 +14,25 @@ Repositorio: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
 ## Versión Actual
 
-- Versión actual: `3.6.1`
-- Release: `v3.6.1 - Nombres de cuentas y tarjetas por contexto`
-- El compose de producción está preparado para `f1nanc3/finance:3.6.1`
+- Versión actual: `3.7.0`
+- Release: `v3.7.0 - Presupuestos e Informes`
+- El compose de producción está preparado para `f1nanc3/finance:3.7.0`
+- [Notas de la versión 3.7.0](docs/v3.7-release/notas-v3.7.0.md)
 
 ## Funcionalidades Principales
 
-- Vistas separadas: `Panel`, `Gastos`, `Ingresos`, `Ahorros`, `Préstamos`, `Banca`, `Gestión`
-- Dashboard con gráficas mensuales y anuales, incluyendo indicadores de deuda de préstamos
+- Vistas separadas: `Panel`, `Gastos`, `Ingresos`, `Ahorros`, `Presupuestos`, `Informes`, `Préstamos`, `Banca`, `Gestión`
+- Dashboard con gráficas mensuales y anuales, indicadores de deuda de préstamos y resumen de presupuesto
+- Presupuestos vigentes por categoría, editables en el mes actual y heredados automáticamente en los meses siguientes
+- Histórico mensual de solo lectura con presupuesto aplicado, gasto real, desviación y alertas al 80%, 90% y 100%
+- Informes mensuales y anuales en pantalla con resumen, gasto por categoría y principales gastos
+- Comparativas por mes, trimestre y año entre dos desplegables basados en la ventana de años de Finance
+- Gráfico de evolución financiera para 6 meses, 12 meses o la ventana de años, con series activables
+- Selector unificado de comparativas Libre, MoM y YoY con desglose por categoría y mayores aumentos/reducciones
+- Filtros compartidos por categoría, banco, cuenta, tarjeta y préstamo, exportación CSV y vista de impresión/PDF
+- Informes guardados por usuario con periodos, modos y filtros reutilizables
+- Configuración e historial de reportes por correo integrados en Informes; SMTP permanece en Gestión
+- Navegación interna de Informes separada en Resumen, Envío por correo y Plantillas de correo
 - Autenticación con roles: `admin`, `editor`, `user`
 - Rate limiting en endpoints de autenticación
 - Preferencias por usuario:
@@ -59,7 +70,22 @@ Repositorio: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 - Runtime con Gunicorn en Docker, ejecutando como usuario no root
 - Logs JSON estructurados + health checks (`/health/live`, `/health/ready`)
 - Optimización de consultas de dashboard + caché corto (30s) con invalidación en cambios de datos
-- Capa versionada de plantillas de reportes (`v1`) y módulo común de validaciones
+- Diez plantillas versionadas de reportes (`v1` a `v10`) en una cuadrícula única de cinco por fila para mensual y anual
+- Branding compartido para emails con nombre, cabecera y pie centrado
+
+## Informes y analítica
+
+El espacio `Informes` reúne el análisis financiero y la entrega por correo:
+
+- Resúmenes mensuales y anuales de ingresos, gastos, ahorro y balance.
+- Comparaciones libres, MoM y YoY por mes, trimestre o año, con variación absoluta, porcentual y desglose por categoría.
+- Evolución financiera para los últimos 6 o 12 meses y para varios años, con series que se pueden activar u ocultar.
+- Filtros compartidos por categoría, banco, cuenta, tarjeta y préstamo.
+- Exportación contextual a CSV y una presentación específica para imprimir o guardar como PDF.
+- Informes guardados por usuario que conservan periodos, modo de comparación, métricas y filtros.
+- Configuración de reportes por correo, historial de entregas y diez plantillas con vista previa mensual o anual.
+- Cuentas corrientes y de ahorro, con saldo inicial individual y agregado consolidado `Savings Accounts`.
+- Las aportaciones de ahorro exigen una cuenta de destino; los gastos y tarjetas vinculados descuentan de esa cuenta.
 
 ## Capturas de Pantalla
 
@@ -234,7 +260,7 @@ Rate limits:
 - Los correos se envían solo a usuarios:
   - activos
   - con notificaciones por correo activadas
-- Versión de plantilla configurable (fase 1: `v1`).
+- Plantilla mensual y anual configurables entre diez estilos, incluidos Editorial, Panel, Recibo, Estado financiero, Magazine, Minimalista y Neón, con vista previa usando datos reales y branding compartido.
 
 ## Licencia
 

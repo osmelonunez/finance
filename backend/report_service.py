@@ -41,7 +41,8 @@ def _prev_year_key(ref: datetime) -> str:
 def _load_config(cur):
     cur.execute(
         """
-        SELECT monthly_enabled, yearly_enabled, monthly_template_version, yearly_template_version
+        SELECT monthly_enabled, yearly_enabled, monthly_template_version, yearly_template_version,
+               brand_name, header_text, footer_text
         FROM email_report_config
         WHERE id=1
         """
@@ -61,12 +62,22 @@ def _load_config(cur):
             "yearly_enabled": True,
             "monthly_template_version": "v1",
             "yearly_template_version": "v1",
+            "branding": {
+                "brand_name": "Finance",
+                "header_text": "Personal finance report",
+                "footer_text": "© {year} Osmel Nuñez Alonso · v{version} · GitHub",
+            },
         }
     return {
         "monthly_enabled": bool(row[0]),
         "yearly_enabled": bool(row[1]),
         "monthly_template_version": _normalize_template_version(row[2]),
         "yearly_template_version": _normalize_template_version(row[3]),
+        "branding": {
+            "brand_name": row[4] or "",
+            "header_text": row[5] or "",
+            "footer_text": row[6] or "",
+        },
     }
 
 
@@ -76,7 +87,8 @@ def _normalize_lang(lang: str | None) -> str:
 
 
 def _normalize_template_version(value: str | None) -> str:
-    return "v1" if (value or "").strip().lower() != "v1" else "v1"
+    value = (value or "v1").strip().lower()
+    return value if value in {"v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10"} else "v1"
 
 
 def _report_texts(lang: str) -> dict:
@@ -85,8 +97,8 @@ def _report_texts(lang: str) -> dict:
         return {
             "subject_monthly": "Balance mensual de Finance - {period}",
             "subject_yearly": "Balance anual de Finance - {period}",
-            "title_monthly": "Balance Mensual de Finance",
-            "title_yearly": "Balance Anual de Finance",
+            "title_monthly": "Balance mensual",
+            "title_yearly": "Balance anual",
             "period": "Periodo",
             "open_finance": "Abrir Finance",
             "summary_title": "Ingreso / Gasto / Ahorro",
@@ -110,8 +122,8 @@ def _report_texts(lang: str) -> dict:
     return {
         "subject_monthly": "Finance monthly balance - {period}",
         "subject_yearly": "Finance yearly balance - {period}",
-        "title_monthly": "Finance Monthly Balance",
-        "title_yearly": "Finance Yearly Balance",
+        "title_monthly": "Monthly balance",
+        "title_yearly": "Annual balance",
         "period": "Period",
         "open_finance": "Open Finance",
         "summary_title": "Income / Expense / Saving",
@@ -203,7 +215,7 @@ def _monthly_payload(cur, period_key: str):
         """
         SELECT
             COALESCE(SUM(CASE WHEN type='income' THEN amount ELSE 0 END),0),
-            COALESCE(SUM(CASE WHEN type='expense' AND source='monthly' THEN amount ELSE 0 END),0),
+            COALESCE(SUM(CASE WHEN type='expense' THEN amount ELSE 0 END),0),
             COALESCE(SUM(CASE WHEN type='saving' THEN amount ELSE 0 END),0)
         FROM records
         WHERE date=%s
@@ -237,7 +249,7 @@ def _monthly_top_expenses(cur, period_key: str):
         """
         SELECT concept, SUM(amount) AS total_amount
         FROM records
-        WHERE type='expense' AND source='monthly' AND date=%s
+        WHERE type='expense' AND date=%s
         GROUP BY concept
         ORDER BY total_amount DESC
         LIMIT 15
@@ -270,7 +282,7 @@ def _monthly_category_summary(cur, period_key: str):
         SELECT COALESCE(c.name, 'Uncategorized') AS category_name, SUM(r.amount) AS total_amount
         FROM records r
         LEFT JOIN categories c ON r.category_id = c.id
-        WHERE r.type='expense' AND r.source='monthly' AND r.date=%s
+        WHERE r.type='expense' AND r.date=%s
         GROUP BY COALESCE(c.name, 'Uncategorized')
         ORDER BY total_amount DESC
         """,
@@ -363,6 +375,7 @@ def send_monthly_report(test=False, recipients_override=None):
                     texts=texts,
                     include_top_expenses=True,
                     lang=lang,
+                    branding=config["branding"],
                 )
                 ok = send_email(lang_recipients, subject, body, html_body=html_body)
                 all_ok = all_ok and ok
@@ -434,6 +447,7 @@ def send_yearly_report(test=False, recipients_override=None):
                     texts=texts,
                     include_top_expenses=False,
                     lang=lang,
+                    branding=config["branding"],
                 )
                 ok = send_email(lang_recipients, subject, body, html_body=html_body)
                 all_ok = all_ok and ok

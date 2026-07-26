@@ -679,7 +679,6 @@
             <tr>
                 <th>{{ t('Date') }}</th>
                 <th>{{ t('Concept') }}</th>
-                <th>{{ t('Source') }}</th>
                 <th class="text-end">{{ t('Amount') }}</th>
                 {% if loan[12] %}
                 <th class="text-end">{{ t('Principal') }}</th>
@@ -693,11 +692,10 @@
             <tr>
                 <td>{{ payment[3] }}</td>
                 <td>{{ payment[1] }}</td>
-                <td>{{ t('Monthly') if payment[4] == 'monthly' else payment[4] or '-' }}</td>
                 <td class="text-end">{{ money(payment[2]) }}</td>
                 {% if loan[12] %}
-                <td class="text-end text-success">{{ money(payment[6]) if payment[6] is not none else '-' }}</td>
-                <td class="text-end text-danger">{{ money(payment[7]) if payment[7] is not none else '-' }}</td>
+                <td class="text-end text-success">{{ money(payment[5]) if payment[5] is not none else '-' }}</td>
+                <td class="text-end text-danger">{{ money(payment[6]) if payment[6] is not none else '-' }}</td>
                 {% endif %}
                 <td class="text-end"><a href="/records/{{ payment[0] }}?from=expense&return_to={{ request.full_path|urlencode }}" class="btn btn-sm btn-light">{{ t('Details') }}</a></td>
             </tr>

@@ -121,6 +121,37 @@ Incluye:
 - [Notas de release en espanol](docs/v3.4.1-release/notas-v3.4.1.md)
 - [Release notes in English](docs/v3.4.1-release/v3.4.1-release-notes.md)
 
+### v3.5.0 - Cuentas y tarjetas 2.0
+
+Estado: completado.
+
+Objetivo: convertir bancos, cuentas y tarjetas en un espacio funcional independiente, conectado con movimientos y protegido por reglas de integridad.
+
+Incluye:
+- Espacio principal `Cuentas y tarjetas` en `/payment-methods`, separado de Gestion.
+- Navegacion interna mediante KPI, Relaciones, Bancos, Cuentas y Tarjetas.
+- Formulario unico y contextual para crear bancos, cuentas o tarjetas.
+- Banco activo obligatorio al crear o editar una cuenta o tarjeta.
+- Desactivacion automatica de cuentas y tarjetas al desactivar su banco.
+- Bloqueo de eliminacion de cuentas o tarjetas con movimientos asociados.
+- Altas y duplicados de movimientos limitados a cuentas y tarjetas activas.
+- Vistas de detalle de bancos, cuentas y tarjetas con estado, referencia, gasto y numero de movimientos.
+- Historial de movimientos paginado en bloques de diez y cargado desde el servidor.
+- Filtros de gastos independientes por banco, cuenta y tarjeta, incluyendo entidades inactivas para consultar el historico.
+- KPI de entidades activas y gasto mensual.
+- Selector de año y graficas de gasto mensual, anual, total y comparativa.
+- Estados vacios para ambitos sin gasto.
+- Vista Relaciones agrupada por banco y ordenada por numero de elementos vinculados.
+- Formato monetario y numerico localizado en tablas, indicadores y graficas.
+- Redirecciones compatibles desde las antiguas rutas de Gestion.
+- Suite automatica de regresion con PostgreSQL aislado, inventario de rutas, permisos, CSRF y flujos CRUD.
+- Catalogo versionado de endpoints e informes historicos de pruebas.
+- Sin cambios de esquema ni modificacion de datos existentes.
+- [Detalle de v3.5 en espanol](docs/v3.5-planning/detalles-v3.5.md)
+- [v3.5 details in English](docs/v3.5-planning/v3.5-details.md)
+- [Notas de release en espanol](docs/v3.5-release/notas-v3.5.0.md)
+- [Release notes in English](docs/v3.5-release/v3.5.0-release-notes.md)
+
 ### v3.6.0 - Banca e integracion de prestamos
 
 Estado: completado.
@@ -168,22 +199,73 @@ Incluye:
 - [Notas del hotfix en espanol](docs/v3.6.1-release/notas-v3.6.1.md)
 - [Hotfix notes in English](docs/v3.6.1-release/v3.6.1-release-notes.md)
 
+### v3.7.0 - Presupuestos e Informes
+
+Estado: implementado y validado en local.
+
+Objetivo: controlar el gasto mensual esperado frente al gasto real y ampliar el analisis financiero con informes configurables.
+
+Incluye:
+- Presupuesto mensual por categoria.
+- Acceso principal como `Presupuestos`.
+- Gasto real calculado desde todos los movimientos de tipo gasto, independientemente de la cuenta utilizada.
+- Barras de consumo y alertas visuales al 80%, 90% y 100%.
+- Filtros para categorias en riesgo, excedidas y sin presupuesto.
+- Resumen mensual de presupuesto, gasto, disponible y categorias fuera de presupuesto.
+- Presupuesto vigente editable únicamente en el mes actual.
+- Herencia automática del último presupuesto vigente en los meses siguientes.
+- Consulta histórica de solo lectura con el presupuesto aplicado y el gasto real de cada mes.
+- Gestión de categorías mantenida como responsabilidad independiente.
+- Resumen de presupuesto en el dashboard.
+- Migraciones `018_category_budgets.sql` a `023_remove_record_source.sql`.
+- [Notas de release en espanol](docs/v3.7-release/notas-v3.7.0.md)
+- [Release notes in English](docs/v3.7-release/v3.7.0-release-notes.md)
+- Acceso principal como `Informes`.
+- Consulta mensual y anual de ingresos, gastos, ahorro y balance.
+- Desglose de gasto por categoria y principales gastos del periodo.
+- Configuracion funcional e historial de reportes por correo integrados en Informes.
+- Cuadricula compacta de diez plantillas de correo, cinco por fila, con vista previa real y alternancia mensual/anual sin duplicar la galeria.
+- Branding compartido configurable con nombre, cabecera y pie centrado.
+- Enlace `Abrir Finance` integrado en todas las plantillas sin mostrar la URL en el contenido.
+- Navegacion interna de Informes separada en resumen, envio por correo con historial y plantillas.
+- Comparativas por mes, trimestre y año mediante desplegables generados desde la ventana de años disponible, con variacion absoluta y porcentual.
+- Evolucion temporal de ingresos, gastos, ahorro y balance para 6 meses, 12 meses o varios años, con series activables.
+- Selector unico con las combinaciones validas Libre, MoM y YoY, desglose por categoria y rankings de aumentos y reducciones.
+- Filtros compartidos por categoria, banco, cuenta, tarjeta y prestamo aplicados a resumen, comparativas y evolucion.
+- Exportacion CSV contextual y vista especifica de impresion/guardado como PDF.
+- Informes guardados por usuario con periodos, modos y filtros reutilizables.
+- SMTP tecnico mantenido de forma independiente en Gestion.
+- Cuentas bancarias clasificadas como corrientes o de ahorro.
+- Varias cuentas de ahorro con saldo inicial, aportaciones y gastos asociados.
+- Agregado `Savings Accounts` en dashboard e Informes, con desglose por cuenta.
+- Gastos contabilizados en presupuesto e informes independientemente de la cuenta utilizada.
+
+### Evolucion de informes y analitica
+
+Estado: completado en v3.7.0.
+
+Objetivo: ampliar el modulo de Informes con comparativas, evolucion, filtros, exportacion y configuraciones reutilizables.
+
+- Comparativas configurables por mes, trimestre y año.
+- Evolucion de ingresos, gastos, ahorro y balance.
+- Comparativas avanzadas entre periodos (MoM/YoY).
+- Filtros por categoria, banco, cuenta, tarjeta y prestamo.
+- Exportacion contextual a CSV y vista preparada para imprimir o guardar como PDF.
+- Informes guardados por usuario como configuraciones reutilizables.
+
 ## Ideas futuras
 
 Estas ideas no estan comprometidas todavia y pueden moverse segun prioridad.
 
-### Presupuestos por categoria
+### Evolucion de cuentas y transferencias
 
-Objetivo: controlar gasto mensual esperado frente a gasto real.
-
-Navegacion futura: candidato a acceso principal como `Presupuestos` cuando el modulo este implementado.
+Objetivo: representar el origen y destino real de los movimientos entre cuentas y ampliar los tipos de cuenta disponibles.
 
 Ideas:
-- Presupuesto mensual por categoria.
-- Barras de consumo por categoria.
-- Alertas visuales al 80%, 90% y 100%.
-- Dashboard con categorias fuera de presupuesto.
-- Comparativa presupuesto vs gasto real.
+- Registrar el origen de ingresos y aportaciones de ahorro como transferencias desde una cuenta corriente.
+- Incorporar cuentas `cash` y `other`.
+- Permitir que las cuentas `cash` y `other` no requieran banco.
+- Definir como se calcula y presenta el saldo de estos nuevos tipos.
 
 ### Importador bancario CSV
 
@@ -196,20 +278,6 @@ Ideas:
 - Deteccion de posibles duplicados.
 - Plantillas de mapeo por banco.
 - Reglas basicas por concepto/categoria.
-
-### Informes y analitica
-
-Objetivo: ofrecer una vista dedicada para analizar la evolucion financiera y generar informes reutilizables.
-
-Navegacion futura: candidato a acceso principal como `Informes` cuando disponga de contenido suficiente para funcionar como modulo independiente.
-
-Ideas:
-- Comparativas configurables por mes, trimestre y año.
-- Evolucion de ingresos, gastos, ahorro y balance.
-- Comparativas avanzadas entre periodos (MoM/YoY).
-- Filtros por categoria, banco, cuenta, tarjeta y prestamo.
-- Exportacion de informes a PDF y otros formatos.
-- Informes guardados o configuraciones reutilizables.
 
 ### Cierre mensual
 
@@ -253,7 +321,6 @@ Ideas:
 ### Otras ideas a valorar
 
 - Adjuntar facturas/recibos a gastos.
-- Plantillas de reportes `v2` y opciones de branding.
 - Evolucion de i18n hacia estructura modular.
 - Notificaciones internas y recordatorios.
 - Reglas automaticas por categoria/origen/cuenta.

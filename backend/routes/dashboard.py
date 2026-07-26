@@ -3,6 +3,7 @@ from flask import Blueprint, render_template, request
 
 from db import get_db
 from dashboard_cache import get_cached, make_key, set_cached
+from savings import savings_account_balances, savings_accounts_total
 
 
 dashboard_bp = Blueprint("dashboard", __name__)
@@ -28,12 +29,20 @@ def dashboard():
             monthly_income=cached["monthly_income"],
             monthly_expense=cached["monthly_expense"],
             monthly_saving=cached["monthly_saving"],
+            monthly_result=cached.get(
+                "monthly_result",
+                cached["monthly_income"] - cached["monthly_expense"],
+            ),
             monthly_balance=cached["monthly_balance"],
             saving_total=cached["saving_total"],
+            savings_accounts=cached.get("savings_accounts", []),
             loan_pending_debt=cached.get("loan_pending_debt", 0),
             loan_pending_this_year=cached.get("loan_pending_this_year", 0),
             loan_monthly_payment=cached.get("loan_monthly_payment", 0),
             active_loan_count=cached.get("active_loan_count", 0),
+            budget_total=cached.get("budget_total", 0),
+            budget_spent=cached.get("budget_spent", 0),
+            budget_exceeded_count=cached.get("budget_exceeded_count", 0),
             history=cached["history"],
             years_history=cached["years_history"],
             years_span=years_span,
@@ -46,7 +55,7 @@ def dashboard():
                 """
                 SELECT
                     COALESCE(SUM(CASE WHEN type='income' THEN amount ELSE 0 END), 0) AS income,
-                    COALESCE(SUM(CASE WHEN type='expense' AND source='monthly' THEN amount ELSE 0 END), 0) AS expense,
+                    COALESCE(SUM(CASE WHEN type='expense' THEN amount ELSE 0 END), 0) AS expense,
                     COALESCE(SUM(CASE WHEN type='saving' THEN amount ELSE 0 END), 0) AS saving
                 FROM records
                 WHERE date=%s
@@ -59,22 +68,10 @@ def dashboard():
             monthly_saving = row[2]
 
             monthly_balance = monthly_income - monthly_expense - monthly_saving
+            monthly_result = monthly_income - monthly_expense
 
-            cur.execute(
-                """
-                SELECT
-                    COALESCE((SELECT value FROM settings WHERE key='initial_saving'), 0) AS initial_saving,
-                    COALESCE(SUM(CASE WHEN type='saving' THEN amount ELSE 0 END), 0) AS total_saving,
-                    COALESCE(SUM(CASE WHEN type='expense' AND source='saving' THEN amount ELSE 0 END), 0) AS saving_spent
-                FROM records
-                """
-            )
-            row = cur.fetchone()
-            initial_saving = row[0] if row else 0
-            total_saving = row[1] if row else 0
-            saving_spent = row[2] if row else 0
-
-            saving_total = initial_saving + total_saving - saving_spent
+            savings_accounts = savings_account_balances(cur, selected_month)
+            saving_total = savings_accounts_total(savings_accounts)
 
             cur.execute(
                 """
@@ -189,7 +186,7 @@ def dashboard():
                 SELECT
                     m.month_key,
                     COALESCE(SUM(CASE WHEN e.type='income' THEN e.amount ELSE 0 END), 0),
-                    COALESCE(SUM(CASE WHEN e.type='expense' AND e.source='monthly' THEN e.amount ELSE 0 END), 0),
+                    COALESCE(SUM(CASE WHEN e.type='expense' THEN e.amount ELSE 0 END), 0),
                     COALESCE(SUM(CASE WHEN e.type='saving' THEN e.amount ELSE 0 END), 0),
                     COALESCE(ld.pending_debt, 0)
                 FROM months m
@@ -212,7 +209,7 @@ def dashboard():
                 record_totals AS (
                     SELECT substring(date, 1, 4)::int AS year,
                            COALESCE(SUM(CASE WHEN type='income' THEN amount ELSE 0 END),0) AS income,
-                           COALESCE(SUM(CASE WHEN type='expense' AND source='monthly' THEN amount ELSE 0 END),0) AS expense,
+                           COALESCE(SUM(CASE WHEN type='expense' THEN amount ELSE 0 END),0) AS expense,
                            COALESCE(SUM(CASE WHEN type='saving' THEN amount ELSE 0 END),0) AS saving
                     FROM records
                     WHERE substring(date, 1, 4) ~ '^[0-9]{4}$'
@@ -253,17 +250,58 @@ def dashboard():
             )
             years_rows = cur.fetchall()
 
+            cur.execute(
+                """
+                WITH category_spending AS (
+                    SELECT category_id, COALESCE(SUM(amount), 0) AS spent
+                    FROM records
+                    WHERE date=%s AND type='expense'
+                    GROUP BY category_id
+                ),
+                effective_budgets AS (
+                    SELECT
+                        c.id AS category_id,
+                        CASE WHEN b.is_disabled THEN NULL ELSE b.amount END AS amount
+                    FROM categories c
+                    LEFT JOIN LATERAL (
+                        SELECT cb.amount, cb.is_disabled
+                        FROM category_budgets cb
+                        WHERE cb.category_id=c.id AND cb.month <= %s
+                        ORDER BY cb.month DESC
+                        LIMIT 1
+                    ) b ON TRUE
+                )
+                SELECT
+                    COALESCE(SUM(b.amount), 0),
+                    COALESCE(SUM(COALESCE(s.spent, 0)), 0),
+                    COUNT(*) FILTER (WHERE COALESCE(s.spent, 0) >= b.amount)
+                FROM effective_budgets b
+                LEFT JOIN category_spending s ON s.category_id=b.category_id
+                WHERE b.amount IS NOT NULL
+                """,
+                (selected_month, selected_month),
+            )
+            budget_row = cur.fetchone()
+            budget_total = budget_row[0] if budget_row else 0
+            budget_spent = budget_row[1] if budget_row else 0
+            budget_exceeded_count = budget_row[2] if budget_row else 0
+
     history = rows
     payload = {
         "monthly_income": monthly_income,
         "monthly_expense": monthly_expense,
         "monthly_saving": monthly_saving,
+        "monthly_result": monthly_result,
         "monthly_balance": monthly_balance,
         "saving_total": saving_total,
+        "savings_accounts": savings_accounts,
         "loan_pending_debt": loan_pending_debt,
         "loan_pending_this_year": loan_pending_this_year,
         "loan_monthly_payment": loan_monthly_payment,
         "active_loan_count": active_loan_count,
+        "budget_total": budget_total,
+        "budget_spent": budget_spent,
+        "budget_exceeded_count": budget_exceeded_count,
         "history": history,
         "years_history": years_rows,
     }
@@ -275,12 +313,17 @@ def dashboard():
         monthly_income=payload["monthly_income"],
         monthly_expense=payload["monthly_expense"],
         monthly_saving=payload["monthly_saving"],
+        monthly_result=payload["monthly_result"],
         monthly_balance=payload["monthly_balance"],
         saving_total=payload["saving_total"],
+        savings_accounts=payload["savings_accounts"],
         loan_pending_debt=payload["loan_pending_debt"],
         loan_pending_this_year=payload["loan_pending_this_year"],
         loan_monthly_payment=payload["loan_monthly_payment"],
         active_loan_count=payload["active_loan_count"],
+        budget_total=payload["budget_total"],
+        budget_spent=payload["budget_spent"],
+        budget_exceeded_count=payload["budget_exceeded_count"],
         history=payload["history"],
         years_history=payload["years_history"],
         years_span=years_span,

@@ -8,6 +8,7 @@
 -- - Previous years: lower income + lower expenses
 -- - Future years: higher income + higher expenses
 -- - Savings: higher in previous years, lower in future years
+-- - Current effective budget for every category that does not already have one
 -- - Current year loans: Universidad (60% paid), Reforma (80% paid), Coche (100% paid), plus a previous-year mortgage excluded from dashboard loan totals.
 
 CREATE OR REPLACE FUNCTION management_seed_demo_data()
@@ -39,6 +40,25 @@ BEGIN
     SET is_active = TRUE,
         updated_at = NOW();
 
+    INSERT INTO payment_methods (
+        name, kind, bank_id, bank_name, account_ref, is_active,
+        parent_account_id, account_type, initial_balance, updated_at
+    )
+    VALUES (
+        'Demo - ING Savings',
+        'bank_account',
+        (SELECT id FROM banks WHERE name='ING'),
+        'ING',
+        'ES91 0000 0000 0000 0099',
+        TRUE,
+        NULL,
+        'savings',
+        300,
+        NOW()
+    )
+    ON CONFLICT (bank_id, name) WHERE kind = 'bank_account' DO UPDATE
+    SET account_type='savings', initial_balance=300, is_active=TRUE, updated_at=NOW();
+
     INSERT INTO payment_methods (name, kind, bank_id, bank_name, account_ref, is_active, parent_account_id, updated_at)
     VALUES
         ('Demo - ING Account - Person 1', 'bank_account', (SELECT id FROM banks WHERE name='ING'), 'ING', 'ES91 0000 0000 0000 0001', TRUE, NULL, NOW()),
@@ -64,20 +84,20 @@ BEGIN
         ('Demo - ING Shared Card 2', 'card', (SELECT id FROM banks WHERE name='ING'), 'ING', '**** 7890', TRUE, (SELECT pm.id FROM payment_methods pm JOIN banks b ON b.id=pm.bank_id WHERE pm.name='Demo - ING Shared Account' AND pm.kind='bank_account' AND b.name='ING'), NOW()),
         ('Demo - Shared Card', 'card', (SELECT id FROM banks WHERE name='Santander'), 'Santander', '**** 9876', TRUE, (SELECT pm.id FROM payment_methods pm JOIN banks b ON b.id=pm.bank_id WHERE pm.name='Demo - Santander Account' AND pm.kind='bank_account' AND b.name='Santander'), NOW()),
         ('Demo - BBVA Card', 'card', (SELECT id FROM banks WHERE name='BBVA'), 'BBVA', '**** 2468', TRUE, (SELECT pm.id FROM payment_methods pm JOIN banks b ON b.id=pm.bank_id WHERE pm.name='Demo - BBVA Account' AND pm.kind='bank_account' AND b.name='BBVA'), NOW())
-    ) AS source(name, kind, bank_id, bank_name, account_ref, is_active, parent_account_id, updated_at)
+    ) AS proposed(name, kind, bank_id, bank_name, account_ref, is_active, parent_account_id, updated_at)
     ON target.kind = 'card'
-       AND target.name = source.name
-       AND target.parent_account_id = source.parent_account_id
+       AND target.name = proposed.name
+       AND target.parent_account_id = proposed.parent_account_id
     WHEN MATCHED THEN
         UPDATE SET
-            bank_id = source.bank_id,
-            bank_name = source.bank_name,
-            account_ref = source.account_ref,
-            is_active = source.is_active,
+            bank_id = proposed.bank_id,
+            bank_name = proposed.bank_name,
+            account_ref = proposed.account_ref,
+            is_active = proposed.is_active,
             updated_at = NOW()
     WHEN NOT MATCHED THEN
         INSERT (name, kind, bank_id, bank_name, account_ref, is_active, parent_account_id, updated_at)
-        VALUES (source.name, source.kind, source.bank_id, source.bank_name, source.account_ref, source.is_active, source.parent_account_id, source.updated_at);
+        VALUES (proposed.name, proposed.kind, proposed.bank_id, proposed.bank_name, proposed.account_ref, proposed.is_active, proposed.parent_account_id, proposed.updated_at);
 
     SELECT username
     INTO actor_username
@@ -132,6 +152,38 @@ BEGIN
                 ELSE 1.00
             END AS saving_mult
         FROM calendar c
+    ),
+    inserted_budgets AS (
+        INSERT INTO category_budgets (
+            category_id, month, amount, created_by, updated_by
+        )
+        SELECT
+            c.id,
+            TO_CHAR(CURRENT_DATE, 'YYYY-MM'),
+            CASE c.name
+                WHEN 'Basic Expenses' THEN 1200.00
+                WHEN 'Home' THEN 300.00
+                WHEN 'Food' THEN 650.00
+                WHEN 'Leisure' THEN 300.00
+                WHEN 'Transport' THEN 450.00
+                WHEN 'Vacations' THEN 250.00
+                WHEN 'Personal' THEN 200.00
+                WHEN 'Sports' THEN 120.00
+                WHEN 'Health' THEN 180.00
+                WHEN 'Subscriptions' THEN 100.00
+                ELSE 500.00
+            END,
+            demo_tag,
+            demo_tag
+        FROM categories c
+        ON CONFLICT (category_id, month) DO UPDATE
+        SET
+            amount = EXCLUDED.amount,
+            is_disabled = FALSE,
+            updated_by = demo_tag,
+            updated_at = NOW()
+        WHERE category_budgets.is_disabled = TRUE
+        RETURNING 1
     ),
     demo_loans AS (
         INSERT INTO loans (
@@ -324,7 +376,6 @@ BEGIN
             )::numeric, 2) AS amount,
             f.ym AS date,
             v.type,
-            v.source,
             demo_tag AS comment,
             c.id AS category_id,
             pm.id AS payment_method_id,
@@ -336,18 +387,18 @@ BEGIN
         FROM factors f
         CROSS JOIN LATERAL (
             VALUES
-                ('Payroll - Main Job',       1600.00, 'income',  NULL::TEXT,     NULL::TEXT,      NULL::TEXT,                 NULL::INT),
-                ('Payroll - Secondary Job',  2000.00, 'income',  NULL::TEXT,     NULL::TEXT,      NULL::TEXT,                 NULL::INT),
-                ('Monthly Saving',            200.00, 'saving',  NULL::TEXT,     NULL::TEXT,      NULL::TEXT,                 NULL::INT),
-                ('Rent / Mortgage',           450.00, 'expense', 'monthly',      'Basic Expenses', 'Demo - ING Account - Person 1', NULL::INT),
-                ('Utilities',                 140.00, 'expense', 'monthly',      'Basic Expenses', 'Demo - ING Account - Person 1', NULL::INT),
-                ('Groceries',                 330.00, 'expense', 'monthly',      'Food',           'Demo - Shared Card',       NULL::INT),
-                ('Transport',                  95.00, 'expense', 'monthly',      'Transport',      'Demo - ING Card - Person 1', NULL::INT),
-                ('Gym',                        40.00, 'expense', 'monthly',      'Sports',         'Demo - ING Card - Person 1', NULL::INT),
-                ('Streaming subscriptions',    22.00, 'expense', 'monthly',      'Subscriptions',  'Demo - Shared Card',       NULL::INT),
-                ('Leisure activities',        120.00, 'expense', 'monthly',      'Leisure',        'Demo - ING Card - Person 1', NULL::INT),
-                ('Laptop installment',        180.00, 'expense', 'monthly',      'Home',           'Demo - ING Card - Person 1', 3)
-        ) AS v(concept, base_amount, type, source, category_name, payment_method_name, deferred_total)
+                ('Payroll - Main Job',       1600.00, 'income',  NULL::TEXT,      NULL::TEXT,                 NULL::INT),
+                ('Payroll - Secondary Job',  2000.00, 'income',  NULL::TEXT,      NULL::TEXT,                 NULL::INT),
+                ('Monthly Saving',            200.00, 'saving',  NULL::TEXT,      'Demo - ING Savings',       NULL::INT),
+                ('Rent / Mortgage',           450.00, 'expense', 'Basic Expenses', 'Demo - ING Account - Person 1', NULL::INT),
+                ('Utilities',                 140.00, 'expense', 'Basic Expenses', 'Demo - ING Account - Person 1', NULL::INT),
+                ('Groceries',                 330.00, 'expense', 'Food',           'Demo - Shared Card',       NULL::INT),
+                ('Transport',                  95.00, 'expense', 'Transport',      'Demo - ING Card - Person 1', NULL::INT),
+                ('Gym',                        40.00, 'expense', 'Sports',         'Demo - ING Card - Person 1', NULL::INT),
+                ('Streaming subscriptions',    22.00, 'expense', 'Subscriptions',  'Demo - Shared Card',       NULL::INT),
+                ('Leisure activities',        120.00, 'expense', 'Leisure',        'Demo - ING Card - Person 1', NULL::INT),
+                ('Laptop installment',        180.00, 'expense', 'Home',           'Demo - ING Card - Person 1', 3)
+        ) AS v(concept, base_amount, type, category_name, payment_method_name, deferred_total)
         LEFT JOIN categories c ON c.name = v.category_name
         LEFT JOIN payment_methods pm ON pm.name = v.payment_method_name
     ),
@@ -361,7 +412,6 @@ BEGIN
                 ELSE d.date
             END AS date,
             d.type,
-            d.source,
             d.comment,
             d.category_id,
             d.payment_method_id,
@@ -396,18 +446,18 @@ BEGIN
     ),
     inserted AS (
         INSERT INTO records (
-            concept, amount, date, type, source, comment, category_id, payment_method_id,
+            concept, amount, date, type, comment, category_id, payment_method_id,
             deferred_index, deferred_total, created_by, created_at, updated_at, updated_by
         )
         SELECT
-            concept, amount, date, type, source, comment, category_id, payment_method_id,
+            concept, amount, date, type, comment, category_id, payment_method_id,
             deferred_index, deferred_total, created_by, created_at, updated_at, updated_by
         FROM demo_rows_expanded
         RETURNING 1
     ),
     inserted_loan_payments AS (
         INSERT INTO records (
-            concept, amount, date, type, source, comment, category_id, payment_method_id,
+            concept, amount, date, type, comment, category_id, payment_method_id,
             deferred_index, deferred_total, loan_id, is_loan_payment,
             loan_principal_amount, loan_interest_amount, created_by, created_at, updated_at, updated_by
         )
@@ -416,7 +466,6 @@ BEGIN
             lpp.amount,
             lpp.date,
             'expense',
-            'monthly',
             demo_tag,
             c.id,
             pm.id,
@@ -459,6 +508,7 @@ BEGIN
         (SELECT COUNT(*) FROM inserted)
         + (SELECT COUNT(*) FROM inserted_loan_payments)
         + (SELECT COUNT(*) FROM inserted_loan_usages)
+        + (SELECT COUNT(*) FROM inserted_budgets)
     INTO inserted_count;
 
     RETURN inserted_count;
@@ -473,6 +523,18 @@ AS $$
 DECLARE
     deleted_count INTEGER;
 BEGIN
+    UPDATE category_budgets
+    SET
+        amount = NULL,
+        is_disabled = TRUE,
+        updated_by = created_by,
+        updated_at = NOW()
+    WHERE created_by IS DISTINCT FROM '[DEMO_SEED_MANAGEMENT]'
+      AND updated_by = '[DEMO_SEED_MANAGEMENT]';
+
+    DELETE FROM category_budgets
+    WHERE created_by = '[DEMO_SEED_MANAGEMENT]';
+
     DELETE FROM records
     WHERE comment = '[DEMO_SEED_MANAGEMENT]';
 
@@ -488,6 +550,7 @@ BEGIN
         'Demo - ING Account - Person 1',
         'Demo - ING Account - Person 2',
         'Demo - ING Shared Account',
+        'Demo - ING Savings',
         'Demo - Main Card',
         'Demo - ING Secondary Card',
         'Demo - Shared Card',

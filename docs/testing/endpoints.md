@@ -2,8 +2,8 @@
 
 Este fichero se genera desde el registro de rutas de Flask. No debe editarse manualmente.
 
-- Reglas de aplicación: **86**.
-- Combinaciones endpoint-método: **92**.
+- Reglas de aplicación: **98**.
+- Combinaciones endpoint-método: **104**.
 - Se excluyen la ruta estática y los métodos automáticos `HEAD` y `OPTIONS`.
 - `Contrato`, `Autenticación` y `CSRF` indican que existe una comprobación automática genérica.
 - `Prueba específica` identifica cobertura funcional adicional; `—` significa que solo tiene cobertura genérica.
@@ -11,6 +11,9 @@ Este fichero se genera desde el registro de rutas de Flask. No debe editarse man
 | Ruta | Método | Endpoint | Acceso | Contrato | Autenticación | CSRF | Prueba específica |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `/` | GET | `dashboard.dashboard` | Autenticado | Sí | Sí | N/A | — |
+| `/budgets` | GET | `budgets.budgets` | Autenticado | Sí | Sí | N/A | — |
+| `/budgets/<int:category_id>/remove` | POST | `budgets.remove_budget` | Autenticado | Sí | Sí | Sí | — |
+| `/budgets/<int:category_id>/save` | POST | `budgets.save_budget` | Autenticado | Sí | Sí | Sí | — |
 | `/categories` | GET | `categories.categories` | Autenticado | Sí | Sí | N/A | — |
 | `/categories/<int:category_id>/delete` | POST | `categories.delete_category` | Autenticado | Sí | Sí | Sí | `test_category_create_update_delete_flow` |
 | `/categories/<int:category_id>/update` | POST | `categories.update_category` | Autenticado | Sí | Sí | Sí | `test_category_create_update_delete_flow` |
@@ -98,6 +101,15 @@ Este fichero se genera desde el registro de rutas de Flask. No debe editarse man
 | `/records/saving` | GET | `movements.records_saving` | Autenticado | Sí | Sí | N/A | — |
 | `/register` | GET | `auth.register` | Público | Sí | N/A | N/A | — |
 | `/register` | POST | `auth.register` | Público | Sí | N/A | Sí | — |
+| `/reports` | GET | `reports.reports` | Autenticado | Sí | Sí | N/A | — |
+| `/reports/email-settings/save` | POST | `management.save_email_reports` | Autenticado | Sí | Sí | Sí | — |
+| `/reports/email-settings/test-monthly` | POST | `management.test_monthly_report` | Autenticado | Sí | Sí | Sí | — |
+| `/reports/email-settings/test-yearly` | POST | `management.test_yearly_report` | Autenticado | Sí | Sí | Sí | — |
+| `/reports/export.csv` | GET | `reports.export_csv` | Autenticado | Sí | Sí | N/A | — |
+| `/reports/print` | GET | `reports.print_report` | Autenticado | Sí | Sí | N/A | — |
+| `/reports/saved/<int:report_id>/delete` | POST | `reports.delete_saved_report` | Autenticado | Sí | Sí | Sí | — |
+| `/reports/saved/save` | POST | `reports.save_report` | Autenticado | Sí | Sí | Sí | — |
+| `/reports/template-preview` | GET | `reports.template_preview` | Autenticado | Sí | Sí | N/A | — |
 | `/setup` | GET | `setup.setup_page` | Público | Sí | N/A | N/A | — |
 | `/setup/create-new` | POST | `setup.setup_create_new` | Público | Sí | N/A | Sí | — |
 | `/setup/test-connection` | POST | `setup.setup_test_connection` | Público | Sí | N/A | Sí | — |

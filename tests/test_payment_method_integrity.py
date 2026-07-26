@@ -139,7 +139,6 @@ def test_inactive_method_cannot_be_assigned_to_new_expense(admin_client, db_quer
             "concept": "Invalid inactive method",
             "amount": "20",
             "date": "2026-07",
-            "source": "monthly",
             "payment_method_id": "3",
         },
     )

@@ -58,9 +58,6 @@
         .date-filter {
             width: 96px;
         }
-        .source-filter {
-            width: 86px;
-        }
         .filter-pack {
             display: flex;
             flex-wrap: wrap;
@@ -94,9 +91,6 @@
         }
         .col-type {
             width: 12%;
-        }
-        .col-source {
-            width: 14%;
         }
         .col-payment-method {
             width: 14%;
@@ -230,14 +224,6 @@
                        readonly>
             </div>
             <div>
-                <label class="form-label">{{ t('Source') }}</label>
-                <select class="form-control source-filter" name="source">
-                    <option value="">{{ t('All') }}</option>
-                    <option value="monthly" {{ 'selected' if f_source=='monthly' else '' }}>{{ t('Monthly') }}</option>
-                    <option value="saving" {{ 'selected' if f_source=='saving' else '' }}>{{ t('Saving') }}</option>
-                </select>
-            </div>
-            <div>
                 <label class="form-label">{{ t('Bank') }}</label>
                 <select class="form-control category-filter" name="bank_id">
                     <option value="">{{ t('All') }}</option>
@@ -290,14 +276,6 @@
                value="{{ f_date }}"
                readonly>
     </div>
-    <div class="col-md-1">
-        <label class="form-label">{{ t('Source') }}</label>
-        <select class="form-control source-filter" name="source">
-            <option value="">{{ t('All') }}</option>
-            <option value="monthly" {{ 'selected' if f_source=='monthly' else '' }}>{{ t('Monthly') }}</option>
-            <option value="saving" {{ 'selected' if f_source=='saving' else '' }}>{{ t('Saving') }}</option>
-        </select>
-    </div>
     <div class="col-md-2">
         <label class="form-label">{{ t('Category') }}</label>
         <input class="form-control" name="category" value="{{ f_category }}">
@@ -341,7 +319,6 @@
     <th class="col-desc" data-col="concept">{{ t('Concept') }}</th>
     <th class="col-category" data-col="category">{{ t('Category') }}</th>
     <th class="col-date" data-col="date">{{ t('Date') }} ↓</th>
-    <th class="col-source" data-col="source">{{ t('Source') }}</th>
     <th class="col-payment-method" data-col="payment_method">{{ t('Account/Card') }}</th>
     <th class="col-loan" data-col="loan">{{ t('Loan') }}</th>
     <th class="col-amount text-end pe-5 amount-cell" data-col="amount">{{ t('Amount') }} ⇅</th>
@@ -351,8 +328,8 @@
     {% if fixed_type is none %}
     <th class="col-category" data-col="category">{{ t('Category') }}</th>
     {% endif %}
-    {% if fixed_type is none %}
-    <th class="col-source" data-col="source">{{ t('Source') }}</th>
+    {% if fixed_type == 'saving' or fixed_type is none %}
+    <th class="col-payment-method" data-col="payment_method">{{ t('Savings account') }}</th>
     {% endif %}
     <th class="col-amount text-end pe-5 amount-cell" data-col="amount">{{ t('Amount') }} ⇅</th>
     {% endif %}
@@ -373,10 +350,6 @@
                 <label class="form-check">
                     <input class="form-check-input col-toggle" type="checkbox" value="date" checked>
                     <span class="form-check-label">{{ t('Date') }}</span>
-                </label>
-                <label class="form-check">
-                    <input class="form-check-input col-toggle" type="checkbox" value="source" checked>
-                    <span class="form-check-label">{{ t('Source') }}</span>
                 </label>
                 {% if fixed_type == 'expense' %}
                 <label class="form-check">
@@ -406,20 +379,19 @@
 <tr class="row-link" data-href="/records/{{ e[0] }}?from={{ current_page }}&return_to={{ return_to|urlencode }}">
     {% if fixed_type == 'expense' %}
     <td data-col="concept">{{ e[1] }}</td>
-    <td data-col="category">{{ cat_name(e[7]) if e[7] else '-' }}</td>
+    <td data-col="category">{{ cat_name(e[6]) if e[6] else '-' }}</td>
     <td data-col="date">{{ e[3] }}</td>
-    <td data-col="source">{% if e[5] == 'monthly' %}{{ t('Monthly') }}{% elif e[5] == 'saving' %}{{ t('Saving') }}{% else %}-{% endif %}</td>
-    <td data-col="payment_method">{{ e[8] or '-' }}</td>
-    <td data-col="loan">{% if e[9] and e[10] %}{{ e[10] }} - {{ e[11] }}{% else %}-{% endif %}</td>
+    <td data-col="payment_method">{{ e[7] or '-' }}</td>
+    <td data-col="loan">{% if e[8] and e[9] %}{{ e[9] }} - {{ e[10] }}{% else %}-{% endif %}</td>
     <td class="text-end pe-5 amount-cell" data-col="amount">{{ money(e[2]) }}</td>
     {% else %}
     <td data-col="concept">{{ e[1] }}</td>
     <td data-col="date">{{ e[3] }}</td>
     {% if fixed_type is none %}
-    <td data-col="category">{{ cat_name(e[7]) if e[7] else '-' }}</td>
+    <td data-col="category">{{ cat_name(e[6]) if e[6] else '-' }}</td>
     {% endif %}
-    {% if fixed_type is none %}
-    <td data-col="source">{% if e[5] == 'monthly' %}{{ t('Monthly') }}{% elif e[5] == 'saving' %}{{ t('Saving') }}{% else %}-{% endif %}</td>
+    {% if fixed_type == 'saving' or fixed_type is none %}
+    <td data-col="payment_method">{{ e[7] or '-' }}</td>
     {% endif %}
     <td class="text-end pe-5 amount-cell" data-col="amount">{{ money(e[2]) }}</td>
     {% endif %}
@@ -514,7 +486,7 @@ const fixedType = "{{ fixed_type or '' }}";
 const COL_STORAGE_KEY = `movements.columns.${fixedType || 'all'}`;
 
 function applyColumnVisibility(cols) {
-    const allCols = ['concept', 'amount', 'date', 'source', 'category', 'payment_method', 'loan'];
+    const allCols = ['concept', 'amount', 'date', 'category', 'payment_method', 'loan'];
     allCols.forEach((col) => {
         const show = cols.includes(col);
         document.querySelectorAll(`[data-col="${col}"]`).forEach((el) => {

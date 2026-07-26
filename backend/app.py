@@ -21,6 +21,8 @@ from routes.auth import auth_bp
 from routes.backups import backups_bp
 from routes.setup import setup_bp
 from routes.loans import loans_bp
+from routes.budgets import budgets_bp
+from routes.reports import reports_bp
 from i18n import category_description, category_name, format_money, format_number, get_lang, t
 from security import limiter
 from log_safety import redact_text
@@ -95,7 +97,7 @@ app = Flask(
     static_url_path="/static"
 )
 app.secret_key = os.environ.get("SECRET_KEY", DEFAULT_SECRET_KEY)
-app.config["APP_VERSION"] = os.environ.get("APP_VERSION", "3.6.1")
+app.config["APP_VERSION"] = os.environ.get("APP_VERSION", "3.7.0")
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -173,6 +175,8 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(backups_bp)
 app.register_blueprint(setup_bp)
 app.register_blueprint(loans_bp)
+app.register_blueprint(budgets_bp)
+app.register_blueprint(reports_bp)
 if not app.config["TESTING"] and not _env_bool("FINANCE_DISABLE_SCHEDULERS", False):
     start_report_scheduler()
 
@@ -182,7 +186,7 @@ def inject_template_globals():
     lang = get_lang()
     return {
         "current_year": datetime.now().year,
-        "app_version": app.config.get("APP_VERSION", "3.6.1"),
+        "app_version": app.config.get("APP_VERSION", "3.7.0"),
         "current_lang": lang,
         "t": lambda text: t(text, lang),
         "cat_name": lambda name: category_name(name, lang),
@@ -239,6 +243,8 @@ def require_login():
 
 @app.after_request
 def log_request(response):
+    is_template_preview = request.endpoint == "reports.template_preview"
+    frame_ancestors = "'self'" if is_template_preview else "'none'"
     csp = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://code.jquery.com; "
@@ -246,12 +252,14 @@ def log_request(response):
         "img-src 'self' data:; "
         "font-src 'self' data:; "
         "connect-src 'self'; "
-        "frame-ancestors 'none'; "
+        f"frame-ancestors {frame_ancestors}; "
         "base-uri 'self'; "
         "form-action 'self'"
     )
     response.headers["Content-Security-Policy"] = csp
-    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Frame-Options"] = (
+        "SAMEORIGIN" if request.endpoint == "reports.template_preview" else "DENY"
+    )
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     if _is_https_request():

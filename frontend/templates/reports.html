@@ -1,0 +1,709 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    .report-card { border: 1px solid #e3e9f0; border-radius: 14px; box-shadow: 0 8px 18px rgba(24,54,88,.08); background: #fff; }
+    .report-kpi { min-height: 102px; }
+    .report-value { font-size: 1.35rem; font-weight: 700; }
+    .category-bar { height: 9px; background: #e9eef3; border-radius: 999px; overflow: hidden; }
+    .category-bar span { display: block; height: 100%; background: #5d87ad; border-radius: inherit; }
+    .report-table th { color: #687887; font-size: .78rem; text-transform: uppercase; letter-spacing: .03em; }
+    .run-status { font-size: .75rem; }
+    .template-card { border: 1px solid #e3e9f0; border-radius: 9px; cursor: pointer; height: 100%; transition: border-color .15s, box-shadow .15s; }
+    .template-card:has(input:checked) { border-color: #397eb8; box-shadow: 0 0 0 3px rgba(57,126,184,.12); }
+    .template-swatch { height: 38px; border-radius: 6px; padding: 6px; }
+    .template-swatch span { display:block; height:4px; margin-bottom:4px; border-radius:99px; background:rgba(255,255,255,.85); }
+    .template-v1 { background:linear-gradient(135deg,#4f88b8,#7ea8ca); }
+    .template-v2 { background:linear-gradient(135deg,#167d72,#45a89a); }
+    .template-v3 { background:linear-gradient(135deg,#172b4d,#8a641f); }
+    .template-v4 { background:#f4f1eb; border-top:5px solid #111827; }
+    .template-v4 span { background:#111827; border-radius:0; height:2px; }
+    .template-v5 { background:linear-gradient(#7c3aed 45%,#f3f4f6 45%); display:grid;grid-template-columns:repeat(4,1fr);gap:3px; }
+    .template-v5 span { height:15px;margin:12px 0 0;background:#fff;border-radius:3px; }
+    .template-v6 { background:#fff;border:1px dashed #111;text-align:center;font-family:monospace; }
+    .template-v6 span { background:#111;height:2px;border-radius:0;margin-left:auto;margin-right:auto; }
+    .template-v7 { background:linear-gradient(90deg,#164e63 30%,#f0fdfa 30%);padding-left:36%; }
+    .template-v7 span { background:#164e63; }
+    .template-v8 { background:#fff7ed;display:grid;grid-template-columns:1fr 1fr;gap:3px; }
+    .template-v8 span { height:12px;margin:0;background:#fb7185;border-radius:4px; }
+    .template-v8 span:nth-child(2) { background:#fed7aa; }
+    .template-v8 span:nth-child(3) { background:#fde68a; }
+    .template-v8 span:nth-child(4) { background:#fbcfe8; }
+    .template-v9 { background:#f8fafc;border:1px solid #cbd5e1; }
+    .template-v9 span { background:#2563eb;height:2px;border-radius:0; }
+    .template-v10 { background:linear-gradient(135deg,#0e7490,#7e22ce);border:1px solid #334155; }
+    .template-v10 span:nth-child(even) { background:#f472b6; }
+    .template-meta { font-size:.82rem; min-width:0; }
+    .template-strip { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:.5rem; padding:3px; }
+    .template-preview-modal { position:fixed;inset:0;z-index:1080;display:flex;align-items:center;justify-content:center;padding:clamp(12px,3vw,36px);background:rgba(20,30,42,.48);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:0;visibility:hidden;transition:opacity .16s ease,visibility .16s ease; }
+    .template-preview-modal.is-open { opacity:1;visibility:visible; }
+    .template-preview-dialog { width:min(1120px,100%);height:min(88vh,900px);display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(255,255,255,.55);border-radius:16px;background:#fff;box-shadow:0 24px 70px rgba(10,24,40,.35);transform:translateY(10px) scale(.985);transition:transform .16s ease; }
+    .template-preview-modal.is-open .template-preview-dialog { transform:none; }
+    .template-preview-header { display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 16px;border-bottom:1px solid #e3e9f0;background:#fff; }
+    .template-preview-frame { width:100%;min-height:0;flex:1;border:0;background:#f4f6f8; }
+    body.template-preview-open { overflow:hidden; }
+    @media (max-width: 991.98px) { .template-strip { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+    @media (max-width: 575.98px) {
+        .template-strip { grid-template-columns:repeat(2,minmax(0,1fr)); }
+        .template-preview-modal { padding:8px; }
+        .template-preview-dialog { height:94vh;border-radius:12px; }
+    }
+    .report-section-tabs { display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap; }
+    .report-section-tabs a { padding:6px 10px;border:1px solid #d9e3ee;border-radius:9px;text-decoration:none;color:#4a5a6b; }
+    .report-section-tabs a:hover { background:#f4f8fc; }
+    .report-section-tabs a.active { background:#eef4fb;color:#2f3b47;font-weight:600; }
+    .comparison-card { border:1px solid #e3e9f0;border-radius:14px;background:#fff;height:100%; }
+    .comparison-delta { font-size:1.05rem;font-weight:700; }
+    .comparison-periods { font-size:.78rem;color:#687887; }
+    .evolution-chart-wrap { position:relative;height:420px; }
+    .series-toggle { border:1px solid #dfe7f0;border-radius:9px;padding:6px 10px;background:#fff; }
+    .category-change-list { margin:0;padding:0;list-style:none; }
+    .category-change-list li { display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid #edf1f5; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div>
+        <h3 class="mb-1">{{ t('Reports') }}</h3>
+        <div class="text-muted">{{ t('Review financial results and manage scheduled email delivery.') }}</div>
+    </div>
+    {% if reports_section != 'comparisons' %}
+    <form method="get" class="d-flex flex-wrap gap-2 align-items-center">
+        <input type="hidden" name="section" value="{{ reports_section }}">
+        {% if report_filters.category_id %}<input type="hidden" name="category_id" value="{{ report_filters.category_id }}">{% endif %}
+        {% if report_filters.bank_id %}<input type="hidden" name="bank_id" value="{{ report_filters.bank_id }}">{% endif %}
+        {% if report_filters.account_id %}<input type="hidden" name="account_id" value="{{ report_filters.account_id }}">{% endif %}
+        {% if report_filters.card_id %}<input type="hidden" name="card_id" value="{{ report_filters.card_id }}">{% endif %}
+        {% if report_filters.loan_id %}<input type="hidden" name="loan_id" value="{{ report_filters.loan_id }}">{% elif report_filters.without_loan %}<input type="hidden" name="loan_id" value="none">{% endif %}
+        <select class="form-select" name="type" id="reportType">
+            <option value="monthly" {% if report_type == 'monthly' %}selected{% endif %}>{{ t('Monthly') }}</option>
+            <option value="yearly" {% if report_type == 'yearly' %}selected{% endif %}>{{ t('Yearly') }}</option>
+        </select>
+        {% if report_type == 'monthly' %}
+        <input class="form-control" type="month" name="period" value="{{ period }}">
+        {% else %}
+        <input class="form-control" type="number" name="period" min="2000" max="{{ current_year }}" value="{{ period }}">
+        {% endif %}
+        <button class="btn btn-soft">{{ t('View report') }}</button>
+    </form>
+    {% endif %}
+</div>
+
+{% if message %}<div class="alert alert-success py-2">{{ message }}</div>{% endif %}
+{% if error %}<div class="alert alert-danger py-2">{{ error }}</div>{% endif %}
+
+<nav class="report-section-tabs" aria-label="{{ t('Reports') }}">
+    {% set filter_query = ('&category_id=' ~ report_filters.category_id if report_filters.category_id else '') ~ ('&bank_id=' ~ report_filters.bank_id if report_filters.bank_id else '') ~ ('&account_id=' ~ report_filters.account_id if report_filters.account_id else '') ~ ('&card_id=' ~ report_filters.card_id if report_filters.card_id else '') ~ ('&loan_id=' ~ report_filters.loan_id if report_filters.loan_id else '&loan_id=none' if report_filters.without_loan else '') %}
+    <a class="{{ 'active' if reports_section == 'summary' else '' }}" href="/reports?section=summary&type={{ report_type }}&period={{ period }}{{ filter_query }}">{{ t('Summary') }}</a>
+    <a class="{{ 'active' if reports_section == 'comparisons' else '' }}" href="/reports?section=comparisons{{ filter_query }}">{{ t('Comparisons') }}</a>
+    <a class="{{ 'active' if reports_section == 'evolution' else '' }}" href="/reports?section=evolution{{ filter_query }}">{{ t('Financial evolution') }}</a>
+    <a class="{{ 'active' if reports_section == 'saved' else '' }}" href="/reports?section=saved">{{ t('Saved reports') }}</a>
+    {% if can_configure %}
+    <a class="{{ 'active' if reports_section == 'delivery' else '' }}" href="/reports?section=delivery&type={{ report_type }}&period={{ period }}">{{ t('Email delivery') }}</a>
+    <a class="{{ 'active' if reports_section == 'templates' else '' }}" href="/reports?section=templates&type={{ report_type }}&period={{ period }}">{{ t('Email templates') }}</a>
+    {% endif %}
+</nav>
+
+{% if reports_section in ['summary', 'comparisons', 'evolution'] %}
+<div class="report-card p-3 mb-3">
+    <form method="get" class="d-flex flex-wrap align-items-end gap-2">
+        <input type="hidden" name="section" value="{{ reports_section }}">
+        {% if reports_section == 'summary' %}
+        <input type="hidden" name="type" value="{{ report_type }}"><input type="hidden" name="period" value="{{ period }}">
+        {% elif reports_section == 'comparisons' %}
+        <input type="hidden" name="comparison_kind" value="{{ comparison_kind }}">
+        <input type="hidden" name="comparison_period" value="{{ comparison_period.key }}">
+        <input type="hidden" name="comparison_against" value="{{ comparison_period.against_key }}">
+        {% else %}
+        <input type="hidden" name="evolution_range" value="{{ evolution_range }}">
+        {% endif %}
+        <div>
+            <label class="form-label small mb-1">{{ t('Category filter') }}</label>
+            <select class="form-select" name="category_id">
+                <option value="">{{ t('All categories') }}</option>
+                {% for id, name in filter_categories %}<option value="{{ id }}" {% if report_filters.category_id == id %}selected{% endif %}>{{ name }}</option>{% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="form-label small mb-1">{{ t('Bank filter') }}</label>
+            <select class="form-select" name="bank_id" id="reportBankFilter">
+                <option value="">{{ t('All banks') }}</option>
+                {% for bank in filter_banks %}<option value="{{ bank[0] }}" {% if report_filters.bank_id == bank[0] %}selected{% endif %}>{{ bank[1] }}</option>{% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="form-label small mb-1">{{ t('Account filter') }}</label>
+            <select class="form-select" name="account_id" id="reportAccountFilter">
+                <option value="">{{ t('All accounts') }}</option>
+                {% for item in filter_accounts %}<option value="{{ item[0] }}" data-bank-id="{{ item[2] or '' }}" {% if report_filters.account_id == item[0] %}selected{% endif %}>{{ item[1] }}</option>{% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="form-label small mb-1">{{ t('Card filter') }}</label>
+            <select class="form-select" name="card_id" id="reportCardFilter">
+                <option value="">{{ t('All cards') }}</option>
+                {% for item in filter_cards %}<option value="{{ item[0] }}" data-bank-id="{{ item[2] or '' }}" {% if report_filters.card_id == item[0] %}selected{% endif %}>{{ item[1] }}</option>{% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="form-label small mb-1">{{ t('Loan filter') }}</label>
+            <select class="form-select" name="loan_id" id="reportLoanFilter">
+                <option value="">{{ t('All loans') }}</option>
+                <option value="none" {% if report_filters.without_loan %}selected{% endif %}>{{ t('Without loan') }}</option>
+                {% for item in filter_loans %}<option value="{{ item[0] }}" data-bank-id="{{ item[2] or '' }}" {% if report_filters.loan_id == item[0] %}selected{% endif %}>{{ item[1] }}</option>{% endfor %}
+            </select>
+        </div>
+        <button class="btn btn-primary">{{ t('Apply filters') }}</button>
+        <a class="btn btn-outline-secondary" href="/reports?section={{ reports_section }}">{{ t('Clear') }}</a>
+        <a class="btn btn-outline-success ms-auto" href="/reports/export.csv?section={{ reports_section }}{% if reports_section == 'summary' %}&type={{ report_type }}&period={{ period }}{% elif reports_section == 'comparisons' %}&comparison_kind={{ comparison_kind }}&comparison_period={{ comparison_period.key }}&comparison_against={{ comparison_period.against_key }}{% else %}&evolution_range={{ evolution_range }}{% endif %}{{ filter_query }}">{{ t('Export CSV') }}</a>
+        <a class="btn btn-outline-dark" target="_blank" href="/reports/print?section={{ reports_section }}{% if reports_section == 'summary' %}&type={{ report_type }}&period={{ period }}{% elif reports_section == 'comparisons' %}&comparison_kind={{ comparison_kind }}&comparison_period={{ comparison_period.key }}&comparison_against={{ comparison_period.against_key }}{% else %}&evolution_range={{ evolution_range }}{% endif %}{{ filter_query }}">{{ t('Print / PDF') }}</a>
+    </form>
+    <form method="post" action="/reports/saved/save" class="d-flex flex-wrap gap-2 mt-3 pt-3 border-top">
+        <input type="hidden" name="section" value="{{ reports_section }}">
+        <input type="hidden" name="query_string" value="{{ current_query }}">
+        <input class="form-control form-control-sm" style="max-width:280px" name="name" maxlength="80" required placeholder="{{ t('Saved report name') }}">
+        <button class="btn btn-sm btn-outline-primary">{{ t('Save current report') }}</button>
+    </form>
+</div>
+{% endif %}
+
+{% if reports_section == 'summary' %}
+<div id="reportsSummary" class="row g-3 mb-4">
+    {% for label, value, class_name in [
+        ('Income', summary.income, 'text-success'),
+        ('Expense', summary.expense, 'text-danger'),
+        ('Saving', summary.saving, ''),
+        ('Balance', summary.balance, 'text-success' if summary.balance >= 0 else 'text-danger')
+    ] %}
+    <div class="col-6 col-lg-3">
+        <div class="report-card report-kpi p-3">
+            <div class="text-muted small mb-2">{{ t(label) }}</div>
+            <div class="report-value {{ class_name }}">{{ money(value) }}</div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if savings_accounts %}
+<div class="report-card p-3 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">{{ t('Savings Accounts') }}</h5>
+        <strong>{{ money(savings_accounts_total) }}</strong>
+    </div>
+    {% for account in savings_accounts %}
+    <div class="d-flex justify-content-between border-top py-2">
+        <span>{{ account.name }}{% if not account.is_active %} · {{ t('Inactive') }}{% endif %}</span>
+        <span class="{{ 'text-danger' if account.balance < 0 else '' }}">{{ money(account.balance) }}</span>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="report-card p-4 h-100">
+            <h5 class="mb-3">{{ t('Spending by category') }}</h5>
+            {% for item in categories %}
+            <div class="mb-3">
+                <div class="d-flex justify-content-between small mb-1">
+                    <span>{{ item.name }}</span>
+                    <strong>{{ money(item.amount) }}</strong>
+                </div>
+                <div class="category-bar"><span style="width:{{ item.percentage }}%"></span></div>
+            </div>
+            {% else %}
+            <div class="text-muted">{{ t('No expense data.') }}</div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="report-card p-4 h-100">
+            <h5 class="mb-3">{{ t('Top expenses') }}</h5>
+            <div class="table-responsive">
+                <table class="table table-sm report-table mb-0">
+                    <thead><tr><th>{{ t('Concept') }}</th><th class="text-end">{{ t('Amount') }}</th></tr></thead>
+                    <tbody>
+                    {% for item in top_expenses %}
+                    <tr><td>{{ item.concept }}</td><td class="text-end">{{ money(item.amount) }}</td></tr>
+                    {% else %}
+                    <tr><td colspan="2" class="text-muted text-center py-3">{{ t('No expense data.') }}</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if reports_section == 'comparisons' %}
+<div id="reportComparisons">
+    <div class="report-card p-3 mb-3">
+        <form method="get" class="d-flex flex-wrap gap-2 align-items-end">
+            <input type="hidden" name="section" value="comparisons">
+            {% if report_filters.category_id %}<input type="hidden" name="category_id" value="{{ report_filters.category_id }}">{% endif %}
+            {% if report_filters.bank_id %}<input type="hidden" name="bank_id" value="{{ report_filters.bank_id }}">{% endif %}
+            {% if report_filters.account_id %}<input type="hidden" name="account_id" value="{{ report_filters.account_id }}">{% endif %}
+            {% if report_filters.card_id %}<input type="hidden" name="card_id" value="{{ report_filters.card_id }}">{% endif %}
+            {% if report_filters.loan_id %}<input type="hidden" name="loan_id" value="{{ report_filters.loan_id }}">{% elif report_filters.without_loan %}<input type="hidden" name="loan_id" value="none">{% endif %}
+            <div>
+                <label class="form-label small mb-1" for="comparisonKind">{{ t('Comparison type') }}</label>
+                <select class="form-select" id="comparisonKind" name="comparison_kind">
+                    <option value="free_month" {% if comparison_kind == 'free_month' %}selected{% endif %}>{{ t('Free') }} · {{ t('Month') }}</option>
+                    <option value="free_quarter" {% if comparison_kind == 'free_quarter' %}selected{% endif %}>{{ t('Free') }} · {{ t('Quarter') }}</option>
+                    <option value="free_year" {% if comparison_kind == 'free_year' %}selected{% endif %}>{{ t('Free') }} · {{ t('Year') }}</option>
+                    <option value="mom" {% if comparison_kind == 'mom' %}selected{% endif %}>MoM · {{ t('Previous month') }}</option>
+                    <option value="yoy_month" {% if comparison_kind == 'yoy_month' %}selected{% endif %}>YoY · {{ t('Same month last year') }}</option>
+                    <option value="yoy_quarter" {% if comparison_kind == 'yoy_quarter' %}selected{% endif %}>YoY · {{ t('Same quarter last year') }}</option>
+                    <option value="yoy_year" {% if comparison_kind == 'yoy_year' %}selected{% endif %}>YoY · {{ t('Previous year') }}</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label small mb-1" for="comparisonPeriod">{{ t('Current period') }}</label>
+                <select class="form-select" id="comparisonPeriod" name="comparison_period">
+                    {% for option in comparison_options %}
+                    <option value="{{ option.value }}" {% if option.value == comparison_period.key %}selected{% endif %}>{{ option.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="pb-2 fw-semibold text-muted">{{ t('versus') }}</div>
+            <div>
+                <label class="form-label small mb-1" for="comparisonAgainst">{{ t('Comparison period') }}</label>
+                <select class="form-select" id="comparisonAgainst" name="comparison_against" {% if comparison_mode != 'free' %}disabled{% endif %}>
+                    {% for option in comparison_options %}
+                    <option value="{{ option.value }}" {% if option.value == comparison_period.against_key %}selected{% endif %}>{{ option.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button class="btn btn-primary">{{ t('Compare') }}</button>
+        </form>
+    </div>
+
+    <div class="row g-3">
+        {% set metric_labels = {'income': 'Income', 'expense': 'Expense', 'saving': 'Saving', 'balance': 'Balance'} %}
+        {% for metric in comparison_metrics %}
+        <div class="col-md-6 col-xl-3">
+            <div class="comparison-card p-3">
+                <div class="text-muted small mb-2">{{ t(metric_labels[metric.key]) }}</div>
+                <div class="report-value mb-2">{{ money(metric.current) }}</div>
+                <div class="comparison-periods mb-2">
+                    {{ comparison_period.against_label }}: {{ money(metric.previous) }}
+                </div>
+                <div class="comparison-delta {{ 'text-success' if metric.favorable else 'text-danger' }}">
+                    {{ '+' if metric.difference > 0 else '' }}{{ money(metric.difference) }}
+                    <span class="small">
+                    {% if metric.percentage is not none %}
+                        ({{ '+' if metric.percentage > 0 else '' }}{{ '%.1f'|format(metric.percentage) }}%)
+                    {% else %}
+                        ({{ t('Not available') }})
+                    {% endif %}
+                    </span>
+                </div>
+                <div class="small text-muted mt-1">{{ t('Absolute and percentage variation') }}</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="row g-3 mt-1">
+        <div class="col-lg-6">
+            <div class="report-card p-3 h-100">
+                <h5 class="mb-3">{{ t('Largest category increases') }}</h5>
+                <ul class="category-change-list">
+                    {% for item in category_increases %}
+                    <li><span>{{ item.name }}</span><strong class="text-danger">+{{ money(item.difference) }}</strong></li>
+                    {% else %}
+                    <li class="text-muted">{{ t('No category increases.') }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="report-card p-3 h-100">
+                <h5 class="mb-3">{{ t('Largest category decreases') }}</h5>
+                <ul class="category-change-list">
+                    {% for item in category_decreases %}
+                    <li><span>{{ item.name }}</span><strong class="text-success">{{ money(item.difference) }}</strong></li>
+                    {% else %}
+                    <li class="text-muted">{{ t('No category decreases.') }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="report-card p-3 mt-3">
+        <h5 class="mb-3">{{ t('Category breakdown') }}</h5>
+        <div class="table-responsive">
+            <table class="table table-sm report-table align-middle mb-0" id="categoryComparisonTable">
+                <thead><tr>
+                    <th>{{ t('Category') }}</th>
+                    <th class="text-end">{{ comparison_period.current_label }}</th>
+                    <th class="text-end">{{ comparison_period.against_label }}</th>
+                    <th class="text-end">{{ t('Difference') }}</th>
+                    <th class="text-end">{{ t('Variation') }}</th>
+                </tr></thead>
+                <tbody>
+                {% for item in category_comparison %}
+                <tr>
+                    <td>{{ item.name }}
+                        {% if item.status == 'new' %}<span class="badge text-bg-info ms-1">{{ t('New') }}</span>{% endif %}
+                        {% if item.status == 'stopped' %}<span class="badge text-bg-secondary ms-1">{{ t('No current spending') }}</span>{% endif %}
+                    </td>
+                    <td class="text-end">{{ money(item.current) }}</td>
+                    <td class="text-end">{{ money(item.previous) }}</td>
+                    <td class="text-end {{ 'text-danger' if item.difference > 0 else 'text-success' if item.difference < 0 else '' }}">
+                        {{ '+' if item.difference > 0 else '' }}{{ money(item.difference) }}
+                    </td>
+                    <td class="text-end">
+                        {% if item.status == 'new' %}{{ t('New') }}
+                        {% elif item.status == 'stopped' %}{{ t('Stopped') }}
+                        {% elif item.percentage is not none %}{{ '+' if item.percentage > 0 else '' }}{{ '%.1f'|format(item.percentage) }}%
+                        {% else %}—{% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-muted text-center py-3">{{ t('No expense data.') }}</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if reports_section == 'evolution' %}
+<div id="financialEvolution">
+    <div class="report-card p-3 mb-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
+            <form method="get" class="d-flex flex-wrap align-items-end gap-2">
+                <input type="hidden" name="section" value="evolution">
+                {% if report_filters.category_id %}<input type="hidden" name="category_id" value="{{ report_filters.category_id }}">{% endif %}
+                {% if report_filters.bank_id %}<input type="hidden" name="bank_id" value="{{ report_filters.bank_id }}">{% endif %}
+                {% if report_filters.account_id %}<input type="hidden" name="account_id" value="{{ report_filters.account_id }}">{% endif %}
+                {% if report_filters.card_id %}<input type="hidden" name="card_id" value="{{ report_filters.card_id }}">{% endif %}
+                {% if report_filters.loan_id %}<input type="hidden" name="loan_id" value="{{ report_filters.loan_id }}">{% elif report_filters.without_loan %}<input type="hidden" name="loan_id" value="none">{% endif %}
+                <div>
+                    <label class="form-label small mb-1" for="evolutionRange">{{ t('Interval') }}</label>
+                    <select class="form-select" id="evolutionRange" name="evolution_range">
+                        <option value="6m" {% if evolution_range == '6m' %}selected{% endif %}>{{ t('Last 6 months') }}</option>
+                        <option value="12m" {% if evolution_range == '12m' %}selected{% endif %}>{{ t('Last 12 months') }}</option>
+                        <option value="years" {% if evolution_range == 'years' %}selected{% endif %}>{{ t('Available years') }}</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary">{{ t('View') }}</button>
+            </form>
+            <div>
+                <div class="small text-muted mb-1">{{ t('Visible series') }}</div>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for key, label, color in [
+                        ('income', 'Income', '#198754'),
+                        ('expense', 'Expense', '#dc3545'),
+                        ('saving', 'Saving', '#fd7e14'),
+                        ('balance', 'Balance', '#0d6efd')
+                    ] %}
+                    <label class="series-toggle small">
+                        <input class="form-check-input me-1 evolution-series" type="checkbox" value="{{ key }}" checked>
+                        <span style="color:{{ color }}">●</span> {{ t(label) }}
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="report-card p-3">
+        <div class="evolution-chart-wrap">
+            <canvas id="financialEvolutionChart"></canvas>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if reports_section == 'saved' %}
+<div id="savedReports" class="report-card p-3">
+    <h5 class="mb-3">{{ t('Saved reports') }}</h5>
+    <div class="list-group list-group-flush">
+        {% for saved in saved_reports %}
+        <div class="list-group-item px-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+                <div class="fw-semibold">{{ saved[1] }}</div>
+                <div class="small text-muted">{{ t(saved[2]|capitalize) }} · {{ saved[4].strftime('%Y-%m-%d %H:%M') }}</div>
+            </div>
+            <div class="d-flex gap-2">
+                <a class="btn btn-sm btn-outline-primary" href="/reports?{{ saved[3] }}">{{ t('Open') }}</a>
+                <form method="post" action="/reports/saved/{{ saved[0] }}/delete">
+                    <button class="btn btn-sm btn-outline-danger">{{ t('Delete') }}</button>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-muted">{{ t('No saved reports yet.') }}</div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if can_configure and reports_section == 'delivery' %}
+<div id="emailDeliverySettings" class="report-card p-4 mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+        <div>
+            <h5 class="mb-1">{{ t('Email delivery') }}</h5>
+            <div class="text-muted small">{{ t('SMTP remains configured in Management. Reports controls what is sent and when.') }}</div>
+        </div>
+        <a href="/management/smtp" class="btn btn-sm btn-outline-secondary">{{ t('Configure SMTP') }}</a>
+    </div>
+    <form method="post" action="/reports/email-settings/save" class="mt-3">
+        <div class="d-flex flex-wrap gap-4 align-items-center mb-3">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="monthlyEnabled" name="monthly_enabled" value="1" {% if report_cfg.monthly_enabled %}checked{% endif %}>
+                <label class="form-check-label" for="monthlyEnabled">{{ t('Enable monthly report') }}</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="yearlyEnabled" name="yearly_enabled" value="1" {% if report_cfg.yearly_enabled %}checked{% endif %}>
+                <label class="form-check-label" for="yearlyEnabled">{{ t('Enable yearly report') }}</label>
+            </div>
+        </div>
+        <input type="hidden" name="monthly_template_version" value="{{ report_cfg.monthly_template_version }}">
+        <input type="hidden" name="yearly_template_version" value="{{ report_cfg.yearly_template_version }}">
+        <input type="hidden" name="next_section" value="delivery">
+        <button class="btn btn-primary btn-sm">{{ t('Save') }}</button>
+    </form>
+    <div class="d-flex flex-wrap gap-2 mt-3">
+        <form method="post" action="/reports/email-settings/test-monthly">
+            <button class="btn btn-outline-primary btn-sm">{{ t('Send test monthly') }}</button>
+        </form>
+        <form method="post" action="/reports/email-settings/test-yearly">
+            <button class="btn btn-outline-primary btn-sm">{{ t('Send test yearly') }}</button>
+        </form>
+    </div>
+</div>
+
+<div id="recentEmailDeliveries" class="report-card p-4">
+    <h5 class="mb-3">{{ t('Recent email deliveries') }}</h5>
+    <div class="table-responsive">
+        <table class="table table-sm report-table mb-0">
+            <thead>
+                <tr><th>{{ t('Type') }}</th><th>{{ t('Period') }}</th><th>{{ t('Status') }}</th><th>{{ t('Date') }}</th></tr>
+            </thead>
+            <tbody>
+            {% for run in runs %}
+            <tr>
+                <td>{{ t(run[0]) }}</td>
+                <td>{{ run[1] }}</td>
+                <td><span class="badge run-status {{ 'text-bg-success' if run[2] == 'success' else 'text-bg-danger' }}">{{ t(run[2]) }}</span></td>
+                <td>{{ run[4].strftime('%Y-%m-%d %H:%M') if run[4] else '-' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-muted text-center py-3">{{ t('No email deliveries yet.') }}</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if can_configure and reports_section == 'templates' %}
+<div id="emailTemplates" class="report-card p-4">
+    <h5 class="mb-1">{{ t('Email templates') }}</h5>
+    <div class="text-muted small mb-3">{{ t('Choose a presentation for each report. Preview uses the selected period and real report data.') }}</div>
+    <form method="post" action="/reports/email-settings/save">
+        {% if report_cfg.monthly_enabled %}<input type="hidden" name="monthly_enabled" value="1">{% endif %}
+        {% if report_cfg.yearly_enabled %}<input type="hidden" name="yearly_enabled" value="1">{% endif %}
+        <input type="hidden" name="next_section" value="templates">
+        <input type="hidden" id="monthlyTemplateVersion" name="monthly_template_version" value="{{ report_cfg.monthly_template_version }}">
+        <input type="hidden" id="yearlyTemplateVersion" name="yearly_template_version" value="{{ report_cfg.yearly_template_version }}">
+        <div class="btn-group btn-group-sm mb-2" role="group" aria-label="{{ t('Report type') }}">
+            <button class="btn btn-primary template-type" type="button" data-template-type="monthly">{{ t('Monthly') }}</button>
+            <button class="btn btn-outline-primary template-type" type="button" data-template-type="yearly">{{ t('Yearly') }}</button>
+        </div>
+        <div class="template-strip mb-2" id="templateStrip" data-period="{{ period }}" data-report-type="{{ report_type }}">
+            {% for version, name in [('v1', 'Classic'), ('v2', 'Fresh'), ('v3', 'Executive'), ('v4', 'Editorial'), ('v5', 'Dashboard'), ('v6', 'Receipt'), ('v7', 'Statement'), ('v8', 'Magazine'), ('v9', 'Minimal'), ('v10', 'Neon')] %}
+            <label class="template-card p-2 d-block">
+                <div class="template-swatch template-{{ version }} mb-1"><span style="width:55%"></span><span></span><span style="width:76%"></span><span></span></div>
+                <div class="template-meta d-flex align-items-center justify-content-between gap-1">
+                    <span><input class="form-check-input me-1 template-choice" type="radio" name="template_visual" value="{{ version }}"> {{ t(name) }}</span>
+                    <button class="btn btn-link btn-sm p-0 template-preview" type="button" data-version="{{ version }}">{{ t('Preview') }}</button>
+                </div>
+            </label>
+            {% endfor %}
+        </div>
+        <hr class="my-4">
+        <h6 class="mb-1">{{ t('Branding options') }}</h6>
+        <div class="text-muted small mb-3">{{ t('Customize the header and footer shared by all email templates.') }}</div>
+        <div class="row g-3 mb-3">
+            <div class="col-md-12">
+                <label class="form-label">{{ t('Brand name') }}</label>
+                <input class="form-control" name="brand_name" maxlength="100" value="{{ report_cfg.branding.brand_name }}">
+            </div>
+            <div class="col-md-12">
+                <label class="form-label">{{ t('Header text') }}</label>
+                <input class="form-control" name="header_text" maxlength="200" value="{{ report_cfg.branding.header_text }}">
+            </div>
+            <div class="col-md-12">
+                <label class="form-label">{{ t('Footer text') }}</label>
+                <textarea class="form-control" name="footer_text" maxlength="300" rows="2">{{ report_cfg.branding.footer_text }}</textarea>
+                <div class="form-text">{{ t('Use {year} and {version} to insert the current year and application version.') }}</div>
+            </div>
+        </div>
+        <button class="btn btn-primary btn-sm">{{ t('Save') }}</button>
+    </form>
+</div>
+<div class="template-preview-modal" id="templatePreviewModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="templatePreviewTitle">
+    <div class="template-preview-dialog" role="document">
+        <div class="template-preview-header">
+            <h5 class="mb-0" id="templatePreviewTitle">{{ t('Email template preview') }}</h5>
+            <button type="button" class="btn-close" id="closeTemplatePreview" aria-label="{{ t('Close') }}"></button>
+        </div>
+        <iframe class="template-preview-frame" id="templatePreviewFrame" title="{{ t('Email template preview') }}"></iframe>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if reports_section == 'evolution' %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endif %}
+<script>
+document.getElementById('reportType')?.addEventListener('change', (event) => {
+    window.location.href = `/reports?section={{ reports_section }}&type=${encodeURIComponent(event.target.value)}{{ filter_query }}`;
+});
+document.getElementById('comparisonKind')?.addEventListener('change', (event) => {
+    window.location.href = `/reports?section=comparisons&comparison_kind=${encodeURIComponent(event.target.value)}{{ filter_query }}`;
+});
+const reportBankFilter = document.getElementById('reportBankFilter');
+if (reportBankFilter) {
+    const dependentFilters = [
+        document.getElementById('reportAccountFilter'),
+        document.getElementById('reportCardFilter'),
+        document.getElementById('reportLoanFilter')
+    ];
+    const refreshDependentFilters = () => {
+        const bankId = reportBankFilter.value;
+        dependentFilters.forEach((select) => {
+            select?.querySelectorAll('option[data-bank-id]').forEach((option) => {
+                option.hidden = Boolean(bankId) && option.dataset.bankId !== bankId;
+                if (option.hidden && option.selected) select.value = '';
+            });
+        });
+    };
+    reportBankFilter.addEventListener('change', refreshDependentFilters);
+    refreshDependentFilters();
+}
+
+{% if reports_section == 'evolution' %}
+const evolutionRows = {{ evolution_data | tojson }};
+const evolutionChart = new Chart(document.getElementById('financialEvolutionChart'), {
+    type: 'line',
+    data: {
+        labels: evolutionRows.map((row) => row.label),
+        datasets: [
+            {key:'income', label:{{ t('Income')|tojson }}, data:evolutionRows.map((row) => row.income), borderColor:'#198754', backgroundColor:'rgba(25,135,84,.10)'},
+            {key:'expense', label:{{ t('Expense')|tojson }}, data:evolutionRows.map((row) => row.expense), borderColor:'#dc3545', backgroundColor:'rgba(220,53,69,.10)'},
+            {key:'saving', label:{{ t('Saving')|tojson }}, data:evolutionRows.map((row) => row.saving), borderColor:'#fd7e14', backgroundColor:'rgba(253,126,20,.10)'},
+            {key:'balance', label:{{ t('Balance')|tojson }}, data:evolutionRows.map((row) => row.balance), borderColor:'#0d6efd', backgroundColor:'rgba(13,110,253,.10)'}
+        ].map((dataset) => ({...dataset, tension:.28, pointRadius:3, borderWidth:2, fill:false}))
+    },
+    options: {
+        responsive:true,
+        maintainAspectRatio:false,
+        interaction:{mode:'index', intersect:false},
+        plugins:{legend:{display:false}},
+        scales:{y:{ticks:{callback:(value) => new Intl.NumberFormat(
+            {{ ('es-ES' if current_lang == 'es' else 'en-US')|tojson }},
+            {style:'currency', currency:'EUR', maximumFractionDigits:0}
+        ).format(value)}}}
+    }
+});
+document.querySelectorAll('.evolution-series').forEach((input) => {
+    input.addEventListener('change', () => {
+        const dataset = evolutionChart.data.datasets.find((item) => item.key === input.value);
+        dataset.hidden = !input.checked;
+        evolutionChart.update();
+    });
+});
+{% endif %}
+
+const templateStrip = document.getElementById('templateStrip');
+if (templateStrip) {
+    const stored = {
+        monthly: document.getElementById('monthlyTemplateVersion'),
+        yearly: document.getElementById('yearlyTemplateVersion')
+    };
+    let activeType = 'monthly';
+
+    const refreshTemplateSelector = () => {
+        document.querySelectorAll('.template-type').forEach((button) => {
+            const active = button.dataset.templateType === activeType;
+            button.classList.toggle('btn-primary', active);
+            button.classList.toggle('btn-outline-primary', !active);
+        });
+        document.querySelectorAll('.template-choice').forEach((input) => {
+            input.checked = input.value === stored[activeType].value;
+        });
+        const rawPeriod = templateStrip.dataset.period;
+        const sourceType = templateStrip.dataset.reportType;
+        const previewPeriod = activeType === 'yearly'
+            ? rawPeriod.slice(0, 4)
+            : (sourceType === 'yearly' ? `${rawPeriod}-01` : rawPeriod);
+        document.querySelectorAll('.template-preview').forEach((button) => {
+            button.dataset.previewUrl = `/reports/template-preview?version=${encodeURIComponent(button.dataset.version)}&type=${activeType}&period=${encodeURIComponent(previewPeriod)}`;
+        });
+    };
+
+    document.querySelectorAll('.template-type').forEach((button) => {
+        button.addEventListener('click', () => {
+            activeType = button.dataset.templateType;
+            refreshTemplateSelector();
+        });
+    });
+    document.querySelectorAll('.template-choice').forEach((input) => {
+        input.addEventListener('change', () => {
+            stored[activeType].value = input.value;
+        });
+    });
+    document.querySelectorAll('.template-preview').forEach((button) => {
+        button.addEventListener('click', (event) => {
+            event.stopPropagation();
+            openTemplatePreview(button.dataset.previewUrl, button);
+        });
+    });
+
+    const previewModal = document.getElementById('templatePreviewModal');
+    const previewFrame = document.getElementById('templatePreviewFrame');
+    const previewClose = document.getElementById('closeTemplatePreview');
+    let previewTrigger = null;
+
+    const closeTemplatePreview = () => {
+        if (!previewModal.classList.contains('is-open')) return;
+        previewModal.classList.remove('is-open');
+        previewModal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('template-preview-open');
+        previewFrame.src = 'about:blank';
+        previewTrigger?.focus();
+        previewTrigger = null;
+    };
+
+    const openTemplatePreview = (url, trigger) => {
+        previewTrigger = trigger;
+        previewFrame.src = url;
+        previewModal.classList.add('is-open');
+        previewModal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('template-preview-open');
+        previewClose.focus();
+    };
+
+    previewClose.addEventListener('click', closeTemplatePreview);
+    previewModal.addEventListener('click', (event) => {
+        if (event.target === previewModal) closeTemplatePreview();
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && previewModal.classList.contains('is-open')) {
+            closeTemplatePreview();
+        }
+    });
+    refreshTemplateSelector();
+}
+</script>
+{% endblock %}

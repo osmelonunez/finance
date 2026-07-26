@@ -204,6 +204,17 @@
         <label class="form-label" id="createResourceRefLabel" for="createResourceRef">{{ t('Account number') }}</label>
         <input class="form-control" id="createResourceRef" name="account_ref" disabled>
       </div>
+      <div class="col-md-2 create-fields" data-create-field="account-only" hidden>
+        <label class="form-label" for="createAccountType">{{ t('Account type') }}</label>
+        <select class="form-select" id="createAccountType" name="account_type" disabled>
+          <option value="current">{{ t('Current account') }}</option>
+          <option value="savings">{{ t('Savings account') }}</option>
+        </select>
+      </div>
+      <div class="col-md-2 create-fields" data-create-field="account-only" hidden>
+        <label class="form-label" for="createInitialBalance">{{ t('Initial balance') }}</label>
+        <input class="form-control" id="createInitialBalance" name="initial_balance" type="number" min="0" step="0.01" value="0" disabled>
+      </div>
       <div class="col-md-2">
         <label class="form-label" for="createResourceStatus">{{ t('Status') }}</label>
         <select class="form-select" id="createResourceStatus" name="is_active">
@@ -367,17 +378,21 @@
     <div class="fw-semibold mb-2">{{ t('Accounts') }}</div>
     <table class="table table-sm align-middle mb-0 pm-table">
       <colgroup>
-        <col style="width: 20%;">
-        <col style="width: 18%;">
-        <col style="width: 22%;">
+        <col style="width: 16%;">
+        <col style="width: 15%;">
+        <col style="width: 15%;">
+        <col style="width: 14%;">
         <col style="width: 12%;">
-        <col style="width: 28%;">
+        <col style="width: 10%;">
+        <col style="width: 18%;">
       </colgroup>
       <thead>
         <tr class="pm-row">
           <th>{{ t('Name') }}</th>
           <th>{{ t('Bank') }}</th>
           <th>{{ t('Account number') }}</th>
+          <th>{{ t('Account type') }}</th>
+          <th>{{ t('Initial balance') }}</th>
           <th>{{ t('Status') }}</th>
           <th class="text-end">{{ t('Action') }}</th>
         </tr>
@@ -395,6 +410,13 @@
             </select>
           </td>
           <td><input class="form-control form-control-sm pm-field" form="pm-update-{{ m[0] }}" name="account_ref" value="{{ m[4] or '' }}" data-original="{{ m[4] or '' }}" disabled></td>
+          <td>
+            <select class="form-select form-select-sm pm-field" form="pm-update-{{ m[0] }}" name="account_type" data-original="{{ m[10] or 'current' }}" disabled>
+              <option value="current" {% if m[10] == 'current' %}selected{% endif %}>{{ t('Current account') }}</option>
+              <option value="savings" {% if m[10] == 'savings' %}selected{% endif %}>{{ t('Savings account') }}</option>
+            </select>
+          </td>
+          <td><input class="form-control form-control-sm pm-field" form="pm-update-{{ m[0] }}" name="initial_balance" type="number" min="0" step="0.01" value="{{ m[11] or 0 }}" data-original="{{ m[11] or 0 }}" disabled></td>
           <td>
             <select class="form-select form-select-sm pm-field" form="pm-update-{{ m[0] }}" name="is_active" data-original="{{ '1' if m[5] else '0' }}" disabled>
               <option value="1" {% if m[5] %}selected{% endif %}>{{ t('Active') }}</option>
@@ -414,7 +436,7 @@
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="5" class="text-muted">{{ t('No records found.') }}</td></tr>
+        <tr><td colspan="7" class="text-muted">{{ t('No records found.') }}</td></tr>
       {% endfor %}
       </tbody>
     </table>
@@ -719,6 +741,7 @@
     const createRefLabel = document.getElementById("createResourceRefLabel");
     const paymentMethodFields = document.querySelectorAll('[data-create-field="payment-method"]');
     const cardAccountFields = document.querySelectorAll('[data-create-field="card-account"]');
+    const accountOnlyFields = document.querySelectorAll('[data-create-field="account-only"]');
 
     function updateCreateForm() {
       if (!createForm || !createType || !createKind) return;
@@ -738,6 +761,11 @@
         const enabled = type === "card";
         field.hidden = !enabled;
         field.querySelectorAll("select").forEach((control) => { control.disabled = !enabled; });
+      });
+      accountOnlyFields.forEach((field) => {
+        const enabled = type === "bank_account";
+        field.hidden = !enabled;
+        field.querySelectorAll("input, select").forEach((control) => { control.disabled = !enabled; });
       });
       if (createRefLabel) {
         createRefLabel.textContent = type === "card" ? {{ t('Card number')|tojson }} : {{ t('Account number')|tojson }};

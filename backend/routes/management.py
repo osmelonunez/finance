@@ -3,6 +3,7 @@ import logging
 import os
 import base64
 import smtplib
+from decimal import Decimal, InvalidOperation
 from urllib.parse import urlparse, quote_plus
 
 import psycopg2
@@ -31,6 +32,7 @@ DEMO_PAYMENT_METHOD_NAMES = (
     "Demo - ING Account - Person 1",
     "Demo - ING Account - Person 2",
     "Demo - ING Shared Account",
+    "Demo - ING Savings",
     "Demo - Shared Card",
     "Demo - Santander Account",
     "Demo - BBVA Card",
@@ -250,7 +252,8 @@ def _load_payment_methods():
                 """
                 SELECT pm.id, pm.name, pm.kind, pm.bank_name, pm.account_ref, pm.is_active,
                        pm.bank_id, COALESCE(b.name, pm.bank_name) AS bank_display,
-                       pm.parent_account_id, parent.name AS parent_account_name
+                       pm.parent_account_id, parent.name AS parent_account_name,
+                       pm.account_type, pm.initial_balance
                 FROM payment_methods pm
                 LEFT JOIN banks b ON pm.bank_id = b.id
                 LEFT JOIN payment_methods parent ON parent.id=pm.parent_account_id
@@ -432,11 +435,9 @@ def management_smtp():
     if denied:
         return denied
     smtp = _load_smtp_settings()
-    report_cfg = _load_email_report_config()
     return render_template(
         "management_smtp.html",
         smtp=smtp,
-        report_cfg=report_cfg,
         has_password=bool(smtp["password_encrypted"]),
         is_admin=(session.get("role") == "admin"),
         **_flash_payload(),
@@ -547,6 +548,7 @@ def test_smtp():
 
 
 @management_bp.route("/management/email-reports/save", methods=["POST"])
+@management_bp.route("/reports/email-settings/save", methods=["POST"])
 def save_email_reports():
     denied = _require_roles("admin", "editor")
     if denied:
@@ -555,56 +557,94 @@ def save_email_reports():
     yearly_enabled = (request.form.get("yearly_enabled") == "1")
     monthly_template_version = (request.form.get("monthly_template_version") or "v1").strip().lower()
     yearly_template_version = (request.form.get("yearly_template_version") or "v1").strip().lower()
-    if monthly_template_version != "v1":
+    valid_templates = {"v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10"}
+    if monthly_template_version not in valid_templates:
         monthly_template_version = "v1"
-    if yearly_template_version != "v1":
+    if yearly_template_version not in valid_templates:
         yearly_template_version = "v1"
     with get_db() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO email_report_config (
-                    id, monthly_enabled, yearly_enabled, monthly_template_version, yearly_template_version, updated_at
+                SELECT brand_name, header_text, footer_text
+                FROM email_report_config WHERE id=1
+                """
+            )
+            row = cur.fetchone() or (
+                "Finance",
+                "Personal finance report",
+                "© {year} Osmel Nuñez Alonso · v{version} · GitHub",
+            )
+            field_limits = {
+                "brand_name": (100, 0),
+                "header_text": (200, 1),
+                "footer_text": (300, 2),
+            }
+            branding = {}
+            for field, (limit, row_index) in field_limits.items():
+                branding[field] = (
+                    (request.form.get(field) or "").strip()[:limit]
+                    if field in request.form
+                    else row[row_index]
                 )
-                VALUES (1, %s, %s, %s, %s, NOW())
+            cur.execute(
+                """
+                INSERT INTO email_report_config (
+                    id, monthly_enabled, yearly_enabled, monthly_template_version, yearly_template_version,
+                    brand_name, header_text, footer_text, updated_at
+                )
+                VALUES (1, %s, %s, %s, %s, %s, %s, %s, NOW())
                 ON CONFLICT (id) DO UPDATE SET
                     monthly_enabled=EXCLUDED.monthly_enabled,
                     yearly_enabled=EXCLUDED.yearly_enabled,
                     monthly_template_version=EXCLUDED.monthly_template_version,
                     yearly_template_version=EXCLUDED.yearly_template_version,
+                    brand_name=EXCLUDED.brand_name,
+                    header_text=EXCLUDED.header_text,
+                    footer_text=EXCLUDED.footer_text,
                     updated_at=NOW()
                 """,
-                (monthly_enabled, yearly_enabled, monthly_template_version, yearly_template_version),
+                (
+                    monthly_enabled, yearly_enabled,
+                    monthly_template_version, yearly_template_version,
+                    branding["brand_name"],
+                    branding["header_text"], branding["footer_text"],
+                ),
             )
             conn.commit()
-    session["management_msg"] = t("Email report settings saved.")
-    return redirect(url_for("management.management_smtp"))
+    session["reports_msg"] = t("Email report settings saved.")
+    next_section = (request.form.get("next_section") or "").strip().lower()
+    if next_section in {"delivery", "templates"}:
+        return redirect(url_for("reports.reports", section=next_section))
+    return redirect(url_for("reports.reports"))
 
 
 @management_bp.route("/management/email-reports/test-monthly", methods=["POST"])
+@management_bp.route("/reports/email-settings/test-monthly", methods=["POST"])
 def test_monthly_report():
     denied = _require_roles("admin", "editor")
     if denied:
         return denied
     recipient = (session.get("user_email") or "").strip()
     ok, msg = send_monthly_report(test=True, recipients_override=[recipient] if recipient else [])
-    session["management_msg" if ok else "management_err"] = (
+    session["reports_msg" if ok else "reports_err"] = (
         t("Monthly report test sent.") if ok else f"{t('Monthly report test failed')}: {msg}"
     )
-    return redirect(url_for("management.management_smtp"))
+    return redirect(url_for("reports.reports"))
 
 
 @management_bp.route("/management/email-reports/test-yearly", methods=["POST"])
+@management_bp.route("/reports/email-settings/test-yearly", methods=["POST"])
 def test_yearly_report():
     denied = _require_roles("admin", "editor")
     if denied:
         return denied
     recipient = (session.get("user_email") or "").strip()
     ok, msg = send_yearly_report(test=True, recipients_override=[recipient] if recipient else [])
-    session["management_msg" if ok else "management_err"] = (
+    session["reports_msg" if ok else "reports_err"] = (
         t("Yearly report test sent.") if ok else f"{t('Yearly report test failed')}: {msg}"
     )
-    return redirect(url_for("management.management_smtp"))
+    return redirect(url_for("reports.reports"))
 
 
 @management_bp.route("/management/system")
@@ -746,7 +786,7 @@ def payment_method_detail(method_id):
             page = min(max(page, 1), total_pages)
             cur.execute(
                 """
-                SELECT r.id, r.concept, r.amount, r.date, r.source, c.name, r.comment
+                SELECT r.id, r.concept, r.amount, r.date, c.name, r.comment
                 FROM records r
                 LEFT JOIN categories c ON c.id=r.category_id
                 WHERE r.payment_method_id=%s AND r.type='expense'
@@ -845,7 +885,7 @@ def bank_detail(bank_id):
             page = min(max(page, 1), total_pages)
             cur.execute(
                 """
-                SELECT r.id, r.concept, r.amount, r.date, r.source, c.name, pm.name
+                SELECT r.id, r.concept, r.amount, r.date, c.name, pm.name
                 FROM records r
                 JOIN payment_methods pm ON pm.id=r.payment_method_id
                 LEFT JOIN categories c ON c.id=r.category_id
@@ -925,6 +965,15 @@ def add_payment_method():
     parent_account_id = _parse_int_or_none(request.form.get("parent_account_id"))
     account_ref = (request.form.get("account_ref") or "").strip()
     is_active = (request.form.get("is_active") or "1") == "1"
+    account_type = (request.form.get("account_type") or "current").strip().lower()
+    if account_type not in {"current", "savings"}:
+        account_type = "current"
+    try:
+        initial_balance = Decimal((request.form.get("initial_balance") or "0").strip())
+    except (InvalidOperation, ValueError):
+        initial_balance = Decimal("0")
+    if initial_balance < 0 or kind != "bank_account" or account_type != "savings":
+        initial_balance = Decimal("0")
     if kind not in {"card", "bank_account"}:
         kind = "card"
     if name_error:
@@ -958,11 +1007,19 @@ def add_payment_method():
                     return redirect(url_for("management.payment_methods_section", section="accounts" if kind == "bank_account" else "cards"))
                 cur.execute(
                     """
-                    INSERT INTO payment_methods (name, kind, bank_id, bank_name, account_ref, is_active, parent_account_id, updated_at)
-                    VALUES (%s, %s, %s, (SELECT name FROM banks WHERE id=%s), %s, %s, %s, NOW())
+                    INSERT INTO payment_methods (
+                        name, kind, bank_id, bank_name, account_ref, is_active,
+                        parent_account_id, account_type, initial_balance, updated_at
+                    )
+                    VALUES (%s, %s, %s, (SELECT name FROM banks WHERE id=%s), %s, %s, %s, %s, %s, NOW())
                     RETURNING id
                     """,
-                    (name, kind, bank_id, bank_id, account_ref or None, is_active, parent_account_id if kind == "card" else None),
+                    (
+                        name, kind, bank_id, bank_id, account_ref or None, is_active,
+                        parent_account_id if kind == "card" else None,
+                        account_type if kind == "bank_account" else None,
+                        initial_balance,
+                    ),
                 )
                 method_id = cur.fetchone()[0]
                 conn.commit()
@@ -997,6 +1054,15 @@ def update_payment_method(method_id):
     parent_account_id = _parse_int_or_none(request.form.get("parent_account_id"))
     account_ref = (request.form.get("account_ref") or "").strip()
     is_active = (request.form.get("is_active") or "0") == "1"
+    account_type = (request.form.get("account_type") or "current").strip().lower()
+    if account_type not in {"current", "savings"}:
+        account_type = "current"
+    try:
+        initial_balance = Decimal((request.form.get("initial_balance") or "0").strip())
+    except (InvalidOperation, ValueError):
+        initial_balance = Decimal("0")
+    if initial_balance < 0 or kind != "bank_account" or account_type != "savings":
+        initial_balance = Decimal("0")
     if kind not in {"card", "bank_account"}:
         kind = "card"
     if name_error:
@@ -1048,11 +1114,18 @@ def update_payment_method(method_id):
                         bank_name=(SELECT name FROM banks WHERE id=%s),
                         account_ref=%s,
                         parent_account_id=%s,
+                        account_type=%s,
+                        initial_balance=%s,
                         is_active=%s,
                         updated_at=NOW()
                     WHERE id=%s
                     """,
-                    (name, kind, bank_id, bank_id, account_ref or None, parent_account_id if kind == "card" else None, is_active, method_id),
+                    (
+                        name, kind, bank_id, bank_id, account_ref or None,
+                        parent_account_id if kind == "card" else None,
+                        account_type if kind == "bank_account" else None,
+                        initial_balance, is_active, method_id,
+                    ),
                 )
                 updated = cur.rowcount
                 if kind == "bank_account" and not is_active:
@@ -1249,9 +1322,12 @@ def delete_payment_method(method_id):
         return redirect(url_for("dashboard.dashboard"))
     with get_db() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT kind FROM payment_methods WHERE id=%s", (method_id,))
+            cur.execute("SELECT kind, initial_balance FROM payment_methods WHERE id=%s", (method_id,))
             method_row = cur.fetchone()
             section = "accounts" if method_row and method_row[0] == "bank_account" else "cards"
+            if method_row and Decimal(method_row[1] or 0) != 0:
+                session["management_err"] = t("Cannot delete account. Its initial balance is not zero.")
+                return redirect(url_for("management.payment_methods_section", section=section))
             cur.execute("SELECT 1 FROM records WHERE payment_method_id=%s LIMIT 1", (method_id,))
             if cur.fetchone():
                 logger.info(

@@ -2,6 +2,7 @@ from datetime import datetime
 import pytest
 
 from i18n import format_money, format_number
+from routes.budgets import _budget_state
 from validators import parse_year_month, validate_amount, validate_concept, validate_text_length
 
 
@@ -52,3 +53,21 @@ def test_parse_year_month_uses_fallback_for_invalid_value():
     fallback = datetime(2026, 1, 1)
     assert parse_year_month("2026-07", fallback) == datetime(2026, 7, 1)
     assert parse_year_month("invalid", fallback) is fallback
+
+
+@pytest.mark.parametrize(
+    "spent,budget,expected",
+    [
+        ("0", "100", "normal"),
+        ("79.99", "100", "normal"),
+        ("80", "100", "warning"),
+        ("89.99", "100", "warning"),
+        ("90", "100", "danger"),
+        ("99.99", "100", "danger"),
+        ("100", "100", "exceeded"),
+        ("125", "100", "exceeded"),
+        ("50", None, "unbudgeted"),
+    ],
+)
+def test_budget_state_thresholds(spent, budget, expected):
+    assert _budget_state(spent, budget) == expected

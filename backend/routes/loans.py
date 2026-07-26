@@ -412,7 +412,7 @@ def loan_detail(id):
             payment_page = min(payment_page, payment_pages)
             cur.execute(
                 """
-                SELECT id, concept, amount, date, source, comment, loan_principal_amount, loan_interest_amount
+                SELECT id, concept, amount, date, comment, loan_principal_amount, loan_interest_amount
                 FROM records
                 WHERE loan_id=%s AND type='expense' AND is_loan_payment=TRUE
                 ORDER BY date DESC, id DESC
