@@ -54,62 +54,56 @@
         {% if expense[4] == 'expense' %}
         <div class="col-md-4">
             <div class="detail-label">{{ t('Category') }}</div>
-            <div class="detail-value">{{ cat_name(expense[7]) if expense[7] else '-' }}</div>
-        </div>
-        {% endif %}
-        {% if expense[4] == 'expense' %}
-        <div class="col-md-4">
-            <div class="detail-label">{{ t('Source') }}</div>
-            <div class="detail-value">{{ expense[5] or '-' }}</div>
+            <div class="detail-value">{{ cat_name(expense[6]) if expense[6] else '-' }}</div>
         </div>
         {% endif %}
         {% if expense[4] == 'expense' %}
         <div class="col-md-4">
             <div class="detail-label">{{ t('Account/Card') }}</div>
-            <div class="detail-value">{{ expense[13] or '-' }}</div>
+            <div class="detail-value">{{ expense[12] or '-' }}</div>
         </div>
         {% endif %}
         {% if expense[4] == 'expense' %}
         <div class="col-md-4">
             <div class="detail-label">{{ t('Loan payment') }}</div>
             <div class="detail-value">
-                {% if expense[17] and expense[18] %}
-                    <a href="/loans/{{ expense[16] }}">{{ expense[18] }} - {{ expense[19] }}</a>
+                {% if expense[16] and expense[17] %}
+                    <a href="/loans/{{ expense[15] }}">{{ expense[17] }} - {{ expense[18] }}</a>
                 {% else %}
                     {{ t('No') }}
                 {% endif %}
             </div>
         </div>
         {% endif %}
-        {% if expense[4] == 'expense' and expense[17] and expense[20] is not none %}
+        {% if expense[4] == 'expense' and expense[16] and expense[19] is not none %}
         <div class="col-md-4">
             <div class="detail-label">{{ t('Principal') }}</div>
-            <div class="detail-value text-success">{{ money(expense[20]) }}</div>
+            <div class="detail-value text-success">{{ money(expense[19]) }}</div>
         </div>
         <div class="col-md-4">
             <div class="detail-label">{{ t('Interest') }}</div>
-            <div class="detail-value text-danger">{{ money(expense[21]) }}</div>
+            <div class="detail-value text-danger">{{ money(expense[20]) }}</div>
         </div>
         {% endif %}
         <div class="col-md-12">
             <div class="detail-label">{{ t('Comment') }}</div>
-            <div class="detail-value">{{ expense[6] or '-' }}</div>
+            <div class="detail-value">{{ expense[5] or '-' }}</div>
         </div>
         <div class="col-md-6">
             <div class="detail-label">{{ t('Created') }}</div>
             <div class="detail-value">
-                {{ expense[8] or '-' }}
-                {% if expense[9] %}
-                    · {{ expense[9].strftime("%Y-%m-%d %H:%M") }}
+                {{ expense[7] or '-' }}
+                {% if expense[8] %}
+                    · {{ expense[8].strftime("%Y-%m-%d %H:%M") }}
                 {% endif %}
             </div>
         </div>
         <div class="col-md-6">
             <div class="detail-label">{{ t('Last edit') }}</div>
             <div class="detail-value">
-                {{ expense[11] or '-' }}
-                {% if expense[10] %}
-                    · {{ expense[10].strftime("%Y-%m-%d %H:%M") }}
+                {{ expense[10] or '-' }}
+                {% if expense[9] %}
+                    · {{ expense[9].strftime("%Y-%m-%d %H:%M") }}
                 {% endif %}
             </div>
         </div>
@@ -117,7 +111,7 @@
 
     <div class="d-flex gap-2 mt-4">
         <a href="/edit/{{ expense[0] }}?from={{ from_page }}{% if return_to %}&return_to={{ return_to|urlencode }}{% endif %}" class="btn btn-soft">{{ t('Edit') }}</a>
-        {% if not (expense[15] and expense[15] > 1) %}
+        {% if not (expense[14] and expense[14] > 1) %}
         <a href="/duplicate/{{ expense[0] }}?from={{ from_page }}{% if return_to %}&return_to={{ return_to|urlencode }}{% endif %}" class="btn btn-outline-secondary">{{ t('Duplicate') }}</a>
         {% endif %}
         <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteConfirmModal">

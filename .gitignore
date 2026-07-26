@@ -9,6 +9,12 @@ config
 __pycache__
 *.py[cod]
 
+# Generated coverage reports.
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
 # Generated test execution reports (keep the usage guide).
 test-reports/*.md
 !test-reports/README.md

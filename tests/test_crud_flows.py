@@ -36,7 +36,6 @@ def test_expense_create_edit_duplicate_delete_flow(admin_client, db_query):
         "concept": "Release flow expense",
         "amount": "42.50",
         "date": "2026-07",
-        "source": "monthly",
         "category": "Food",
         "payment_method_id": "1",
         "comment": "Created",
@@ -136,8 +135,8 @@ def test_bank_detail_pagination_loads_second_page(admin_client, db_query):
     for index in range(11):
         db_query(
             """
-            INSERT INTO records (concept, amount, date, type, source, payment_method_id, created_by)
-            VALUES (%s, 10, '2026-07', 'expense', 'monthly', 1, 'admin_test')
+            INSERT INTO records (concept, amount, date, type, payment_method_id, created_by)
+            VALUES (%s, 10, '2026-07', 'expense', 1, 'admin_test')
             """,
             (f"Paginated expense {index:02d}",),
             fetch="none",

@@ -24,9 +24,6 @@
     .edit-date {
         width: 96px;
     }
-    .edit-source {
-        width: 86px;
-    }
     .edit-options {
         display: flex;
         flex-direction: column;
@@ -56,16 +53,16 @@
         {% if expense[4] == 'expense' %}
         <div class="edit-options">
             <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="deferredCheckEdit" name="is_deferred" value="1" {{ 'checked' if expense[15] and expense[15] > 1 else '' }}>
+                <input class="form-check-input" type="checkbox" id="deferredCheckEdit" name="is_deferred" value="1" {{ 'checked' if expense[14] and expense[14] > 1 else '' }}>
                 <label class="form-check-label" for="deferredCheckEdit">{{ t('Deferred payment') }}</label>
             </div>
             <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="loanPaymentCheckEdit" name="is_loan_payment" value="1" {{ 'checked' if expense[17] else '' }}>
+                <input class="form-check-input" type="checkbox" id="loanPaymentCheckEdit" name="is_loan_payment" value="1" {{ 'checked' if expense[16] else '' }}>
                 <label class="form-check-label" for="loanPaymentCheckEdit">{{ t('Loan payment') }}</label>
             </div>
-            <div id="deferredTotalWrapEdit" style="{{ '' if expense[15] and expense[15] > 1 else 'display:none;' }}">
+            <div id="deferredTotalWrapEdit" style="{{ '' if expense[14] and expense[14] > 1 else 'display:none;' }}">
                 <label class="form-label mb-1">{{ t('Installments') }}</label>
-                <input class="form-control form-control-sm" type="number" min="2" max="60" name="deferred_total" value="{{ expense[15] if expense[15] and expense[15] > 1 else 3 }}">
+                <input class="form-control form-control-sm" type="number" min="2" max="60" name="deferred_total" value="{{ expense[14] if expense[14] and expense[14] > 1 else 3 }}">
             </div>
         </div>
         {% endif %}
@@ -76,10 +73,10 @@
         <div class="d-flex gap-3 align-items-start">
             <div>
                 <label class="form-label">{{ t('Category') }}</label>
-                <select class="form-control edit-category" name="category">
+                <select class="form-control edit-category" name="category" required>
                     <option value="">{{ t('Select') }}</option>
                     {% for c in categories %}
-                    <option value="{{ c }}" {{ 'selected' if expense[7] == c else '' }}>{{ cat_name(c) }}</option>
+                    <option value="{{ c }}" {{ 'selected' if expense[6] == c else '' }}>{{ cat_name(c) }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -95,26 +92,18 @@
                        value="{{ expense[3] }}"
                        readonly>
             </div>
-            <div>
-                <label class="form-label">{{ t('Source') }}</label>
-                <select class="form-control edit-source" name="source">
-                    <option value="">-</option>
-                    <option value="monthly" {{ 'selected' if expense[5]=='monthly' else '' }}>{{ t('Monthly') }}</option>
-                    <option value="saving" {{ 'selected' if expense[5]=='saving' else '' }}>{{ t('Saving') }}</option>
-                </select>
-            </div>
-            <div id="accountFieldEdit" style="{{ 'display:none;' if expense[17] else '' }}">
+            <div id="accountFieldEdit" style="{{ 'display:none;' if expense[16] else '' }}">
                 <label class="form-label">{{ t('Account/Card') }}</label>
                 <select class="form-control edit-category" name="payment_method_id">
                     <option value="">{{ t('Select') }}</option>
                     {% for pm in payment_methods %}
-                    <option value="{{ pm[0] }}" {{ 'selected' if expense[13] == pm[0] else '' }}>
-                        {{ pm[1] }}{% if not pm[2] %} ({{ t('Inactive') }}){% endif %}
+                    <option value="{{ pm[0] }}" {{ 'selected' if expense[12] == pm[0] else '' }}>
+                        [{{ t('Card') if pm[3] == 'card' else t('Savings account') if pm[4] == 'savings' else t('Current account') }}] {{ pm[1] }}{% if not pm[2] %} ({{ t('Inactive') }}){% endif %}
                     </option>
                     {% endfor %}
                 </select>
             </div>
-            <div id="loanSelectWrapEdit" style="{{ '' if expense[17] else 'display:none;' }}">
+            <div id="loanSelectWrapEdit" style="{{ '' if expense[16] else 'display:none;' }}">
                 <label class="form-label">{{ t('Loans') }}</label>
                 <select class="form-control edit-category" name="loan_id">
                     <option value="">{{ t('Select') }}</option>
@@ -124,7 +113,7 @@
                         data-is-mortgage="{{ '1' if loan[3] else '0' }}"
                         data-monthly-principal="{{ loan[4] or '' }}"
                         data-monthly-interest="{{ loan[5] or '' }}"
-                        {{ 'selected' if expense[16] == loan[0] else '' }}>{{ loan[1] }} - {{ loan[2] }}</option>
+                        {{ 'selected' if expense[15] == loan[0] else '' }}>{{ loan[1] }} - {{ loan[2] }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -139,7 +128,7 @@
                     min="0.01"
                     name="loan_principal_amount"
                     id="loanPrincipalAmountEdit"
-                    value="{{ expense[18] or '' }}"
+                    value="{{ expense[17] or '' }}"
                     placeholder="{{ t('Principal') }}">
                 <input
                     class="form-control"
@@ -148,7 +137,7 @@
                     min="0"
                     name="loan_interest_amount"
                     id="loanInterestAmountEdit"
-                    value="{{ expense[19] if expense[19] is not none else '' }}"
+                    value="{{ expense[18] if expense[18] is not none else '' }}"
                     placeholder="{{ t('Interest') }}">
             </div>
             <div class="form-text">{{ t('Principal and interest are tracked separately; the full payment reduces total pending debt.') }}</div>
@@ -171,13 +160,23 @@
                        value="{{ expense[3] }}"
                        readonly>
             </div>
+            {% if expense[4] == 'saving' %}
+            <div>
+                <label class="form-label">{{ t('Savings account') }}</label>
+                <select class="form-control" name="payment_method_id" required>
+                    {% for pm in payment_methods if pm[3] == 'bank_account' and pm[4] == 'savings' %}
+                    <option value="{{ pm[0] }}" {{ 'selected' if expense[12] == pm[0] else '' }}>[{{ t('Savings account') }}] {{ pm[1] }}{% if not pm[2] %} ({{ t('Inactive') }}){% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
         </div>
     </div>
     {% endif %}
 
     <div class="col-12">
         <label class="form-label">{{ t('Comment') }}</label>
-        <textarea class="form-control" name="comment" rows="2" maxlength="500" placeholder="{{ t('Optional') }}">{{ expense[6] or '' }}</textarea>
+        <textarea class="form-control" name="comment" rows="2" maxlength="500" placeholder="{{ t('Optional') }}">{{ expense[5] or '' }}</textarea>
     </div>
 
     <div class="col-12">
@@ -267,7 +266,7 @@ $('#dateEdit').datepicker({
     const deferredScopeModal = deferredScopeModalEl ? bootstrap.Modal.getOrCreateInstance(deferredScopeModalEl) : null;
     const saveSingleDeferredBtn = document.getElementById('saveSingleDeferredBtn');
     const saveAllDeferredBtn = document.getElementById('saveAllDeferredBtn');
-    const wasDeferredInitially = {{ 'true' if expense[4] == 'expense' and expense[15] and expense[15] > 1 else 'false' }};
+    const wasDeferredInitially = {{ 'true' if expense[4] == 'expense' and expense[14] and expense[14] > 1 else 'false' }};
 
     if (deferredCheck && deferredTotalWrap) {
       deferredCheck.addEventListener('change', () => {

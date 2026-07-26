@@ -33,7 +33,6 @@ MOVEMENT_PAYLOAD = {
     "concept": "Release test expense",
     "amount": "25.50",
     "date": "2026-07",
-    "source": "monthly",
     "category": "Food",
     "payment_method_id": "1",
     "comment": "Automated route test",

@@ -70,7 +70,8 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 - Gunicorn runtime in Docker, running as non-root user
 - Structured JSON logs + health checks (`/health/live`, `/health/ready`)
 - Dashboard query optimization + short cache (30s) with invalidation on data changes
-- Eight versioned report templates (`v1` through `v8`) in one five-column monthly/yearly grid
+- Ten versioned report templates (`v1` through `v10`) in one five-column monthly/yearly grid
+- Shared email branding with brand name, header and centered footer
 
 ## Reports and analytics
 
@@ -82,7 +83,9 @@ The `Reports` workspace brings financial analysis and email delivery together:
 - Shared filters for category, bank, account, card, and loan.
 - Contextual CSV export and a dedicated print layout that can be saved as PDF.
 - Per-user saved reports that preserve periods, comparison mode, metrics, and filters.
-- Email report settings, delivery history, and eight templates with monthly or yearly previews.
+- Email report settings, delivery history, and ten templates with monthly or yearly previews.
+- Current and savings accounts, with per-account opening balances and a consolidated `Savings Accounts` total.
+- Saving contributions require a destination account; linked expenses and cards reduce that account's balance.
 
 ## Screenshots
 
@@ -257,7 +260,7 @@ Rate limits:
 - Reports are sent only to users:
   - active
   - with email notifications enabled
-- Monthly and yearly templates can independently use eight styles, including Editorial, Dashboard, Receipt, Statement and Magazine, with previews based on real report data.
+- Monthly and yearly templates can independently use ten styles, including Editorial, Dashboard, Receipt, Statement, Magazine, Minimal and Neon, with previews based on real report data and shared branding.
 
 ## License
 

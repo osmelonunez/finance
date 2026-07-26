@@ -79,7 +79,7 @@ def budgets():
                     b.is_disabled,
                     COALESCE(SUM(
                         CASE
-                            WHEN r.type='expense' AND r.source='monthly' THEN r.amount
+                            WHEN r.type='expense' THEN r.amount
                             ELSE 0
                         END
                     ), 0) AS spent

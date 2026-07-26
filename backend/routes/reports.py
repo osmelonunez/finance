@@ -10,6 +10,7 @@ from db import get_db
 from i18n import category_name
 from report_service import _report_texts
 from report_templates import _normalize_version, render_report_html
+from savings import savings_account_balances, savings_accounts_total
 from validators import parse_year_month
 
 
@@ -66,7 +67,8 @@ def _filter_sql(filters, alias="r"):
 def _report_config(cur):
     cur.execute(
         """
-        SELECT monthly_enabled, yearly_enabled, monthly_template_version, yearly_template_version
+        SELECT monthly_enabled, yearly_enabled, monthly_template_version, yearly_template_version,
+               brand_name, header_text, footer_text
         FROM email_report_config
         WHERE id=1
         """
@@ -78,12 +80,22 @@ def _report_config(cur):
             "yearly_enabled": True,
             "monthly_template_version": "v1",
             "yearly_template_version": "v1",
+            "branding": {
+                "brand_name": "Finance",
+                "header_text": "Personal finance report",
+                "footer_text": "© {year} Osmel Nuñez Alonso · v{version} · GitHub",
+            },
         }
     return {
         "monthly_enabled": bool(row[0]),
         "yearly_enabled": bool(row[1]),
         "monthly_template_version": _normalize_version(row[2]),
         "yearly_template_version": _normalize_version(row[3]),
+        "branding": {
+            "brand_name": row[4] or "",
+            "header_text": row[5] or "",
+            "footer_text": row[6] or "",
+        },
     }
 
 
@@ -114,7 +126,7 @@ def _summary(cur, report_type, period, filters=None):
         f"""
         SELECT
             COALESCE(SUM(CASE WHEN type='income' THEN amount ELSE 0 END), 0),
-            COALESCE(SUM(CASE WHEN type='expense' AND source='monthly' THEN amount ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN type='expense' THEN amount ELSE 0 END), 0),
             COALESCE(SUM(CASE WHEN type='saving' THEN amount ELSE 0 END), 0)
         FROM records r
         WHERE {where}{filter_sql}
@@ -136,7 +148,7 @@ def _summary_between(cur, start, end, filters=None):
         f"""
         SELECT
             COALESCE(SUM(CASE WHEN type='income' THEN amount ELSE 0 END), 0),
-            COALESCE(SUM(CASE WHEN type='expense' AND source='monthly' THEN amount ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN type='expense' THEN amount ELSE 0 END), 0),
             COALESCE(SUM(CASE WHEN type='saving' THEN amount ELSE 0 END), 0)
         FROM records r
         WHERE date >= %s AND date <= %s{filter_sql}
@@ -245,7 +257,7 @@ def _category_comparison(cur, comparison_period, lang, filters=None):
             SELECT COALESCE(c.name, 'Uncategorized'), SUM(r.amount)
             FROM records r
             LEFT JOIN categories c ON c.id=r.category_id
-            WHERE r.type='expense' AND r.source='monthly'
+            WHERE r.type='expense'
               AND r.date >= %s AND r.date <= %s
               {filter_sql}
             GROUP BY COALESCE(c.name, 'Uncategorized')
@@ -348,7 +360,7 @@ def _evolution_data(cur, evolution_range, lang, filters=None):
         f"""
         SELECT {key_expression},
             COALESCE(SUM(CASE WHEN type='income' THEN amount ELSE 0 END), 0),
-            COALESCE(SUM(CASE WHEN type='expense' AND source='monthly' THEN amount ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN type='expense' THEN amount ELSE 0 END), 0),
             COALESCE(SUM(CASE WHEN type='saving' THEN amount ELSE 0 END), 0)
         FROM records r
         WHERE r.date >= %s AND r.date <= %s{filter_sql}
@@ -394,7 +406,7 @@ def _category_summary(cur, report_type, period, lang, filters=None):
         SELECT COALESCE(c.name, 'Uncategorized'), SUM(r.amount)
         FROM records r
         LEFT JOIN categories c ON c.id=r.category_id
-        WHERE r.type='expense' AND r.source='monthly' AND {where}{filter_sql}
+        WHERE r.type='expense' AND {where}{filter_sql}
         GROUP BY COALESCE(c.name, 'Uncategorized')
         ORDER BY SUM(r.amount) DESC
         """,
@@ -422,7 +434,7 @@ def _top_expenses(cur, report_type, period, filters=None):
         f"""
         SELECT concept, SUM(amount)
         FROM records r
-        WHERE type='expense' AND source='monthly' AND {where}{filter_sql}
+        WHERE type='expense' AND {where}{filter_sql}
         GROUP BY concept
         ORDER BY SUM(amount) DESC
         LIMIT 15
@@ -444,6 +456,7 @@ def template_preview():
 
     with get_db() as conn:
         with conn.cursor() as cur:
+            config = _report_config(cur)
             summary = _summary(cur, report_type, period)
             categories = _category_summary(cur, report_type, period, lang)
             top_expenses = _top_expenses(cur, report_type, period)
@@ -461,6 +474,7 @@ def template_preview():
         texts=texts,
         include_top_expenses=report_type == "monthly",
         lang=lang,
+        branding=config["branding"],
     )
     return Response(html, mimetype="text/html")
 
@@ -657,6 +671,9 @@ def reports():
     with get_db() as conn:
         with conn.cursor() as cur:
             summary = _summary(cur, report_type, period, filters)
+            savings_through_period = f"{period}-12" if report_type == "yearly" else period
+            savings_accounts = savings_account_balances(cur, savings_through_period)
+            savings_accounts_total_value = savings_accounts_total(savings_accounts)
             categories = _category_summary(cur, report_type, period, lang, filters)
             top_expenses = _top_expenses(cur, report_type, period, filters)
             config = _report_config(cur)
@@ -751,6 +768,8 @@ def reports():
         saved_reports=saved_reports,
         current_query=request.query_string.decode("utf-8"),
         summary=summary,
+        savings_accounts=savings_accounts,
+        savings_accounts_total=savings_accounts_total_value,
         categories=categories,
         top_expenses=top_expenses,
         report_cfg=config,

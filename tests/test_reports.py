@@ -61,7 +61,7 @@ def test_report_settings_move_to_reports(admin_client, db_query):
     ) == (True, False, "v7", "v8")
 
 
-@pytest.mark.parametrize("version", ["v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8"])
+@pytest.mark.parametrize("version", ["v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10"])
 def test_email_template_preview_uses_real_report_data(admin_client, version):
     response = admin_client.get(
         f"/reports/template-preview?version={version}&type=monthly&period=2026-07"
@@ -70,20 +70,91 @@ def test_email_template_preview_uses_real_report_data(admin_client, version):
     assert response.mimetype == "text/html"
     assert response.headers["X-Frame-Options"] == "SAMEORIGIN"
     assert "frame-ancestors 'self'" in response.headers["Content-Security-Policy"]
+    assert "img-src 'self' data:" in response.headers["Content-Security-Policy"]
     assert f'data-finance-template="{version}"'.encode() in response.data
     assert b"Test expense" in response.data
     assert b"2.500,00" in response.data
+    assert response.data.count(b"data-finance-period='1'") == 1
+    assert b'data-finance-branding="footer"' in response.data
+    assert b"FINANCE_FOOTER_SLOT" not in response.data
 
 
-def test_reports_show_one_grid_selector_for_eight_templates(admin_client):
+@pytest.mark.parametrize(
+    "version",
+    ["v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10"],
+)
+def test_every_email_template_links_to_finance_without_showing_raw_url(
+    admin_client, monkeypatch, version
+):
+    monkeypatch.setenv("APP_PUBLIC_URL", "https://devfinance.home")
+
+    response = admin_client.get(
+        f"/reports/template-preview?version={version}&type=monthly&period=2026-07"
+    )
+
+    assert response.status_code == 200
+    assert b"href='https://devfinance.home'" in response.data
+    assert "Abrir Finance</a>".encode() in response.data
+    assert b">https://devfinance.home</a>" not in response.data
+    assert b"Finance URL:" not in response.data
+    assert "URL de Finance:".encode() not in response.data
+
+
+def test_reports_show_one_grid_selector_for_ten_templates(admin_client):
     response = admin_client.get("/reports?section=templates&type=monthly&period=2026-07")
     assert response.status_code == 200
     assert b'id="monthlyTemplateVersion"' in response.data
     assert b'id="yearlyTemplateVersion"' in response.data
     assert b'id="templateStrip"' in response.data
-    for version in ("v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8"):
+    assert b'name="logo_url"' not in response.data
+    assert b'name="contact_text"' not in response.data
+    for version in ("v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10"):
         assert f'value="{version}"'.encode() in response.data
         assert response.data.count(f'data-version="{version}"'.encode()) == 1
+
+
+def test_email_template_branding_is_saved_and_rendered_safely(admin_client, db_query):
+    saved = _post(
+        admin_client,
+        "/reports/email-settings/save",
+        {
+            "monthly_enabled": "1",
+            "yearly_enabled": "1",
+            "monthly_template_version": "v9",
+            "yearly_template_version": "v10",
+            "next_section": "templates",
+            "brand_name": "Acme & Partners",
+            "header_text": "Private report",
+            "footer_text": "<script>alert(1)</script>",
+        },
+    )
+
+    assert saved.status_code in {302, 303}
+    assert db_query(
+        """
+        SELECT monthly_template_version, yearly_template_version, brand_name
+        FROM email_report_config WHERE id=1
+        """
+    ) == ("v9", "v10", "Acme & Partners")
+
+    preview = admin_client.get(
+        "/reports/template-preview?version=v9&type=monthly&period=2026-07"
+    )
+    assert b"data-finance-branding='header'" in preview.data
+    assert "Balance mensual".encode() in preview.data
+    assert b"Acme &amp; Partners" in preview.data
+    assert b"Acme &amp; Partners Balance mensual" in preview.data
+    assert (
+        b"style='display:block;margin-top:4px;font-size:.78em'>Private report</span>"
+        in preview.data
+    )
+    assert preview.data.index(b"Private report") < preview.data.index(
+        "Periodo: 2026-07".encode()
+    )
+    assert b'data-finance-branding="footer"' in preview.data
+    assert b"text-align:center" in preview.data
+    assert b"&lt;script&gt;alert(1)&lt;/script&gt;" in preview.data
+    assert b"<script>alert(1)</script>" not in preview.data
 
 
 def test_email_template_preview_opens_in_an_accessible_inline_modal(admin_client):
@@ -98,7 +169,7 @@ def test_email_template_preview_opens_in_an_accessible_inline_modal(admin_client
         rb'<button class="btn btn-link btn-sm p-0 template-preview"[^>]*>',
         response.data,
     )
-    assert len(preview_buttons) == 8
+    assert len(preview_buttons) == 10
     assert all(b'type="button"' in button for button in preview_buttons)
     assert all(b'href=' not in button for button in preview_buttons)
     assert b"openTemplatePreview(button.dataset.previewUrl, button)" in response.data
@@ -182,6 +253,33 @@ def test_reports_use_default_email_configuration_when_row_is_missing(
     assert response.status_code == 200
     assert b'id="monthlyTemplateVersion" name="monthly_template_version" value="v1"' in response.data
     assert b'id="yearlyTemplateVersion" name="yearly_template_version" value="v1"' in response.data
+    assert b'name="brand_name" maxlength="100" value="Finance"' in response.data
+    assert b'name="header_text" maxlength="200" value="Personal finance report"' in response.data
+
+
+def test_default_email_branding_is_configured(db_query):
+    assert db_query(
+        """
+        SELECT brand_name, header_text, footer_text
+        FROM email_report_config WHERE id=1
+        """
+    ) == (
+        "Finance",
+        "Personal finance report",
+        "© {year} Osmel Nuñez Alonso · v{version} · GitHub",
+    )
+
+
+def test_default_email_footer_matches_site_footer(admin_client):
+    preview = admin_client.get(
+        "/reports/template-preview?version=v1&type=monthly&period=2026-07"
+    )
+
+    assert "Osmel Nuñez Alonso".encode() in preview.data
+    assert b"v3.7.0" in preview.data
+    assert b"https://github.com/osmelonunez/finance/releases/latest" in preview.data
+    assert b"{year}" not in preview.data
+    assert b"{version}" not in preview.data
 
 
 def test_report_sections_separate_summary_templates_and_delivery_history(admin_client):
@@ -207,12 +305,12 @@ def test_month_comparison_shows_current_previous_absolute_and_percentage(admin_c
     db_query(
         """
         INSERT INTO records (
-            id, concept, amount, date, type, source, comment, category_id,
+            id, concept, amount, date, type, comment, category_id,
             payment_method_id, loan_id, is_loan_payment, created_by
         ) VALUES
-            (101, 'Previous income', 2000, '2026-06', 'income', NULL, '', 2, NULL, NULL, FALSE, 'admin_test'),
-            (102, 'Previous expense', 1000, '2026-06', 'expense', 'monthly', '', 1, 1, NULL, FALSE, 'admin_test'),
-            (103, 'Previous saving', 400, '2026-06', 'saving', NULL, '', 2, NULL, NULL, FALSE, 'admin_test')
+            (101, 'Previous income', 2000, '2026-06', 'income', '', 2, NULL, NULL, FALSE, 'admin_test'),
+            (102, 'Previous expense', 1000, '2026-06', 'expense', '', 1, 1, NULL, FALSE, 'admin_test'),
+            (103, 'Previous saving', 400, '2026-06', 'saving', '', 2, NULL, NULL, FALSE, 'admin_test')
         """,
         fetch="none",
     )
@@ -329,12 +427,12 @@ def test_yoy_category_breakdown_and_largest_changes(admin_client, db_query):
     db_query(
         """
         INSERT INTO records (
-            id, concept, amount, date, type, source, comment, category_id,
+            id, concept, amount, date, type, comment, category_id,
             payment_method_id, loan_id, is_loan_payment, created_by
         ) VALUES
-            (111, 'Prior year food', 900, '2025-07', 'expense', 'monthly', '', 1, 1, NULL, FALSE, 'admin_test'),
-            (112, 'Prior year unused', 300, '2025-07', 'expense', 'monthly', '', 3, 1, NULL, FALSE, 'admin_test'),
-            (113, 'Current transport', 100, '2026-07', 'expense', 'monthly', '', 2, 1, NULL, FALSE, 'admin_test')
+            (111, 'Prior year food', 900, '2025-07', 'expense', '', 1, 1, NULL, FALSE, 'admin_test'),
+            (112, 'Prior year unused', 300, '2025-07', 'expense', '', 3, 1, NULL, FALSE, 'admin_test'),
+            (113, 'Current transport', 100, '2026-07', 'expense', '', 2, 1, NULL, FALSE, 'admin_test')
         """,
         fetch="none",
     )
@@ -421,10 +519,10 @@ def test_category_and_bank_filters_apply_to_report_data(admin_client, db_query):
     db_query(
         """
         INSERT INTO records (
-            id, concept, amount, date, type, source, comment, category_id,
+            id, concept, amount, date, type, comment, category_id,
             payment_method_id, loan_id, is_loan_payment, created_by
         ) VALUES
-            (121, 'Filtered transport', 50, '2026-07', 'expense', 'monthly', '', 2, 3, NULL, FALSE, 'admin_test')
+            (121, 'Filtered transport', 50, '2026-07', 'expense', '', 2, 3, NULL, FALSE, 'admin_test')
         """,
         fetch="none",
     )

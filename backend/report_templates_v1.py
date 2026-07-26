@@ -77,23 +77,6 @@ def render_report_html_v1(
         </table>
         """
 
-    public_url = _public_url()
-    open_finance_block = ""
-    footer_link_block = ""
-    if public_url:
-        open_finance_block = f"""
-        <div style="margin:12px 0 14px 0;">
-          <a href="{public_url}" style="display:inline-block;background:#4f88b8;color:#ffffff;text-decoration:none;padding:9px 12px;border-radius:8px;font-weight:600;">
-            {texts['open_finance']}
-          </a>
-        </div>
-        """
-        footer_link_block = f"""
-        <div style="margin-top:14px;color:#5a6b7b;font-size:12px;">
-          {texts['finance_url']}: <a href="{public_url}" style="color:#3f78a8;text-decoration:none;">{public_url}</a>
-        </div>
-        """
-
     return f"""
 <html>
   <head>
@@ -103,10 +86,8 @@ def render_report_html_v1(
     <div style="width:100%;margin:0 auto;background:#ffffff;border:1px solid #dfe7f0;border-radius:12px;overflow:hidden;">
       <div style="padding:16px 18px;background:linear-gradient(90deg,#4f88b8,#7ea8ca);color:#ffffff;">
         <div style="font-size:20px;font-weight:700;">{title}</div>
-        <div style="font-size:13px;opacity:.95;margin-top:2px;">{texts['period']}: {period_label}</div>
       </div>
       <div style="padding:16px 18px;">
-        {open_finance_block}
         <div style="font-weight:700;color:#2f3b47;margin-bottom:10px;">{texts['summary_title']}</div>
         <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:14px;">
           <tr>
@@ -157,7 +138,7 @@ def render_report_html_v1(
           </tbody>
         </table>
         {top_expenses_section}
-        {footer_link_block}
+        <!-- FINANCE_FOOTER_SLOT -->
       </div>
     </div>
   </body>

@@ -243,7 +243,8 @@ def require_login():
 
 @app.after_request
 def log_request(response):
-    frame_ancestors = "'self'" if request.endpoint == "reports.template_preview" else "'none'"
+    is_template_preview = request.endpoint == "reports.template_preview"
+    frame_ancestors = "'self'" if is_template_preview else "'none'"
     csp = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://code.jquery.com; "

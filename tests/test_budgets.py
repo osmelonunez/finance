@@ -34,13 +34,13 @@ def _add_budget(db_query, category_id, month, amount):
     )
 
 
-def _add_record(db_query, concept, amount, month, record_type, source, category_id):
+def _add_record(db_query, concept, amount, month, record_type, category_id):
     db_query(
         """
-        INSERT INTO records (concept, amount, date, type, source, category_id, created_by)
-        VALUES (%s, %s, %s, %s, %s, %s, 'admin_test')
+        INSERT INTO records (concept, amount, date, type, category_id, created_by)
+        VALUES (%s, %s, %s, %s, %s, 'admin_test')
         """,
-        (concept, amount, month, record_type, source, category_id),
+        (concept, amount, month, record_type, category_id),
         fetch="none",
     )
 
@@ -64,29 +64,29 @@ def test_budget_summary_uses_all_budgeted_categories(admin_client):
     assert b"1.665,44" in response.data
 
 
-def test_budget_counts_only_monthly_expenses_from_selected_category(admin_client, db_query):
+def test_budget_counts_all_expenses_regardless_of_funding_account(admin_client, db_query):
     category_id = _add_category(db_query, "Risk test")
     _add_budget(db_query, category_id, "2026-07", 1000)
-    _add_record(db_query, "Counted expense", 800, "2026-07", "expense", "monthly", category_id)
-    _add_record(db_query, "Saving expense", 500, "2026-07", "expense", "saving", category_id)
-    _add_record(db_query, "Ignored income", 900, "2026-07", "income", None, category_id)
-    _add_record(db_query, "Ignored saving", 700, "2026-07", "saving", None, category_id)
-    _add_record(db_query, "Other month", 600, "2026-06", "expense", "monthly", category_id)
+    _add_record(db_query, "Counted expense", 800, "2026-07", "expense", category_id)
+    _add_record(db_query, "Saving expense", 500, "2026-07", "expense", category_id)
+    _add_record(db_query, "Ignored income", 900, "2026-07", "income", category_id)
+    _add_record(db_query, "Ignored saving", 700, "2026-07", "saving", category_id)
+    _add_record(db_query, "Other month", 600, "2026-06", "expense", category_id)
 
     response = admin_client.get("/budgets?month=2026-07")
     assert response.status_code == 200
     marker = f'data-category-id="{category_id}"'.encode()
     start = response.data.index(marker)
     row = response.data[start:start + 1200]
-    assert b'data-budget-state="warning"' in row
-    assert b'data-spent="800.00"' in row
-    assert b'data-percentage="80.0"' in row
+    assert b'data-budget-state="exceeded"' in row
+    assert b'data-spent="1300.00"' in row
+    assert b'data-percentage="130.0"' in row
 
 
 def test_budget_filters_risk_exceeded_and_unbudgeted(admin_client, db_query):
     exceeded_id = _add_category(db_query, "Exceeded test")
     _add_budget(db_query, exceeded_id, "2026-07", 100)
-    _add_record(db_query, "Exceeded expense", 110, "2026-07", "expense", "monthly", exceeded_id)
+    _add_record(db_query, "Exceeded expense", 110, "2026-07", "expense", exceeded_id)
     unbudgeted_id = _add_category(db_query, "Unbudgeted test")
 
     risk = admin_client.get("/budgets?month=2026-07&status=risk")

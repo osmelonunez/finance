@@ -53,14 +53,13 @@
     {% if recent_records %}
     <div class="table-responsive">
       <table class="table table-sm align-middle mb-0">
-        <thead><tr><th>{{ t('Concept') }}</th><th>{{ t('Category') }}</th><th>{{ t('Date') }}</th><th>{{ t('Source') }}</th><th class="text-end">{{ t('Amount') }}</th></tr></thead>
+        <thead><tr><th>{{ t('Concept') }}</th><th>{{ t('Category') }}</th><th>{{ t('Date') }}</th><th class="text-end">{{ t('Amount') }}</th></tr></thead>
         <tbody>
         {% for record in recent_records %}
           <tr class="row-link" role="button" data-href="/records/{{ record[0] }}?from=expense&return_to={{ request.full_path|urlencode }}">
             <td><a class="text-decoration-none text-body" href="/records/{{ record[0] }}?from=expense&return_to={{ request.full_path|urlencode }}">{{ record[1] }}</a></td>
-            <td>{{ cat_name(record[5]) if record[5] else '-' }}</td>
+            <td>{{ cat_name(record[4]) if record[4] else '-' }}</td>
             <td>{{ record[3] }}</td>
-            <td>{{ t('Monthly') if record[4] == 'monthly' else (t('Saving') if record[4] == 'saving' else '-') }}</td>
             <td class="text-end">{{ money(record[2]) }}</td>
           </tr>
         {% endfor %}

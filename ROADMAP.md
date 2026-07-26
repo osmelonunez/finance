@@ -208,7 +208,7 @@ Objetivo: controlar el gasto mensual esperado frente al gasto real y ampliar el 
 Incluye:
 - Presupuesto mensual por categoria.
 - Acceso principal como `Presupuestos`.
-- Gasto real calculado desde los movimientos mensuales.
+- Gasto real calculado desde todos los movimientos de tipo gasto, independientemente de la cuenta utilizada.
 - Barras de consumo y alertas visuales al 80%, 90% y 100%.
 - Filtros para categorias en riesgo, excedidas y sin presupuesto.
 - Resumen mensual de presupuesto, gasto, disponible y categorias fuera de presupuesto.
@@ -217,14 +217,16 @@ Incluye:
 - Consulta histórica de solo lectura con el presupuesto aplicado y el gasto real de cada mes.
 - Gestión de categorías mantenida como responsabilidad independiente.
 - Resumen de presupuesto en el dashboard.
-- Migraciones `018_category_budgets.sql`, `019_budget_disabled_state.sql` y `020_saved_reports.sql`.
+- Migraciones `018_category_budgets.sql` a `023_remove_record_source.sql`.
 - [Notas de release en espanol](docs/v3.7-release/notas-v3.7.0.md)
 - [Release notes in English](docs/v3.7-release/v3.7.0-release-notes.md)
 - Acceso principal como `Informes`.
 - Consulta mensual y anual de ingresos, gastos, ahorro y balance.
 - Desglose de gasto por categoria y principales gastos del periodo.
 - Configuracion funcional e historial de reportes por correo integrados en Informes.
-- Cuadricula compacta de ocho plantillas de correo, cinco por fila, con vista previa real y alternancia mensual/anual sin duplicar la galeria.
+- Cuadricula compacta de diez plantillas de correo, cinco por fila, con vista previa real y alternancia mensual/anual sin duplicar la galeria.
+- Branding compartido configurable con nombre, cabecera y pie centrado.
+- Enlace `Abrir Finance` integrado en todas las plantillas sin mostrar la URL en el contenido.
 - Navegacion interna de Informes separada en resumen, envio por correo con historial y plantillas.
 - Comparativas por mes, trimestre y año mediante desplegables generados desde la ventana de años disponible, con variacion absoluta y porcentual.
 - Evolucion temporal de ingresos, gastos, ahorro y balance para 6 meses, 12 meses o varios años, con series activables.
@@ -233,6 +235,10 @@ Incluye:
 - Exportacion CSV contextual y vista especifica de impresion/guardado como PDF.
 - Informes guardados por usuario con periodos, modos y filtros reutilizables.
 - SMTP tecnico mantenido de forma independiente en Gestion.
+- Cuentas bancarias clasificadas como corrientes o de ahorro.
+- Varias cuentas de ahorro con saldo inicial, aportaciones y gastos asociados.
+- Agregado `Savings Accounts` en dashboard e Informes, con desglose por cuenta.
+- Gastos contabilizados en presupuesto e informes independientemente de la cuenta utilizada.
 
 ### Evolucion de informes y analitica
 
@@ -250,6 +256,16 @@ Objetivo: ampliar el modulo de Informes con comparativas, evolucion, filtros, ex
 ## Ideas futuras
 
 Estas ideas no estan comprometidas todavia y pueden moverse segun prioridad.
+
+### Evolucion de cuentas y transferencias
+
+Objetivo: representar el origen y destino real de los movimientos entre cuentas y ampliar los tipos de cuenta disponibles.
+
+Ideas:
+- Registrar el origen de ingresos y aportaciones de ahorro como transferencias desde una cuenta corriente.
+- Incorporar cuentas `cash` y `other`.
+- Permitir que las cuentas `cash` y `other` no requieran banco.
+- Definir como se calcula y presenta el saldo de estos nuevos tipos.
 
 ### Importador bancario CSV
 
@@ -305,7 +321,6 @@ Ideas:
 ### Otras ideas a valorar
 
 - Adjuntar facturas/recibos a gastos.
-- Plantillas de reportes `v2` y opciones de branding.
 - Evolucion de i18n hacia estructura modular.
 - Notificaciones internas y recordatorios.
 - Reglas automaticas por categoria/origen/cuenta.

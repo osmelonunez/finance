@@ -36,6 +36,9 @@ Las migraciones viven en esta carpeta como ficheros SQL planos. El runner de la 
 - `018_category_budgets.sql`: crea el historico mensual de presupuestos por categoria, con importe positivo y una unica configuracion por categoria y mes.
 - `019_budget_disabled_state.sql`: permite retirar un presupuesto vigente mediante un estado desactivado, conservando el historico y la herencia temporal.
 - `020_saved_reports.sql`: guarda configuraciones reutilizables de Informes por usuario, incluyendo seccion y parametros de consulta.
+- `021_savings_accounts.sql`: clasifica cuentas como corrientes o de ahorro, añade saldo inicial y permite asignar aportaciones de ahorro a una cuenta.
+- `022_email_report_branding.sql`: añade la identidad Finance definitiva para las plantillas por email, con nombre, cabecera y pie alineado con el sitio.
+- `023_remove_record_source.sql`: elimina el origen mensual/ahorro obsoleto de `records`; la cuenta asociada pasa a ser la única referencia financiera.
 
 ### Migraciones de v3.7.0
 
@@ -54,10 +57,45 @@ Deben aplicarse en este orden:
    - Crea `saved_reports`, vinculada a `users` con `ON DELETE CASCADE`.
    - Conserva el nombre, la seccion de Informes y la cadena de parametros que reconstruye periodos, comparacion y filtros.
    - Añade un indice por usuario y fecha de creacion para listar sus configuraciones mas recientes.
+4. `021_savings_accounts.sql`
+   - Añade `account_type` e `initial_balance` a las cuentas.
+   - Clasifica las cuentas bancarias como `current` o `savings`; las tarjetas heredan la clasificación de su cuenta padre.
+   - Permite vincular `payment_method_id` tanto a gastos como a aportaciones `saving`.
+5. `022_email_report_branding.sql`
+   - Añade el branding compartido de las plantillas por email.
+   - Configura el nombre, la cabecera y el pie predeterminados del sitio.
+6. `023_remove_record_source.sql`
+   - Elimina la columna obsoleta `records.source` y su índice compuesto.
+   - Crea un índice por tipo y fecha para conservar el rendimiento de los listados.
+   - Los gastos y ahorros quedan vinculados exclusivamente mediante `payment_method_id`.
 
 Las comparativas, la evolucion financiera, los filtros y las exportaciones no necesitan tablas adicionales: consultan las relaciones ya existentes entre movimientos, categorias, bancos, cuentas, tarjetas y prestamos. La migracion `020` solo persiste la configuracion reutilizable, no una copia de los resultados financieros.
 
-En instalaciones existentes, `018` y `020` empiezan sin datos; no generan presupuestos ni informes guardados automaticamente. Los datos de demostracion se insertan por el flujo de seed de la aplicacion, no mediante estas migraciones. No edites ni renombres `018`, `019` o `020` despues de desplegarlas: cualquier ajuste posterior debe añadirse como una nueva migracion.
+En instalaciones existentes, `018` y `020` empiezan sin datos; no generan presupuestos ni informes guardados automaticamente. Los datos de demostracion se insertan por el flujo de seed de la aplicacion, no mediante estas migraciones. No edites ni renombres una migracion despues de desplegarla: cualquier ajuste posterior debe añadirse como una nueva migracion.
+
+Antes de aplicar `023_remove_record_source.sql` en una instalación existente:
+
+1. Crea una copia de seguridad de PostgreSQL.
+2. Comprueba que cada aportación de ahorro tiene una cuenta de ahorro asociada:
+
+```sql
+SELECT COUNT(*) AS savings_without_account
+FROM records
+WHERE type = 'saving'
+  AND payment_method_id IS NULL;
+```
+
+3. Comprueba que los antiguos gastos con origen ahorro tienen una cuenta asociada:
+
+```sql
+SELECT COUNT(*) AS savings_expenses_without_account
+FROM records
+WHERE type = 'expense'
+  AND source = 'saving'
+  AND payment_method_id IS NULL;
+```
+
+Ambas consultas deben devolver `0`. Si no es así, asigna primero la cuenta correcta mediante `payment_method_id`. La segunda consulta solo puede ejecutarse antes de aplicar `023`, ya que esa migración elimina `records.source`.
 
 Comprobacion rapida tras actualizar:
 
@@ -67,7 +105,10 @@ FROM migrations
 WHERE id IN (
     '018_category_budgets.sql',
     '019_budget_disabled_state.sql',
-    '020_saved_reports.sql'
+    '020_saved_reports.sql',
+    '021_savings_accounts.sql',
+    '022_email_report_branding.sql',
+    '023_remove_record_source.sql'
 )
 ORDER BY id;
 
@@ -76,6 +117,19 @@ FROM information_schema.tables
 WHERE table_schema = 'public'
   AND table_name IN ('category_budgets', 'saved_reports')
 ORDER BY table_name;
+
+SELECT column_name
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name = 'email_report_config'
+  AND column_name IN ('brand_name', 'header_text', 'footer_text')
+ORDER BY column_name;
+
+SELECT COUNT(*) AS source_columns
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name = 'records'
+  AND column_name = 'source';
 ```
 
 ## English
@@ -114,6 +168,9 @@ Migrations live in this folder as plain SQL files. The app runner (`backend/migr
 - `018_category_budgets.sql`: creates monthly category budget history, with positive amounts and one configuration per category and month.
 - `019_budget_disabled_state.sql`: allows an effective budget to be removed through a disabled state while preserving history and time-based inheritance.
 - `020_saved_reports.sql`: stores reusable per-user Reports configurations, including the report section and query parameters.
+- `021_savings_accounts.sql`: classifies accounts as current or savings, adds an initial balance, and allows saving contributions to target an account.
+- `022_email_report_branding.sql`: adds the final Finance identity for email templates, with name, header, and site-aligned footer.
+- `023_remove_record_source.sql`: removes the obsolete monthly/savings origin from `records`; the linked account becomes the sole financial reference.
 
 ### v3.7.0 migrations
 
@@ -132,10 +189,45 @@ They must be applied in this order:
    - Creates `saved_reports`, linked to `users` with `ON DELETE CASCADE`.
    - Stores the name, Reports section, and query string used to reconstruct periods, comparison settings, and filters.
    - Adds a user and creation-date index for listing the newest configurations.
+4. `021_savings_accounts.sql`
+   - Adds `account_type` and `initial_balance` to accounts.
+   - Classifies bank accounts as `current` or `savings`; cards inherit their parent account classification.
+   - Allows `payment_method_id` on both expenses and `saving` contributions.
+5. `022_email_report_branding.sql`
+   - Adds shared branding for email report templates.
+   - Configures the default site name, header, and footer.
+6. `023_remove_record_source.sql`
+   - Removes the obsolete `records.source` column and its compound index.
+   - Creates a type-and-date index to retain list-query performance.
+   - Expenses and savings are linked exclusively through `payment_method_id`.
 
 Comparisons, financial evolution, filters, and exports require no additional tables: they query the existing relationships between records, categories, banks, accounts, cards, and loans. Migration `020` persists only the reusable configuration, not a copy of the financial results.
 
-On existing installations, `018` and `020` start empty; they do not create budgets or saved reports automatically. Demo data is inserted through the application's seed flow, not through these migrations. Do not edit or rename `018`, `019`, or `020` after deployment; add a new migration for any later adjustment.
+On existing installations, `018` and `020` start empty; they do not create budgets or saved reports automatically. Demo data is inserted through the application's seed flow, not through these migrations. Do not edit or rename a migration after deployment; add a new migration for any later adjustment.
+
+Before applying `023_remove_record_source.sql` to an existing installation:
+
+1. Create a PostgreSQL backup.
+2. Confirm that every saving contribution has an assigned savings account:
+
+```sql
+SELECT COUNT(*) AS savings_without_account
+FROM records
+WHERE type = 'saving'
+  AND payment_method_id IS NULL;
+```
+
+3. Confirm that legacy savings-funded expenses have an assigned account:
+
+```sql
+SELECT COUNT(*) AS savings_expenses_without_account
+FROM records
+WHERE type = 'expense'
+  AND source = 'saving'
+  AND payment_method_id IS NULL;
+```
+
+Both queries must return `0`. Otherwise, assign the correct account through `payment_method_id` first. The second query can only run before `023`, because that migration removes `records.source`.
 
 Quick verification after upgrading:
 
@@ -145,7 +237,10 @@ FROM migrations
 WHERE id IN (
     '018_category_budgets.sql',
     '019_budget_disabled_state.sql',
-    '020_saved_reports.sql'
+    '020_saved_reports.sql',
+    '021_savings_accounts.sql',
+    '022_email_report_branding.sql',
+    '023_remove_record_source.sql'
 )
 ORDER BY id;
 
@@ -154,4 +249,17 @@ FROM information_schema.tables
 WHERE table_schema = 'public'
   AND table_name IN ('category_budgets', 'saved_reports')
 ORDER BY table_name;
+
+SELECT column_name
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name = 'email_report_config'
+  AND column_name IN ('brand_name', 'header_text', 'footer_text')
+ORDER BY column_name;
+
+SELECT COUNT(*) AS source_columns
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name = 'records'
+  AND column_name = 'source';
 ```

@@ -70,7 +70,8 @@ Repositorio: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 - Runtime con Gunicorn en Docker, ejecutando como usuario no root
 - Logs JSON estructurados + health checks (`/health/live`, `/health/ready`)
 - Optimización de consultas de dashboard + caché corto (30s) con invalidación en cambios de datos
-- Ocho plantillas versionadas de reportes (`v1` a `v8`) en una cuadrícula única de cinco por fila para mensual y anual
+- Diez plantillas versionadas de reportes (`v1` a `v10`) en una cuadrícula única de cinco por fila para mensual y anual
+- Branding compartido para emails con nombre, cabecera y pie centrado
 
 ## Informes y analítica
 
@@ -82,7 +83,9 @@ El espacio `Informes` reúne el análisis financiero y la entrega por correo:
 - Filtros compartidos por categoría, banco, cuenta, tarjeta y préstamo.
 - Exportación contextual a CSV y una presentación específica para imprimir o guardar como PDF.
 - Informes guardados por usuario que conservan periodos, modo de comparación, métricas y filtros.
-- Configuración de reportes por correo, historial de entregas y ocho plantillas con vista previa mensual o anual.
+- Configuración de reportes por correo, historial de entregas y diez plantillas con vista previa mensual o anual.
+- Cuentas corrientes y de ahorro, con saldo inicial individual y agregado consolidado `Savings Accounts`.
+- Las aportaciones de ahorro exigen una cuenta de destino; los gastos y tarjetas vinculados descuentan de esa cuenta.
 
 ## Capturas de Pantalla
 
@@ -257,7 +260,7 @@ Rate limits:
 - Los correos se envían solo a usuarios:
   - activos
   - con notificaciones por correo activadas
-- Plantilla mensual y anual configurables entre ocho estilos, incluidos Editorial, Panel, Recibo, Estado financiero y Magazine, con vista previa usando datos reales.
+- Plantilla mensual y anual configurables entre diez estilos, incluidos Editorial, Panel, Recibo, Estado financiero, Magazine, Minimalista y Neón, con vista previa usando datos reales y branding compartido.
 
 ## Licencia
 

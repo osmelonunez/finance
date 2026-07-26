@@ -50,6 +50,31 @@ def _resolve_payment_method_id(cur, raw_id, include_id=None):
     return row[0] if row else None
 
 
+def _resolve_savings_account_id(cur, raw_id, include_id=None):
+    try:
+        account_id = int(raw_id)
+    except (TypeError, ValueError):
+        return None
+    if include_id == account_id:
+        cur.execute(
+            """
+            SELECT id FROM payment_methods
+            WHERE id=%s AND kind='bank_account' AND account_type='savings'
+            """,
+            (account_id,),
+        )
+    else:
+        cur.execute(
+            """
+            SELECT id FROM payment_methods
+            WHERE id=%s AND kind='bank_account' AND account_type='savings' AND is_active=TRUE
+            """,
+            (account_id,),
+        )
+    row = cur.fetchone()
+    return row[0] if row else None
+
+
 def _resolve_active_loan_id(cur, raw_id, include_id=None):
     if not raw_id:
         return None
@@ -213,7 +238,6 @@ def _records(fixed_type=None):
     f_concept = request.args.get("concept", "")
     f_date = request.args.get("date", "")
     f_type = fixed_type or request.args.get("type", "")
-    f_source = request.args.get("source", "")
     f_category = request.args.get("category", "")
     f_payment_method = request.args.get("payment_method_id", "")
     f_bank = request.args.get("bank_id", "")
@@ -281,9 +305,6 @@ def _records(fixed_type=None):
     if f_type:
         base += " AND type=%s"
         params.append(f_type)
-    if f_source:
-        base += " AND source=%s"
-        params.append(f_source)
     if f_category:
         base += " AND categories.name ILIKE %s"
         params.append(f"%{f_category}%")
@@ -313,7 +334,7 @@ def _records(fixed_type=None):
                            THEN CONCAT(records.concept, ' (', COALESCE(records.deferred_index, 1), '/', records.deferred_total, ')')
                            ELSE records.concept
                        END AS concept,
-                       records.amount, records.date, records.type, records.source, records.comment,
+                       records.amount, records.date, records.type, records.comment,
                        categories.name AS category_display,
                        payment_methods.name AS payment_method_display,
                        records.is_loan_payment,
@@ -337,7 +358,7 @@ def _records(fixed_type=None):
                 f"""
                 SELECT
                     COALESCE(SUM(CASE WHEN type='income' THEN amount ELSE 0 END),0),
-                    COALESCE(SUM(CASE WHEN type='expense' AND source='monthly' THEN amount ELSE 0 END),0),
+                    COALESCE(SUM(CASE WHEN type='expense' THEN amount ELSE 0 END),0),
                     COALESCE(SUM(CASE WHEN type='saving' THEN amount ELSE 0 END),0)
                 {base}
                 """,
@@ -370,7 +391,6 @@ def _records(fixed_type=None):
         f_concept=f_concept,
         f_date=f_date,
         f_type=f_type,
-        f_source=f_source,
         f_category=f_category,
         f_payment_method=str(f_payment_method_int) if f_payment_method_int is not None else "",
         f_bank=str(f_bank_int) if f_bank_int is not None else "",
@@ -438,7 +458,16 @@ def add_movement():
             with conn.cursor() as cur:
                 cur.execute("SELECT name FROM categories ORDER BY name")
                 categories = [r[0] for r in cur.fetchall()]
-                cur.execute("SELECT id, name FROM payment_methods WHERE is_active=TRUE ORDER BY name")
+                cur.execute(
+                    """
+                    SELECT pm.id, pm.name, pm.kind, pm.account_type,
+                           parent.account_type AS parent_account_type
+                    FROM payment_methods pm
+                    LEFT JOIN payment_methods parent ON parent.id=pm.parent_account_id
+                    WHERE pm.is_active=TRUE
+                    ORDER BY pm.kind, pm.name
+                    """
+                )
                 payment_methods = cur.fetchall()
                 loans = _load_active_loans(cur)
         return categories, payment_methods, loans
@@ -449,7 +478,6 @@ def add_movement():
         if request.method == "GET" and request.args.get("loan_id") and not initial_form_data:
             initial_form_data["loan_id"] = request.args.get("loan_id")
             initial_form_data["is_loan_payment"] = "1"
-            initial_form_data["source"] = "monthly"
         return render_template(
             "add_movement.html",
             current_page=from_page,
@@ -465,11 +493,6 @@ def add_movement():
 
     if request.method == "POST":
         type_ = request.form["type"]
-        source = request.form.get("source")
-
-        if type_ != "expense":
-            source = None
-
         months = request.form.getlist("months")
         date_fallback = request.form.get("date") or datetime.now().strftime("%Y-%m")
         is_deferred = (request.form.get("is_deferred") == "1")
@@ -511,10 +534,23 @@ def add_movement():
                     )
                 category_name = request.form.get("category") or None
                 category_id = _resolve_category_id(cur, category_name)
+                if type_ == "expense" and category_id is None:
+                    return _render_add(
+                        error="Select a category.",
+                        form_data=request.form.to_dict(flat=True) | {"months": request.form.getlist("months")},
+                    )
                 raw_payment_method_id = request.form.get("payment_method_id")
-                payment_method_id = _resolve_payment_method_id(cur, raw_payment_method_id)
-                if type_ != "expense":
+                if type_ == "saving":
+                    payment_method_id = _resolve_savings_account_id(cur, raw_payment_method_id)
+                else:
+                    payment_method_id = _resolve_payment_method_id(cur, raw_payment_method_id)
+                if type_ == "income":
                     payment_method_id = None
+                elif type_ == "saving" and payment_method_id is None:
+                    return _render_add(
+                        error="Select an active savings account.",
+                        form_data=request.form.to_dict(flat=True) | {"months": request.form.getlist("months")},
+                    )
                 elif raw_payment_method_id and payment_method_id is None:
                     return _render_add(
                         error="Select an active account or card.",
@@ -549,17 +585,16 @@ def add_movement():
                     deferred_total_value = deferred_total if deferred_dates else None
                     cur.execute("""
                     INSERT INTO records (
-                        concept, amount, date, type, source, comment, category_id, payment_method_id,
+                        concept, amount, date, type, comment, category_id, payment_method_id,
                         deferred_index, deferred_total, loan_id, is_loan_payment,
                         loan_principal_amount, loan_interest_amount, created_by, created_at, updated_at
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
                 """, (
                     concept,
                     amount,
                     date_value,
                     type_,
-                    source,
                     comment,
                     category_id,
                     payment_method_id,
@@ -595,7 +630,7 @@ def movement_detail(id):
     with get_db() as conn:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT e.id, e.concept, e.amount, e.date, e.type, e.source, e.comment,
+                SELECT e.id, e.concept, e.amount, e.date, e.type, e.comment,
                        c.name AS category_display,
                        e.created_by, e.created_at, e.updated_at, e.updated_by,
                        e.payment_method_id, pm.name AS payment_method_name,
@@ -631,7 +666,7 @@ def edit(id):
             if request.method == "POST":
                 cur.execute(
                     """
-                    SELECT concept, amount, source, category_id, payment_method_id, deferred_index, deferred_total, type, loan_id, is_loan_payment
+                    SELECT concept, amount, category_id, payment_method_id, deferred_index, deferred_total, type, loan_id, is_loan_payment
                     FROM records
                     WHERE id=%s
                     """,
@@ -642,11 +677,6 @@ def edit(id):
                     return redirect(_page_to_url(from_page))
 
                 type_ = request.form["type"]
-                source = request.form.get("source")
-
-                if type_ != "expense":
-                    source = None
-
                 concept = request.form["concept"]
                 concept, concept_error = validate_concept(request.form.get("concept"))
                 if concept_error:
@@ -663,14 +693,23 @@ def edit(id):
                     return redirect(f"/edit/{id}?from={from_page}&error={quote(comment_error)}")
                 category_name = request.form.get("category") or None
                 category_id = _resolve_category_id(cur, category_name)
+                if type_ == "expense" and category_id is None:
+                    return redirect(
+                        f"/edit/{id}?from={from_page}&error={quote('Select a category.')}"
+                    )
                 raw_payment_method_id = request.form.get("payment_method_id")
-                payment_method_id = _resolve_payment_method_id(
-                    cur,
-                    raw_payment_method_id,
-                    include_id=previous_record[4],
-                )
-                if type_ != "expense":
+                if type_ == "saving":
+                    payment_method_id = _resolve_savings_account_id(
+                        cur, raw_payment_method_id, include_id=previous_record[3]
+                    )
+                else:
+                    payment_method_id = _resolve_payment_method_id(
+                        cur, raw_payment_method_id, include_id=previous_record[3]
+                    )
+                if type_ == "income":
                     payment_method_id = None
+                elif type_ == "saving" and payment_method_id is None:
+                    return redirect(f"/edit/{id}?from={from_page}&error={quote('Select an active savings account.')}")
                 elif raw_payment_method_id and payment_method_id is None:
                     return redirect(f"/edit/{id}?from={from_page}&error={quote('Select an active account or card.')}")
                 is_loan_payment = (request.form.get("is_loan_payment") == "1")
@@ -689,7 +728,7 @@ def edit(id):
                 deferred_total_value = deferred_total if deferred_index else None
                 date_value = request.form.get("date") or datetime.now().strftime("%Y-%m")
 
-                prev_concept, prev_amount, prev_source, prev_category_id, prev_payment_method_id, prev_deferred_index, prev_deferred_total, prev_type, prev_loan_id, prev_is_loan_payment = previous_record
+                prev_concept, prev_amount, prev_category_id, prev_payment_method_id, prev_deferred_index, prev_deferred_total, prev_type, prev_loan_id, prev_is_loan_payment = previous_record
                 loan_id = _resolve_active_loan_id(
                     cur,
                     request.form.get("loan_id"),
@@ -733,7 +772,6 @@ def edit(id):
                           AND type = 'expense'
                           AND concept = %s
                           AND amount = %s
-                          AND source IS NOT DISTINCT FROM %s
                           AND category_id IS NOT DISTINCT FROM %s
                           AND payment_method_id IS NOT DISTINCT FROM %s
                           AND COALESCE(deferred_total, 0) = %s
@@ -743,7 +781,6 @@ def edit(id):
                             id,
                             prev_concept,
                             prev_amount,
-                            prev_source,
                             prev_category_id,
                             prev_payment_method_id,
                             prev_deferred_total,
@@ -752,7 +789,7 @@ def edit(id):
 
                 cur.execute("""
                     UPDATE records
-                    SET concept=%s, amount=%s, date=%s, type=%s, source=%s, comment=%s,
+                    SET concept=%s, amount=%s, date=%s, type=%s, comment=%s,
                         category_id=%s, payment_method_id=%s, deferred_index=%s, deferred_total=%s,
                         loan_id=%s, is_loan_payment=%s, loan_principal_amount=%s, loan_interest_amount=%s,
                         updated_at=NOW(), updated_by=%s
@@ -762,7 +799,6 @@ def edit(id):
                     amount,
                     date_value,
                     type_,
-                    source,
                     comment,
                     category_id,
                     payment_method_id,
@@ -792,7 +828,6 @@ def edit(id):
                           AND deferred_index IS NOT NULL
                           AND concept = %s
                           AND amount = %s
-                          AND source IS NOT DISTINCT FROM %s
                           AND category_id IS NOT DISTINCT FROM %s
                           AND payment_method_id IS NOT DISTINCT FROM %s
                           AND loan_id IS NOT DISTINCT FROM %s
@@ -803,7 +838,6 @@ def edit(id):
                             id,
                             prev_concept,
                             prev_amount,
-                            prev_source,
                             prev_category_id,
                             prev_payment_method_id,
                             prev_loan_id,
@@ -818,7 +852,6 @@ def edit(id):
                         UPDATE records
                         SET concept=%s,
                             amount=%s,
-                            source=%s,
                             comment=%s,
                             category_id=%s,
                             payment_method_id=%s,
@@ -835,7 +868,6 @@ def edit(id):
                           AND COALESCE(deferred_index, 0) <= %s
                           AND concept = %s
                           AND amount = %s
-                          AND source IS NOT DISTINCT FROM %s
                           AND category_id IS NOT DISTINCT FROM %s
                           AND payment_method_id IS NOT DISTINCT FROM %s
                           AND loan_id IS NOT DISTINCT FROM %s
@@ -844,7 +876,6 @@ def edit(id):
                         (
                             concept,
                             amount,
-                            source,
                             comment,
                             category_id,
                             payment_method_id,
@@ -858,7 +889,6 @@ def edit(id):
                             deferred_total,
                             prev_concept,
                             prev_amount,
-                            prev_source,
                             prev_category_id,
                             prev_payment_method_id,
                             prev_loan_id,
@@ -888,17 +918,16 @@ def edit(id):
                             cur.execute(
                                 """
                                 INSERT INTO records (
-                                    concept, amount, date, type, source, comment, category_id, payment_method_id,
+                                    concept, amount, date, type, comment, category_id, payment_method_id,
                                     deferred_index, deferred_total, loan_id, is_loan_payment,
                                     loan_principal_amount, loan_interest_amount, created_by, created_at, updated_at
                                 )
-                                VALUES (%s, %s, %s, 'expense', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                                VALUES (%s, %s, %s, 'expense', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
                                 """,
                                 (
                                     concept,
                                     amount,
                                     next_date,
-                                    source,
                                     comment,
                                     category_id,
                                     payment_method_id,
@@ -927,7 +956,7 @@ def edit(id):
                 return redirect(_page_to_url(from_page))
 
             cur.execute("""
-                SELECT e.id, e.concept, e.amount, e.date, e.type, e.source, e.comment,
+                SELECT e.id, e.concept, e.amount, e.date, e.type, e.comment,
                        c.name AS category_display,
                        e.category_id,
                        e.created_by, e.created_at, e.updated_at, e.updated_by,
@@ -940,9 +969,17 @@ def edit(id):
             expense = cur.fetchone()
             cur.execute("SELECT name FROM categories ORDER BY name")
             categories = [r[0] for r in cur.fetchall()]
-            cur.execute("SELECT id, name, is_active FROM payment_methods ORDER BY name")
+            cur.execute(
+                """
+                SELECT pm.id, pm.name, pm.is_active, pm.kind, pm.account_type,
+                       parent.account_type AS parent_account_type
+                FROM payment_methods pm
+                LEFT JOIN payment_methods parent ON parent.id=pm.parent_account_id
+                ORDER BY pm.kind, pm.name
+                """
+            )
             payment_methods = cur.fetchall()
-            loans = _load_active_loans(cur, include_id=expense[16] if expense else None)
+            loans = _load_active_loans(cur, include_id=expense[15] if expense else None)
 
     return render_template(
         "edit.html",
@@ -963,7 +1000,7 @@ def duplicate(id):
     with get_db() as conn:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT e.id, e.concept, e.amount, e.date, e.type, e.source, e.comment,
+                SELECT e.id, e.concept, e.amount, e.date, e.type, e.comment,
                        c.name AS category_display,
                        e.category_id,
                        e.created_by, e.created_at, e.updated_at, e.updated_by,
@@ -977,7 +1014,7 @@ def duplicate(id):
             if not expense:
                 return redirect(_page_to_url(from_page))
 
-            is_deferred_record = bool((expense[15] or 0) > 1)
+            is_deferred_record = bool((expense[14] or 0) > 1)
             if is_deferred_record:
                 msg = "Deferred payment records cannot be duplicated."
                 detail_url = f"/records/{id}?from={from_page}&error={quote(msg)}"
@@ -987,11 +1024,6 @@ def duplicate(id):
 
             if request.method == "POST":
                 type_ = request.form["type"]
-                source = request.form.get("source")
-
-                if type_ != "expense":
-                    source = None
-
                 months = request.form.getlist("months")
                 concept, concept_error = validate_concept(request.form.get("concept"))
                 if concept_error:
@@ -1017,10 +1049,26 @@ def duplicate(id):
                     return redirect(duplicate_url)
                 category_name = request.form.get("category") or None
                 category_id = _resolve_category_id(cur, category_name)
+                if type_ == "expense" and category_id is None:
+                    duplicate_url = (
+                        f"/duplicate/{id}?from={from_page}"
+                        f"&error={quote('Select a category.')}"
+                    )
+                    if return_to.startswith("/"):
+                        duplicate_url += f"&return_to={quote(return_to)}"
+                    return redirect(duplicate_url)
                 raw_payment_method_id = request.form.get("payment_method_id")
-                payment_method_id = _resolve_payment_method_id(cur, raw_payment_method_id)
-                if type_ != "expense":
+                if type_ == "saving":
+                    payment_method_id = _resolve_savings_account_id(cur, raw_payment_method_id)
+                else:
+                    payment_method_id = _resolve_payment_method_id(cur, raw_payment_method_id)
+                if type_ == "income":
                     payment_method_id = None
+                elif type_ == "saving" and payment_method_id is None:
+                    duplicate_url = f"/duplicate/{id}?from={from_page}&error={quote('Select an active savings account.')}"
+                    if return_to.startswith("/"):
+                        duplicate_url += f"&return_to={quote(return_to)}"
+                    return redirect(duplicate_url)
                 elif raw_payment_method_id and payment_method_id is None:
                     duplicate_url = f"/duplicate/{id}?from={from_page}&error={quote('Select an active account or card.')}"
                     if return_to.startswith("/"):
@@ -1067,17 +1115,16 @@ def duplicate(id):
                     deferred_total_value = deferred_total if deferred_dates else None
                     cur.execute("""
                         INSERT INTO records (
-                            concept, amount, date, type, source, comment, category_id, payment_method_id,
+                            concept, amount, date, type, comment, category_id, payment_method_id,
                             deferred_index, deferred_total, loan_id, is_loan_payment,
                             loan_principal_amount, loan_interest_amount, created_by, created_at, updated_at
                         )
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
                     """, (
                         concept,
                         amount,
                         date_value,
                         type_,
-                        source,
                         comment,
                         category_id,
                         payment_method_id,
@@ -1113,7 +1160,16 @@ def duplicate(id):
         with conn.cursor() as cur:
             cur.execute("SELECT name FROM categories ORDER BY name")
             categories = [r[0] for r in cur.fetchall()]
-            cur.execute("SELECT id, name, is_active FROM payment_methods WHERE is_active=TRUE ORDER BY name")
+            cur.execute(
+                """
+                SELECT pm.id, pm.name, pm.is_active, pm.kind, pm.account_type,
+                       parent.account_type AS parent_account_type
+                FROM payment_methods pm
+                LEFT JOIN payment_methods parent ON parent.id=pm.parent_account_id
+                WHERE pm.is_active=TRUE
+                ORDER BY pm.kind, pm.name
+                """
+            )
             payment_methods = cur.fetchall()
             loans = _load_active_loans(cur)
     return render_template(

@@ -29,6 +29,10 @@
     .template-v8 span:nth-child(2) { background:#fed7aa; }
     .template-v8 span:nth-child(3) { background:#fde68a; }
     .template-v8 span:nth-child(4) { background:#fbcfe8; }
+    .template-v9 { background:#f8fafc;border:1px solid #cbd5e1; }
+    .template-v9 span { background:#2563eb;height:2px;border-radius:0; }
+    .template-v10 { background:linear-gradient(135deg,#0e7490,#7e22ce);border:1px solid #334155; }
+    .template-v10 span:nth-child(even) { background:#f472b6; }
     .template-meta { font-size:.82rem; min-width:0; }
     .template-strip { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:.5rem; padding:3px; }
     .template-preview-modal { position:fixed;inset:0;z-index:1080;display:flex;align-items:center;justify-content:center;padding:clamp(12px,3vw,36px);background:rgba(20,30,42,.48);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:0;visibility:hidden;transition:opacity .16s ease,visibility .16s ease; }
@@ -180,6 +184,21 @@
     </div>
     {% endfor %}
 </div>
+
+{% if savings_accounts %}
+<div class="report-card p-3 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">{{ t('Savings Accounts') }}</h5>
+        <strong>{{ money(savings_accounts_total) }}</strong>
+    </div>
+    {% for account in savings_accounts %}
+    <div class="d-flex justify-content-between border-top py-2">
+        <span>{{ account.name }}{% if not account.is_active %} · {{ t('Inactive') }}{% endif %}</span>
+        <span class="{{ 'text-danger' if account.balance < 0 else '' }}">{{ money(account.balance) }}</span>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
 
 <div class="row g-4 mb-4">
     <div class="col-lg-6">
@@ -499,7 +518,7 @@
             <button class="btn btn-outline-primary template-type" type="button" data-template-type="yearly">{{ t('Yearly') }}</button>
         </div>
         <div class="template-strip mb-2" id="templateStrip" data-period="{{ period }}" data-report-type="{{ report_type }}">
-            {% for version, name in [('v1', 'Classic'), ('v2', 'Fresh'), ('v3', 'Executive'), ('v4', 'Editorial'), ('v5', 'Dashboard'), ('v6', 'Receipt'), ('v7', 'Statement'), ('v8', 'Magazine')] %}
+            {% for version, name in [('v1', 'Classic'), ('v2', 'Fresh'), ('v3', 'Executive'), ('v4', 'Editorial'), ('v5', 'Dashboard'), ('v6', 'Receipt'), ('v7', 'Statement'), ('v8', 'Magazine'), ('v9', 'Minimal'), ('v10', 'Neon')] %}
             <label class="template-card p-2 d-block">
                 <div class="template-swatch template-{{ version }} mb-1"><span style="width:55%"></span><span></span><span style="width:76%"></span><span></span></div>
                 <div class="template-meta d-flex align-items-center justify-content-between gap-1">
@@ -508,6 +527,24 @@
                 </div>
             </label>
             {% endfor %}
+        </div>
+        <hr class="my-4">
+        <h6 class="mb-1">{{ t('Branding options') }}</h6>
+        <div class="text-muted small mb-3">{{ t('Customize the header and footer shared by all email templates.') }}</div>
+        <div class="row g-3 mb-3">
+            <div class="col-md-12">
+                <label class="form-label">{{ t('Brand name') }}</label>
+                <input class="form-control" name="brand_name" maxlength="100" value="{{ report_cfg.branding.brand_name }}">
+            </div>
+            <div class="col-md-12">
+                <label class="form-label">{{ t('Header text') }}</label>
+                <input class="form-control" name="header_text" maxlength="200" value="{{ report_cfg.branding.header_text }}">
+            </div>
+            <div class="col-md-12">
+                <label class="form-label">{{ t('Footer text') }}</label>
+                <textarea class="form-control" name="footer_text" maxlength="300" rows="2">{{ report_cfg.branding.footer_text }}</textarea>
+                <div class="form-text">{{ t('Use {year} and {version} to insert the current year and application version.') }}</div>
+            </div>
         </div>
         <button class="btn btn-primary btn-sm">{{ t('Save') }}</button>
     </form>

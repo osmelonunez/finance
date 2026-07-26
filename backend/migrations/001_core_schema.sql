@@ -47,8 +47,6 @@ CREATE TABLE IF NOT EXISTS records (
     date VARCHAR(7) NOT NULL,
     type VARCHAR(10) NOT NULL
         CHECK (type IN ('income','expense','saving')),
-    source VARCHAR(10)
-        CHECK (source IN ('monthly','saving')),
     comment TEXT,
     category_id INTEGER REFERENCES categories(id) ON DELETE RESTRICT,
     payment_method_id INTEGER REFERENCES payment_methods(id) ON DELETE RESTRICT,
@@ -79,6 +77,6 @@ CREATE INDEX IF NOT EXISTS idx_payment_methods_active ON payment_methods(is_acti
 CREATE INDEX IF NOT EXISTS idx_records_category_id ON records(category_id);
 CREATE INDEX IF NOT EXISTS idx_records_payment_method_id ON records(payment_method_id);
 CREATE INDEX IF NOT EXISTS idx_records_type_date ON records(type, date);
-CREATE INDEX IF NOT EXISTS idx_records_type_source_date ON records(type, source, date);
+CREATE INDEX IF NOT EXISTS idx_records_type_date ON records(type, date);
 CREATE INDEX IF NOT EXISTS idx_records_category_date ON records(category_id, date);
 CREATE INDEX IF NOT EXISTS idx_records_payment_method_date ON records(payment_method_id, date);

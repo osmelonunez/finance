@@ -102,8 +102,8 @@
         {% for record in recent_records %}
           <tr class="row-link" role="button" data-href="/records/{{ record[0] }}?from=expense&return_to={{ request.full_path|urlencode }}">
             <td><a class="text-decoration-none text-body" href="/records/{{ record[0] }}?from=expense&return_to={{ request.full_path|urlencode }}">{{ record[1] }}</a></td>
-            <td>{{ record[6] }}</td>
-            <td>{{ cat_name(record[5]) if record[5] else '-' }}</td>
+            <td>{{ record[5] }}</td>
+            <td>{{ cat_name(record[4]) if record[4] else '-' }}</td>
             <td>{{ record[3] }}</td>
             <td class="text-end">{{ money(record[2]) }}</td>
           </tr>
