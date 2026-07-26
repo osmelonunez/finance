@@ -33,6 +33,50 @@ Las migraciones viven en esta carpeta como ficheros SQL planos. El runner de la 
 - `015_cards_linked_to_accounts.sql`: vincula cada tarjeta con su cuenta mediante `parent_account_id`, conservando de forma compatible las tarjetas existentes sin cuenta asignada.
 - `016_payment_method_names_scoped_to_parent.sql`: sustituye la unicidad global por nombres de cuenta unicos dentro de cada banco y, como paso compatible, nombres de tarjeta unicos dentro de cada cuenta.
 - `017_card_names_not_unique.sql`: elimina la restriccion temporal de unicidad de nombres de tarjeta por cuenta; las tarjetas se identifican exclusivamente por `id`.
+- `018_category_budgets.sql`: crea el historico mensual de presupuestos por categoria, con importe positivo y una unica configuracion por categoria y mes.
+- `019_budget_disabled_state.sql`: permite retirar un presupuesto vigente mediante un estado desactivado, conservando el historico y la herencia temporal.
+- `020_saved_reports.sql`: guarda configuraciones reutilizables de Informes por usuario, incluyendo seccion y parametros de consulta.
+
+### Migraciones de v3.7.0
+
+Deben aplicarse en este orden:
+
+1. `018_category_budgets.sql`
+   - Crea `category_budgets`.
+   - Relaciona cada presupuesto con `categories` mediante `category_id` y `ON DELETE RESTRICT`.
+   - Guarda el mes como `YYYY-MM`, exige un importe positivo y evita duplicados con `UNIQUE (category_id, month)`.
+   - Añade un indice por mes para resolver el presupuesto vigente y las consultas historicas.
+2. `019_budget_disabled_state.sql`
+   - Añade `is_disabled` y permite que `amount` sea nulo solo cuando el presupuesto esta desactivado.
+   - Mantiene activas y sin cambios las filas creadas por la migracion anterior.
+   - El estado desactivado actua como corte de vigencia: permite quitar el presupuesto actual o futuro sin borrar el historial de meses anteriores.
+3. `020_saved_reports.sql`
+   - Crea `saved_reports`, vinculada a `users` con `ON DELETE CASCADE`.
+   - Conserva el nombre, la seccion de Informes y la cadena de parametros que reconstruye periodos, comparacion y filtros.
+   - Añade un indice por usuario y fecha de creacion para listar sus configuraciones mas recientes.
+
+Las comparativas, la evolucion financiera, los filtros y las exportaciones no necesitan tablas adicionales: consultan las relaciones ya existentes entre movimientos, categorias, bancos, cuentas, tarjetas y prestamos. La migracion `020` solo persiste la configuracion reutilizable, no una copia de los resultados financieros.
+
+En instalaciones existentes, `018` y `020` empiezan sin datos; no generan presupuestos ni informes guardados automaticamente. Los datos de demostracion se insertan por el flujo de seed de la aplicacion, no mediante estas migraciones. No edites ni renombres `018`, `019` o `020` despues de desplegarlas: cualquier ajuste posterior debe añadirse como una nueva migracion.
+
+Comprobacion rapida tras actualizar:
+
+```sql
+SELECT id
+FROM migrations
+WHERE id IN (
+    '018_category_budgets.sql',
+    '019_budget_disabled_state.sql',
+    '020_saved_reports.sql'
+)
+ORDER BY id;
+
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public'
+  AND table_name IN ('category_budgets', 'saved_reports')
+ORDER BY table_name;
+```
 
 ## English
 
@@ -67,3 +111,47 @@ Migrations live in this folder as plain SQL files. The app runner (`backend/migr
 - `015_cards_linked_to_accounts.sql`: links each card to its account through `parent_account_id`, while compatibly preserving existing cards that do not yet have an assigned account.
 - `016_payment_method_names_scoped_to_parent.sql`: replaces global uniqueness with account names unique within each bank and, as a compatible intermediate step, card names unique within each account.
 - `017_card_names_not_unique.sql`: removes the temporary per-account card-name uniqueness rule; cards are identified exclusively by `id`.
+- `018_category_budgets.sql`: creates monthly category budget history, with positive amounts and one configuration per category and month.
+- `019_budget_disabled_state.sql`: allows an effective budget to be removed through a disabled state while preserving history and time-based inheritance.
+- `020_saved_reports.sql`: stores reusable per-user Reports configurations, including the report section and query parameters.
+
+### v3.7.0 migrations
+
+They must be applied in this order:
+
+1. `018_category_budgets.sql`
+   - Creates `category_budgets`.
+   - Links each budget to `categories` through `category_id` with `ON DELETE RESTRICT`.
+   - Stores months as `YYYY-MM`, requires a positive amount, and prevents duplicates with `UNIQUE (category_id, month)`.
+   - Adds a month index for effective-budget resolution and historical queries.
+2. `019_budget_disabled_state.sql`
+   - Adds `is_disabled` and allows `amount` to be null only when the budget is disabled.
+   - Leaves rows created by the previous migration active and unchanged.
+   - The disabled state acts as an effective-date boundary: it removes the current or future budget without deleting previous-month history.
+3. `020_saved_reports.sql`
+   - Creates `saved_reports`, linked to `users` with `ON DELETE CASCADE`.
+   - Stores the name, Reports section, and query string used to reconstruct periods, comparison settings, and filters.
+   - Adds a user and creation-date index for listing the newest configurations.
+
+Comparisons, financial evolution, filters, and exports require no additional tables: they query the existing relationships between records, categories, banks, accounts, cards, and loans. Migration `020` persists only the reusable configuration, not a copy of the financial results.
+
+On existing installations, `018` and `020` start empty; they do not create budgets or saved reports automatically. Demo data is inserted through the application's seed flow, not through these migrations. Do not edit or rename `018`, `019`, or `020` after deployment; add a new migration for any later adjustment.
+
+Quick verification after upgrading:
+
+```sql
+SELECT id
+FROM migrations
+WHERE id IN (
+    '018_category_budgets.sql',
+    '019_budget_disabled_state.sql',
+    '020_saved_reports.sql'
+)
+ORDER BY id;
+
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public'
+  AND table_name IN ('category_budgets', 'saved_reports')
+ORDER BY table_name;
+```

@@ -101,6 +101,15 @@ def _reset_and_seed_database():
             )
             cur.execute(
                 """
+                INSERT INTO category_budgets (id, category_id, month, amount, created_by, updated_by)
+                VALUES
+                    (1, 1, '2026-07', 1500, 'admin_test', 'admin_test'),
+                    (2, 2, '2026-07', 1000, 'admin_test', 'admin_test'),
+                    (3, 3, '2026-07', 500, 'admin_test', 'admin_test')
+                """
+            )
+            cur.execute(
+                """
                 INSERT INTO banks (id, name, is_active)
                 VALUES
                     (1, 'Test Bank', TRUE),
@@ -177,7 +186,7 @@ def _reset_and_seed_database():
                 """
             )
 
-            for table in ("users", "categories", "banks", "payment_methods", "loans", "loan_usages", "records", "backup_runs"):
+            for table in ("users", "categories", "category_budgets", "banks", "payment_methods", "loans", "loan_usages", "records", "backup_runs"):
                 cur.execute(
                     sql.SQL(
                         "SELECT setval(pg_get_serial_sequence(%s, 'id'), "
@@ -207,6 +216,9 @@ def clean_database(request):
         return
     request.getfixturevalue("application")
     _reset_and_seed_database()
+    from dashboard_cache import invalidate_dashboard_cache
+
+    invalidate_dashboard_cache()
     yield
 
 

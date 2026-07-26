@@ -432,11 +432,9 @@ def management_smtp():
     if denied:
         return denied
     smtp = _load_smtp_settings()
-    report_cfg = _load_email_report_config()
     return render_template(
         "management_smtp.html",
         smtp=smtp,
-        report_cfg=report_cfg,
         has_password=bool(smtp["password_encrypted"]),
         is_admin=(session.get("role") == "admin"),
         **_flash_payload(),
@@ -547,6 +545,7 @@ def test_smtp():
 
 
 @management_bp.route("/management/email-reports/save", methods=["POST"])
+@management_bp.route("/reports/email-settings/save", methods=["POST"])
 def save_email_reports():
     denied = _require_roles("admin", "editor")
     if denied:
@@ -555,9 +554,9 @@ def save_email_reports():
     yearly_enabled = (request.form.get("yearly_enabled") == "1")
     monthly_template_version = (request.form.get("monthly_template_version") or "v1").strip().lower()
     yearly_template_version = (request.form.get("yearly_template_version") or "v1").strip().lower()
-    if monthly_template_version != "v1":
+    if monthly_template_version not in {"v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8"}:
         monthly_template_version = "v1"
-    if yearly_template_version != "v1":
+    if yearly_template_version not in {"v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8"}:
         yearly_template_version = "v1"
     with get_db() as conn:
         with conn.cursor() as cur:
@@ -577,34 +576,39 @@ def save_email_reports():
                 (monthly_enabled, yearly_enabled, monthly_template_version, yearly_template_version),
             )
             conn.commit()
-    session["management_msg"] = t("Email report settings saved.")
-    return redirect(url_for("management.management_smtp"))
+    session["reports_msg"] = t("Email report settings saved.")
+    next_section = (request.form.get("next_section") or "").strip().lower()
+    if next_section in {"delivery", "templates"}:
+        return redirect(url_for("reports.reports", section=next_section))
+    return redirect(url_for("reports.reports"))
 
 
 @management_bp.route("/management/email-reports/test-monthly", methods=["POST"])
+@management_bp.route("/reports/email-settings/test-monthly", methods=["POST"])
 def test_monthly_report():
     denied = _require_roles("admin", "editor")
     if denied:
         return denied
     recipient = (session.get("user_email") or "").strip()
     ok, msg = send_monthly_report(test=True, recipients_override=[recipient] if recipient else [])
-    session["management_msg" if ok else "management_err"] = (
+    session["reports_msg" if ok else "reports_err"] = (
         t("Monthly report test sent.") if ok else f"{t('Monthly report test failed')}: {msg}"
     )
-    return redirect(url_for("management.management_smtp"))
+    return redirect(url_for("reports.reports"))
 
 
 @management_bp.route("/management/email-reports/test-yearly", methods=["POST"])
+@management_bp.route("/reports/email-settings/test-yearly", methods=["POST"])
 def test_yearly_report():
     denied = _require_roles("admin", "editor")
     if denied:
         return denied
     recipient = (session.get("user_email") or "").strip()
     ok, msg = send_yearly_report(test=True, recipients_override=[recipient] if recipient else [])
-    session["management_msg" if ok else "management_err"] = (
+    session["reports_msg" if ok else "reports_err"] = (
         t("Yearly report test sent.") if ok else f"{t('Yearly report test failed')}: {msg}"
     )
-    return redirect(url_for("management.management_smtp"))
+    return redirect(url_for("reports.reports"))
 
 
 @management_bp.route("/management/system")

@@ -34,6 +34,9 @@ def dashboard():
             loan_pending_this_year=cached.get("loan_pending_this_year", 0),
             loan_monthly_payment=cached.get("loan_monthly_payment", 0),
             active_loan_count=cached.get("active_loan_count", 0),
+            budget_total=cached.get("budget_total", 0),
+            budget_spent=cached.get("budget_spent", 0),
+            budget_exceeded_count=cached.get("budget_exceeded_count", 0),
             history=cached["history"],
             years_history=cached["years_history"],
             years_span=years_span,
@@ -253,6 +256,42 @@ def dashboard():
             )
             years_rows = cur.fetchall()
 
+            cur.execute(
+                """
+                WITH category_spending AS (
+                    SELECT category_id, COALESCE(SUM(amount), 0) AS spent
+                    FROM records
+                    WHERE date=%s AND type='expense' AND source='monthly'
+                    GROUP BY category_id
+                ),
+                effective_budgets AS (
+                    SELECT
+                        c.id AS category_id,
+                        CASE WHEN b.is_disabled THEN NULL ELSE b.amount END AS amount
+                    FROM categories c
+                    LEFT JOIN LATERAL (
+                        SELECT cb.amount, cb.is_disabled
+                        FROM category_budgets cb
+                        WHERE cb.category_id=c.id AND cb.month <= %s
+                        ORDER BY cb.month DESC
+                        LIMIT 1
+                    ) b ON TRUE
+                )
+                SELECT
+                    COALESCE(SUM(b.amount), 0),
+                    COALESCE(SUM(COALESCE(s.spent, 0)), 0),
+                    COUNT(*) FILTER (WHERE COALESCE(s.spent, 0) >= b.amount)
+                FROM effective_budgets b
+                LEFT JOIN category_spending s ON s.category_id=b.category_id
+                WHERE b.amount IS NOT NULL
+                """,
+                (selected_month, selected_month),
+            )
+            budget_row = cur.fetchone()
+            budget_total = budget_row[0] if budget_row else 0
+            budget_spent = budget_row[1] if budget_row else 0
+            budget_exceeded_count = budget_row[2] if budget_row else 0
+
     history = rows
     payload = {
         "monthly_income": monthly_income,
@@ -264,6 +303,9 @@ def dashboard():
         "loan_pending_this_year": loan_pending_this_year,
         "loan_monthly_payment": loan_monthly_payment,
         "active_loan_count": active_loan_count,
+        "budget_total": budget_total,
+        "budget_spent": budget_spent,
+        "budget_exceeded_count": budget_exceeded_count,
         "history": history,
         "years_history": years_rows,
     }
@@ -281,6 +323,9 @@ def dashboard():
         loan_pending_this_year=payload["loan_pending_this_year"],
         loan_monthly_payment=payload["loan_monthly_payment"],
         active_loan_count=payload["active_loan_count"],
+        budget_total=payload["budget_total"],
+        budget_spent=payload["budget_spent"],
+        budget_exceeded_count=payload["budget_exceeded_count"],
         history=payload["history"],
         years_history=payload["years_history"],
         years_span=years_span,

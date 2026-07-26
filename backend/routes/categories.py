@@ -118,6 +118,14 @@ def delete_category(category_id):
                     category_id,
                 )
                 return redirect("/categories?error=Category%20in%20use.%20It%20cannot%20be%20deleted.")
+            cur.execute("SELECT 1 FROM category_budgets WHERE category_id=%s LIMIT 1", (category_id,))
+            if cur.fetchone():
+                logger.info(
+                    "category_delete_blocked user=%s id=%s reason=budgeted",
+                    session.get("user_name"),
+                    category_id,
+                )
+                return redirect("/categories?error=Category%20has%20budgets.%20It%20cannot%20be%20deleted.")
             cur.execute("DELETE FROM categories WHERE id=%s", (category_id,))
             deleted = cur.rowcount
             conn.commit()

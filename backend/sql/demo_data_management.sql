@@ -8,6 +8,7 @@
 -- - Previous years: lower income + lower expenses
 -- - Future years: higher income + higher expenses
 -- - Savings: higher in previous years, lower in future years
+-- - Current effective budget for every category that does not already have one
 -- - Current year loans: Universidad (60% paid), Reforma (80% paid), Coche (100% paid), plus a previous-year mortgage excluded from dashboard loan totals.
 
 CREATE OR REPLACE FUNCTION management_seed_demo_data()
@@ -132,6 +133,38 @@ BEGIN
                 ELSE 1.00
             END AS saving_mult
         FROM calendar c
+    ),
+    inserted_budgets AS (
+        INSERT INTO category_budgets (
+            category_id, month, amount, created_by, updated_by
+        )
+        SELECT
+            c.id,
+            TO_CHAR(CURRENT_DATE, 'YYYY-MM'),
+            CASE c.name
+                WHEN 'Basic Expenses' THEN 1200.00
+                WHEN 'Home' THEN 300.00
+                WHEN 'Food' THEN 650.00
+                WHEN 'Leisure' THEN 300.00
+                WHEN 'Transport' THEN 450.00
+                WHEN 'Vacations' THEN 250.00
+                WHEN 'Personal' THEN 200.00
+                WHEN 'Sports' THEN 120.00
+                WHEN 'Health' THEN 180.00
+                WHEN 'Subscriptions' THEN 100.00
+                ELSE 500.00
+            END,
+            demo_tag,
+            demo_tag
+        FROM categories c
+        ON CONFLICT (category_id, month) DO UPDATE
+        SET
+            amount = EXCLUDED.amount,
+            is_disabled = FALSE,
+            updated_by = demo_tag,
+            updated_at = NOW()
+        WHERE category_budgets.is_disabled = TRUE
+        RETURNING 1
     ),
     demo_loans AS (
         INSERT INTO loans (
@@ -459,6 +492,7 @@ BEGIN
         (SELECT COUNT(*) FROM inserted)
         + (SELECT COUNT(*) FROM inserted_loan_payments)
         + (SELECT COUNT(*) FROM inserted_loan_usages)
+        + (SELECT COUNT(*) FROM inserted_budgets)
     INTO inserted_count;
 
     RETURN inserted_count;
@@ -473,6 +507,18 @@ AS $$
 DECLARE
     deleted_count INTEGER;
 BEGIN
+    UPDATE category_budgets
+    SET
+        amount = NULL,
+        is_disabled = TRUE,
+        updated_by = created_by,
+        updated_at = NOW()
+    WHERE created_by IS DISTINCT FROM '[DEMO_SEED_MANAGEMENT]'
+      AND updated_by = '[DEMO_SEED_MANAGEMENT]';
+
+    DELETE FROM category_budgets
+    WHERE created_by = '[DEMO_SEED_MANAGEMENT]';
+
     DELETE FROM records
     WHERE comment = '[DEMO_SEED_MANAGEMENT]';
 

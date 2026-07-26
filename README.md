@@ -14,14 +14,25 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
 ## Current Version
 
-- Current version: `3.6.1`
-- Release: `v3.6.1 - Scoped Account and Card Names`
-- Production compose is prepared for `f1nanc3/finance:3.6.1`
+- Current version: `3.7.0`
+- Release: `v3.7.0 - Budgets and Reports`
+- Production compose is prepared for `f1nanc3/finance:3.7.0`
+- [v3.7.0 release notes](docs/v3.7-release/v3.7.0-release-notes.md)
 
 ## Core Features
 
-- Separate views: `Dashboard`, `Expenses`, `Incomes`, `Savings`, `Loans`, `Banking`, `Management`
-- Dashboard with monthly and yearly charts, including loan debt indicators
+- Separate views: `Dashboard`, `Expenses`, `Incomes`, `Savings`, `Budgets`, `Reports`, `Loans`, `Banking`, `Management`
+- Dashboard with monthly and yearly charts, loan debt indicators, and a budget summary
+- Effective category budgets editable in the current month and automatically inherited by subsequent months
+- Read-only monthly history with applied budget, actual spending, variance, and alerts at 80%, 90%, and 100%
+- On-screen monthly and yearly reports with summary, category spending, and top expenses
+- Month, quarter and year comparisons using two dropdowns based on Finance's configured year window
+- Financial evolution chart for 6 months, 12 months or the configured year window, with toggleable series
+- Unified Free, MoM and YoY comparison selector with category breakdown and largest increases/decreases
+- Shared category, bank, account, card and loan filters, CSV export and a print/PDF view
+- Per-user saved reports with reusable periods, modes and filters
+- Email report settings and delivery history integrated into Reports; SMTP remains in Management
+- Reports sub-navigation separates Summary, Email delivery and Email templates
 - Auth with roles: `admin`, `editor`, `user`
 - Rate limiting in auth endpoints
 - Profile preferences per user:
@@ -59,7 +70,19 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 - Gunicorn runtime in Docker, running as non-root user
 - Structured JSON logs + health checks (`/health/live`, `/health/ready`)
 - Dashboard query optimization + short cache (30s) with invalidation on data changes
-- Versioned report templates layer (`v1`) and shared validators module
+- Eight versioned report templates (`v1` through `v8`) in one five-column monthly/yearly grid
+
+## Reports and analytics
+
+The `Reports` workspace brings financial analysis and email delivery together:
+
+- Monthly and yearly summaries for income, expenses, savings, and balance.
+- Free, MoM, and YoY comparisons by month, quarter, or year, including absolute and percentage changes and category breakdowns.
+- Financial evolution across the latest 6 or 12 months or multiple years, with individually selectable series.
+- Shared filters for category, bank, account, card, and loan.
+- Contextual CSV export and a dedicated print layout that can be saved as PDF.
+- Per-user saved reports that preserve periods, comparison mode, metrics, and filters.
+- Email report settings, delivery history, and eight templates with monthly or yearly previews.
 
 ## Screenshots
 
@@ -234,7 +257,7 @@ Rate limits:
 - Reports are sent only to users:
   - active
   - with email notifications enabled
-- Report template version is configurable (phase 1: `v1`).
+- Monthly and yearly templates can independently use eight styles, including Editorial, Dashboard, Receipt, Statement and Magazine, with previews based on real report data.
 
 ## License
 

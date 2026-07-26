@@ -76,7 +76,8 @@ def _normalize_lang(lang: str | None) -> str:
 
 
 def _normalize_template_version(value: str | None) -> str:
-    return "v1" if (value or "").strip().lower() != "v1" else "v1"
+    value = (value or "v1").strip().lower()
+    return value if value in {"v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8"} else "v1"
 
 
 def _report_texts(lang: str) -> dict:

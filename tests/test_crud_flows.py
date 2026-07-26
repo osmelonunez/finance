@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pytest
 
 
@@ -19,6 +21,12 @@ def test_category_create_update_delete_flow(admin_client, db_query):
     assert db_query("SELECT description FROM categories WHERE id=%s", (category_id,))[0] == "Updated"
     _post(admin_client, f"/categories/{category_id}/delete", {})
     assert db_query("SELECT COUNT(*) FROM categories WHERE id=%s", (category_id,))[0] == 0
+
+
+def test_category_with_budget_cannot_be_deleted(admin_client, db_query):
+    response = _post(admin_client, "/categories/3/delete", {})
+    assert response.status_code in {302, 303}
+    assert db_query("SELECT COUNT(*) FROM categories WHERE id=3")[0] == 1
 
 
 def test_expense_create_edit_duplicate_delete_flow(admin_client, db_query):
@@ -66,6 +74,62 @@ def test_loan_usage_create_update_delete_flow(admin_client, db_query):
     assert db_query("SELECT amount FROM loan_usages WHERE id=%s", (usage_id,))[0] == 35
     _post(admin_client, f"/loans/1/usages/{usage_id}/delete", {})
     assert db_query("SELECT COUNT(*) FROM loan_usages WHERE id=%s", (usage_id,))[0] == 0
+
+
+def test_loans_excluded_from_analytics_are_visually_muted(admin_client, db_query):
+    db_query(
+        "UPDATE loans SET exclude_from_dashboard=TRUE WHERE id=2",
+        fetch="none",
+    )
+
+    response = admin_client.get("/loans")
+
+    assert response.status_code == 200
+    excluded_row = (
+        rb'<tr class="row-link loan-excluded-row" data-href="/loans/2"'
+    )
+    included_row = rb'<tr class="row-link" data-href="/loans/1"'
+    assert excluded_row in response.data
+    assert included_row in response.data
+    assert (
+        b".table-clean tbody tr.loan-excluded-row {\n"
+        b"        opacity: 0.68;"
+    ) in response.data
+    assert b"background-color: #f1f3f5;" in response.data
+
+
+def test_budget_create_update_and_actual_spending(admin_client, db_query):
+    response = admin_client.get("/budgets?month=2026-07")
+    assert response.status_code == 200
+    assert b"1.334,56" in response.data
+    _post(admin_client, "/budgets/2/save", {"month": "2026-07", "amount": "300"})
+    assert db_query(
+        "SELECT amount FROM category_budgets WHERE category_id=2 AND month='2026-07'"
+    )[0] == 300
+    _post(admin_client, "/budgets/2/save", {"month": "2026-07", "amount": "350"})
+    assert db_query(
+        "SELECT amount FROM category_budgets WHERE category_id=2 AND month='2026-07'"
+    )[0] == 350
+
+
+def test_budget_history_is_read_only_and_uses_value_effective_that_month(admin_client, db_query):
+    db_query(
+        """INSERT INTO category_budgets (category_id, month, amount)
+           VALUES (1, '2026-06', 700)
+           ON CONFLICT (category_id, month) DO UPDATE SET amount=EXCLUDED.amount""",
+        fetch="none",
+    )
+    response = admin_client.get("/budgets?month=2026-06")
+    assert response.status_code == 200
+    assert b"700,00" in response.data
+    assert b"/budgets/1/save" not in response.data
+
+    _post(admin_client, "/budgets/1/save", {"month": "2026-06", "amount": "1600"})
+    values = db_query(
+        "SELECT month, amount FROM category_budgets WHERE category_id=1 ORDER BY month",
+        fetch="all",
+    )
+    assert values == [("2026-06", Decimal("700.00")), ("2026-07", Decimal("1600.00"))]
 
 
 def test_bank_detail_pagination_loads_second_page(admin_client, db_query):

@@ -1,6 +1,6 @@
 services:
   finance:
-    image: f1nanc3/finance:3.6.1
+    image: f1nanc3/finance:3.7.0
     container_name: finance
     ports:
       - "5000:5000"

@@ -92,44 +92,10 @@
       </form>
     </div>
   {% endif %}
-
   <div class="panel mt-3">
-    <div class="fw-semibold mb-1">{{ t('Email reports') }}</div>
-    <div class="text-muted small mb-3">{{ t('Monthly and yearly balance emails for active users.') }}</div>
-    <form method="post" action="/management/email-reports/save">
-      <div class="d-flex flex-wrap gap-4 align-items-center">
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="monthlyEnabled" name="monthly_enabled" value="1" {% if report_cfg.monthly_enabled %}checked{% endif %}>
-          <label class="form-check-label" for="monthlyEnabled">{{ t('Enable monthly report') }}</label>
-        </div>
-        <div>
-          <label class="form-label mb-1 small">{{ t('Monthly template') }}</label>
-          <select class="form-select form-select-sm" name="monthly_template_version">
-            <option value="v1" {% if report_cfg.monthly_template_version == 'v1' %}selected{% endif %}>v1</option>
-          </select>
-        </div>
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="yearlyEnabled" name="yearly_enabled" value="1" {% if report_cfg.yearly_enabled %}checked{% endif %}>
-          <label class="form-check-label" for="yearlyEnabled">{{ t('Enable yearly report') }}</label>
-        </div>
-        <div>
-          <label class="form-label mb-1 small">{{ t('Yearly template') }}</label>
-          <select class="form-select form-select-sm" name="yearly_template_version">
-            <option value="v1" {% if report_cfg.yearly_template_version == 'v1' %}selected{% endif %}>v1</option>
-          </select>
-        </div>
-        <button class="btn btn-primary btn-sm" type="submit">{{ t('Save') }}</button>
-      </div>
-    </form>
-
-    <div class="d-flex flex-wrap gap-2 mt-3">
-      <form method="post" action="/management/email-reports/test-monthly">
-        <button class="btn btn-outline-primary btn-sm" type="submit">{{ t('Send test monthly') }}</button>
-      </form>
-      <form method="post" action="/management/email-reports/test-yearly">
-        <button class="btn btn-outline-primary btn-sm" type="submit">{{ t('Send test yearly') }}</button>
-      </form>
-    </div>
+    <div class="fw-semibold mb-1">{{ t('Reports') }}</div>
+    <div class="text-muted small mb-3">{{ t('Email schedules, templates and delivery history are managed from Reports.') }}</div>
+    <a class="btn btn-outline-primary btn-sm" href="/reports">{{ t('Open Reports') }}</a>
   </div>
 </div>
 {% endblock %}
