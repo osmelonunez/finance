@@ -7,6 +7,8 @@ import re
 from flask import Blueprint, Response, redirect, render_template, request, session, url_for
 
 from db import get_db
+from email_service import smtp_status
+from feature_flags import loans_enabled
 from i18n import category_name
 from report_service import _report_texts
 from report_templates import _normalize_version, render_report_html
@@ -27,13 +29,14 @@ def _positive_int(value):
 
 def _report_filters(args):
     loan_value = (args.get("loan_id") or "").strip().lower()
+    module_enabled = loans_enabled()
     return {
         "category_id": _positive_int(args.get("category_id")),
         "bank_id": _positive_int(args.get("bank_id")),
         "account_id": _positive_int(args.get("account_id")),
         "card_id": _positive_int(args.get("card_id")),
-        "loan_id": _positive_int(loan_value),
-        "without_loan": loan_value == "none",
+        "loan_id": _positive_int(loan_value) if module_enabled else None,
+        "without_loan": loan_value == "none" if module_enabled else False,
     }
 
 
@@ -719,8 +722,11 @@ def reports():
                 "SELECT id, name, bank_id FROM payment_methods WHERE kind='card' ORDER BY name"
             )
             filter_cards = cur.fetchall()
-            cur.execute("SELECT id, name, bank_id FROM loans ORDER BY name")
-            filter_loans = cur.fetchall()
+            if loans_enabled():
+                cur.execute("SELECT id, name, bank_id FROM loans ORDER BY name")
+                filter_loans = cur.fetchall()
+            else:
+                filter_loans = []
             cur.execute(
                 """
                 SELECT id, name, section, query_string, created_at
@@ -773,6 +779,7 @@ def reports():
         categories=categories,
         top_expenses=top_expenses,
         report_cfg=config,
+        smtp_status=smtp_status(),
         runs=runs,
         message=message,
         error=error,

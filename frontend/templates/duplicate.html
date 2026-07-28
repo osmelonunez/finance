@@ -70,7 +70,7 @@
                     <option value="">{{ t('Select') }}</option>
                     {% for pm in payment_methods %}
                     <option value="{{ pm[0] }}" {{ 'selected' if expense[12] == pm[0] else '' }}>
-                        [{{ t('Card') if pm[3] == 'card' else t('Savings account') if pm[4] == 'savings' else t('Current account') }}] {{ pm[1] }}{% if not pm[2] %} ({{ t('Inactive') }}){% endif %}
+                        [{{ pm[6] ~ ' · ' if pm[6] }}{{ t('Card') if pm[3] == 'card' else t('Savings account') if pm[4] == 'savings' else t('Current account') }}] {{ pm[1] }}{% if not pm[2] %} ({{ t('Inactive') }}){% endif %}
                     </option>
                     {% endfor %}
                 </select>
@@ -80,7 +80,7 @@
                 <label class="form-label">{{ t('Savings account') }}</label>
                 <select class="form-control" name="payment_method_id" required>
                     {% for pm in payment_methods if pm[3] == 'bank_account' and pm[4] == 'savings' %}
-                    <option value="{{ pm[0] }}" {{ 'selected' if expense[12] == pm[0] else '' }}>[{{ t('Savings account') }}] {{ pm[1] }}</option>
+                    <option value="{{ pm[0] }}" {{ 'selected' if expense[12] == pm[0] else '' }}>[{{ pm[6] ~ ' · ' if pm[6] }}{{ t('Savings account') }}] {{ pm[1] }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -90,15 +90,15 @@
                     <input class="form-check-input" type="checkbox" id="deferredCheckDuplicate" name="is_deferred" value="1">
                     <label class="form-check-label" for="deferredCheckDuplicate">{{ t('Deferred payment') }}</label>
                 </div>
-                <div class="form-check mt-2">
+                {% if loans_enabled %}<div class="form-check mt-2">
                     <input class="form-check-input" type="checkbox" id="loanPaymentCheckDuplicate" name="is_loan_payment" value="1" {{ 'checked' if expense[16] else '' }}>
                     <label class="form-check-label" for="loanPaymentCheckDuplicate">{{ t('Loan payment') }}</label>
-                </div>
+                </div>{% endif %}
                 <div class="mt-2" id="deferredTotalWrapDuplicate" style="display:none;">
                     <label class="form-label mb-1">{{ t('Installments') }}</label>
                     <input class="form-control form-control-sm" type="number" min="2" max="60" name="deferred_total" value="{{ expense[14] if expense[14] and expense[14] > 1 else 3 }}">
                 </div>
-                <div class="mt-2" id="loanSelectWrapDuplicate" style="{{ '' if expense[16] else 'display:none;' }}">
+                {% if loans_enabled %}<div class="mt-2" id="loanSelectWrapDuplicate" style="{{ '' if expense[16] else 'display:none;' }}">
                     <label class="form-label mb-1">{{ t('Loan') }}</label>
                     <select class="form-control form-control-sm" name="loan_id">
                         <option value="">{{ t('Select') }}</option>
@@ -136,6 +136,7 @@
                     </div>
                     <div class="form-text">{{ t('Principal and interest are tracked separately; the full payment reduces total pending debt.') }}</div>
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>

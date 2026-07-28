@@ -134,14 +134,13 @@
 <div class="categories-shell">
     <h4 class="mb-3">{{ t('Management') }}</h4>
     <div class="mg-tabs">
+        <a href="/management/system">{{ t('System') }}</a>
         {% if session.get('role') == 'admin' %}
         <a href="/management/users">{{ t('Users') }}</a>
-        <a href="/management/database">{{ t('Database') }}</a>
         <a href="/management/backups">{{ t('Backups') }}</a>
-        <a href="/management/smtp">{{ t('SMTP') }}</a>
+        <a href="/management/modules">{{ t('Modules') }}</a>
         {% endif %}
         <a class="active" href="/categories">{{ t('Categories') }}</a>
-        <a href="/management/system">{{ t('System') }}</a>
     </div>
     <div class="categories-header">
         <div></div>

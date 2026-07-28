@@ -11,7 +11,6 @@ from werkzeug.exceptions import HTTPException
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from db import get_db, init_db, is_app_initialized
-from backup_service import maybe_run_scheduled_backup
 from report_service import start_report_scheduler
 from routes.dashboard import dashboard_bp
 from routes.movements import movements_bp
@@ -24,6 +23,7 @@ from routes.loans import loans_bp
 from routes.budgets import budgets_bp
 from routes.reports import reports_bp
 from i18n import category_description, category_name, format_money, format_number, get_lang, t
+from feature_flags import budgets_enabled, loans_enabled
 from security import limiter
 from log_safety import redact_text
 from log_formatting import color_enabled, text_formatter
@@ -87,8 +87,6 @@ def configure_logging():
 configure_logging()
 logger = logging.getLogger("finance.app")
 DEFAULT_SECRET_KEY = "dev-secret"
-DEFAULT_SMTP_ENCRYPTION_KEY = "change-this-smtp-key"
-DEFAULT_DB_CONFIG_ENCRYPTION_KEY = "change-this-db-config-key"
 
 app = Flask(
     __name__,
@@ -97,7 +95,7 @@ app = Flask(
     static_url_path="/static"
 )
 app.secret_key = os.environ.get("SECRET_KEY", DEFAULT_SECRET_KEY)
-app.config["APP_VERSION"] = os.environ.get("APP_VERSION", "3.7.0")
+app.config["APP_VERSION"] = os.environ.get("APP_VERSION", "3.8.0")
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -133,20 +131,13 @@ def _validate_runtime_secrets():
     if not _strict_secrets_enabled():
         return
     secret_key = (os.environ.get("SECRET_KEY") or "").strip()
-    smtp_key = (os.environ.get("SMTP_ENCRYPTION_KEY") or "").strip()
-    db_config_key = (os.environ.get("DB_CONFIG_ENCRYPTION_KEY") or "").strip()
-    uses_env_database_url = bool((os.environ.get("DATABASE_URL") or "").strip())
+    database_url = (os.environ.get("DATABASE_URL") or "").strip()
     if not secret_key or secret_key == DEFAULT_SECRET_KEY:
         logger.error("startup_blocked reason=invalid_secret_key")
         raise RuntimeError("SECRET_KEY must be set to a non-default value in production.")
-    if not smtp_key or smtp_key == DEFAULT_SMTP_ENCRYPTION_KEY:
-        logger.error("startup_blocked reason=invalid_smtp_encryption_key")
-        raise RuntimeError("SMTP_ENCRYPTION_KEY must be set to a non-default value in production.")
-    if not uses_env_database_url and (not db_config_key or db_config_key == DEFAULT_DB_CONFIG_ENCRYPTION_KEY):
-        logger.error("startup_blocked reason=invalid_db_config_encryption_key")
-        raise RuntimeError(
-            "DB_CONFIG_ENCRYPTION_KEY must be set to a non-default value in production when using APP_CONFIG_PATH."
-        )
+    if not database_url:
+        logger.error("startup_blocked reason=missing_database_url")
+        raise RuntimeError("DATABASE_URL must be configured in production.")
 
 
 session_lifetime_hours_raw = os.environ.get("SESSION_LIFETIME_HOURS", "12")
@@ -186,13 +177,15 @@ def inject_template_globals():
     lang = get_lang()
     return {
         "current_year": datetime.now().year,
-        "app_version": app.config.get("APP_VERSION", "3.7.0"),
+        "app_version": app.config.get("APP_VERSION", "3.8.0"),
         "current_lang": lang,
         "t": lambda text: t(text, lang),
         "cat_name": lambda name: category_name(name, lang),
         "cat_desc": lambda name, desc: category_description(name, desc, lang),
         "money": lambda value: format_money(value, lang),
         "number": lambda value, decimals=0: format_number(value, lang, decimals),
+            "loans_enabled": loans_enabled(),
+            "budgets_enabled": budgets_enabled(),
         "csrf_token": _ensure_csrf_token(),
     }
 
@@ -208,17 +201,11 @@ def require_login():
             return "Invalid CSRF token", 400
 
     g.request_started_at = time.time()
-    if not app.config["TESTING"]:
-        try:
-            maybe_run_scheduled_backup()
-        except Exception as exc:
-            logger.warning("scheduled_backup_check_failed error=%s", exc)
     public_paths = {
         "/login",
         "/register",
         "/setup",
-        "/setup/use-existing",
-        "/setup/create-new",
+        "/setup/initialize",
         "/setup/test-connection",
         "/health/live",
         "/health/ready",

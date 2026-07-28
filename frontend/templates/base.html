@@ -219,9 +219,9 @@
         <a class="nav-link {{ 'active' if current_page=='expense' else '' }}" href="/records/expense">{{ t('Expenses') }}</a>
         <a class="nav-link {{ 'active' if current_page=='income' else '' }}" href="/records/income">{{ t('Incomes') }}</a>
         <a class="nav-link {{ 'active' if current_page=='saving' else '' }}" href="/records/saving">{{ t('Savings') }}</a>
-        <a class="nav-link {{ 'active' if current_page=='budgets' else '' }}" href="/budgets">{{ t('Budgets') }}</a>
+        {% if budgets_enabled %}<a class="nav-link {{ 'active' if current_page=='budgets' else '' }}" href="/budgets">{{ t('Budgets') }}</a>{% endif %}
         <a class="nav-link {{ 'active' if current_page=='reports' else '' }}" href="/reports">{{ t('Reports') }}</a>
-        <a class="nav-link {{ 'active' if current_page=='loans' else '' }}" href="/loans">{{ t('Loans') }}</a>
+        {% if loans_enabled %}<a class="nav-link {{ 'active' if current_page=='loans' else '' }}" href="/loans">{{ t('Loans') }}</a>{% endif %}
         {% if session.get('role') in ['admin', 'editor'] %}
         <a class="nav-link {{ 'active' if current_page=='payment_methods' else '' }}" href="/payment-methods">{{ t('Banking') }}</a>
         <a class="nav-link {{ 'active' if current_page=='management' else '' }}" href="/management">{{ t('Management') }}</a>

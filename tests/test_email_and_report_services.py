@@ -75,13 +75,40 @@ def test_send_email_builds_html_message_and_handles_failures(monkeypatch):
     assert not email_service.send_email([], "Subject", "Body")
 
 
-def test_smtp_cipher_encrypts_and_decrypts(monkeypatch):
-    monkeypatch.setenv("SMTP_ENCRYPTION_KEY", "test-key")
-    cipher = email_service._smtp_cipher()
-    token = cipher.encrypt(b"password")
-    assert cipher.decrypt(token) == b"password"
-    monkeypatch.delenv("SMTP_ENCRYPTION_KEY")
-    assert email_service._smtp_cipher() is None
+def test_smtp_configuration_comes_from_environment(monkeypatch):
+    values = {
+        "SMTP_ENABLED": "true",
+        "SMTP_HOST": "smtp.example.test",
+        "SMTP_PORT": "2525",
+        "SMTP_USER": "finance",
+        "SMTP_PASSWORD": "secret",
+        "SMTP_USE_TLS": "false",
+        "SMTP_FROM_EMAIL": "finance@example.test",
+        "SMTP_SENDER_NAME": "Finance Test",
+    }
+    for name, value in values.items():
+        monkeypatch.setenv(name, value)
+    smtp = email_service._load_enabled_smtp()
+    assert smtp == {
+        "host": "smtp.example.test",
+        "port": 2525,
+        "username": "finance",
+        "password": "secret",
+        "from_name": "Finance Test",
+        "from_email": "finance@example.test",
+        "use_tls": False,
+    }
+    assert email_service.smtp_status()["configured"] is True
+    monkeypatch.setenv("SMTP_PASSWORD", "")
+    assert email_service._load_enabled_smtp() is None
+    assert email_service.smtp_status() == {
+        "enabled": True,
+        "configured": False,
+        "host": "",
+        "from_email": "",
+    }
+    monkeypatch.setenv("SMTP_ENABLED", "false")
+    assert email_service._load_enabled_smtp() is None
 
 
 def test_user_notification_helpers_respect_available_recipients(monkeypatch, db_query):
@@ -193,4 +220,3 @@ def test_report_no_recipient_already_sent_and_scheduler_branches(
     monkeypatch.setattr(report_service, "datetime", _NotFirstDay)
     report_service.maybe_run_scheduled_reports()
     assert len(calls) == 2
-

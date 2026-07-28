@@ -1,16 +1,3 @@
-CREATE TABLE IF NOT EXISTS smtp_settings (
-    id SMALLINT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
-    host TEXT,
-    port INTEGER NOT NULL DEFAULT 587,
-    username TEXT,
-    password_encrypted TEXT,
-    from_name TEXT,
-    from_email TEXT,
-    use_tls BOOLEAN NOT NULL DEFAULT TRUE,
-    enabled BOOLEAN NOT NULL DEFAULT FALSE,
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
 CREATE TABLE IF NOT EXISTS email_report_config (
     id SMALLINT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
     monthly_enabled BOOLEAN NOT NULL DEFAULT TRUE,

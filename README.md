@@ -14,15 +14,15 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
 ## Current Version
 
-- Current version: `3.7.0`
-- Release: `v3.7.0 - Budgets and Reports`
-- Production compose is prepared for `f1nanc3/finance:3.7.0`
-- [v3.7.0 release notes](docs/v3.7-release/v3.7.0-release-notes.md)
+- Current version: `3.8.0`
+- Release: `v3.8.0 - Operations, optional modules and modular i18n`
+- Production compose is prepared for `f1nanc3/finance:3.8.0`
+- [v3.8.0 release notes](docs/v3.8-release/v3.8.0-release-notes.md)
 
 ## Core Features
 
-- Separate views: `Dashboard`, `Expenses`, `Incomes`, `Savings`, `Budgets`, `Reports`, `Loans`, `Banking`, `Management`
-- Dashboard with monthly and yearly charts, loan debt indicators, and a budget summary
+- Separate views: `Dashboard`, `Expenses`, `Incomes`, `Savings`, `Reports`, `Banking`, and `Management`; `Budgets` and `Loans` are optional modules.
+- Dashboard with monthly and yearly charts, plus loan debt indicators and a budget summary when their respective modules are enabled.
 - Effective category budgets editable in the current month and automatically inherited by subsequent months
 - Read-only monthly history with applied budget, actual spending, variance, and alerts at 80%, 90%, and 100%
 - On-screen monthly and yearly reports with summary, category spending, and top expenses
@@ -31,7 +31,7 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 - Unified Free, MoM and YoY comparison selector with category breakdown and largest increases/decreases
 - Shared category, bank, account, card and loan filters, CSV export and a print/PDF view
 - Per-user saved reports with reusable periods, modes and filters
-- Email report settings and delivery history integrated into Reports; SMTP remains in Management
+- Email report settings, SMTP status and delivery history integrated into Reports
 - Reports sub-navigation separates Summary, Email delivery and Email templates
 - Auth with roles: `admin`, `editor`, `user`
 - Rate limiting in auth endpoints
@@ -41,11 +41,10 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
   - email notifications on/off
 - Management modules:
   - users
-  - database connection
   - backups
-  - SMTP + email reports
   - categories
   - system settings
+  - optional modules (`Loans` and `Budgets`), managed together by administrators from `Management -> Modules`
 - Top-level `Banking` workspace at `/payment-methods`:
   - KPI dashboard with bank/account/card and year selectors
   - monthly, annual, total, and combined spending charts
@@ -53,7 +52,7 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
   - separate bank, account, and card management tabs
   - one contextual form for creating banks, accounts, or cards
 - Bank, account, and card detail views with spending totals and server-side movement pagination
-- Bank details include associated loans and principal, outstanding debt, amortized amount, and monthly-payment KPIs
+- Bank details include associated loans and principal, outstanding debt, amortized amount, and monthly-payment KPIs when Loans is enabled
 - Bank spending includes loan payments (principal and interest), while loan capital usages remain informational and are not treated as personal spending or available balance
 - Dedicated expense filters for bank, account, and card
 - Accounts require a bank and cards require an account; deletion is blocked while related data exists
@@ -64,6 +63,7 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 - Editable loan usage tracking to record what borrowed money is spent on without counting it as monthly income
 - Loan payments registered from expenses without counting loan requests as income
 - Optional loan exclusion from dashboard and analytics totals
+- Optional Loans and Budgets modules preserve all data and history while disabled; navigation, related dashboard content, filters, forms, and routes are hidden or blocked as appropriate.
 - Deferred expenses
 - Localized categories for default list (`en` / `es`)
 - SQL migrations with migration tracking table
@@ -72,6 +72,7 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 - Dashboard query optimization + short cache (30s) with invalidation on data changes
 - Ten versioned report templates (`v1` through `v10`) in one five-column monthly/yearly grid
 - Shared email branding with brand name, header and centered footer
+- Modular translation catalogues: new module strings live under `backend/locales/` while the existing `i18n.py` API remains compatible.
 
 ## Reports and analytics
 
@@ -80,7 +81,7 @@ The `Reports` workspace brings financial analysis and email delivery together:
 - Monthly and yearly summaries for income, expenses, savings, and balance.
 - Free, MoM, and YoY comparisons by month, quarter, or year, including absolute and percentage changes and category breakdowns.
 - Financial evolution across the latest 6 or 12 months or multiple years, with individually selectable series.
-- Shared filters for category, bank, account, card, and loan.
+- Shared filters for category, bank, account, card, and loan (when Loans is enabled).
 - Contextual CSV export and a dedicated print layout that can be saved as PDF.
 - Per-user saved reports that preserve periods, comparison mode, metrics, and filters.
 - Email report settings, delivery history, and ten templates with monthly or yearly previews.
@@ -89,26 +90,7 @@ The `Reports` workspace brings financial analysis and email delivery together:
 
 ## Screenshots
 
-### Dashboard
-![Dashboard](docs/screenshots/dashboard.png)
-
-### Expenses
-![Expenses](docs/screenshots/expenses.png)
-
-### Loans
-![Loans](docs/screenshots/loans.png)
-
-### Loan Detail
-![Loan Detail](docs/screenshots/loan-detail.png)
-
-### Banking KPI
-![Banking KPI](docs/screenshots/payment-methods-kpi.png)
-
-### Management
-![Management](docs/screenshots/management.png)
-
-### Profile
-![Profile](docs/screenshots/profile.png)
+Browse the [screenshots folder](docs/screenshots/) for the current application views.
 
 ## Tech Stack
 
@@ -141,20 +123,41 @@ make logs
 make down
 ```
 
+The development database URL is kept outside Git in:
+
+```text
+tools/docker/docker-compose.override.yaml
+```
+
+Create it locally with:
+
+```yaml
+services:
+  finance:
+    environment:
+      DATABASE_URL: "postgresql://user:password@database-host:5432/finance_dev"
+      SMTP_ENABLED: "true"
+      SMTP_HOST: "smtp.example.com"
+      SMTP_PORT: "587"
+      SMTP_USER: "finance@example.com"
+      SMTP_PASSWORD: "CHANGE_ME"
+      SMTP_USE_TLS: "true"
+      SMTP_FROM_EMAIL: "finance@example.com"
+      SMTP_SENDER_NAME: "Finance"
+```
+
+This override is ignored by Git. The `Makefile` automatically combines it with
+`tools/docker/docker-compose.yaml`.
+
 ## First-Time Setup Wizard
 
-On first access, app redirects to `/setup`.
-
-Options:
-- `Use existing database`
-- `Create new database`
+On first access, the app runs migrations against the `DATABASE_URL` configured in Docker Compose and redirects to `/setup`.
 
 Notes:
 - First admin is created from wizard form.
 - No hardcoded `admin/admin`.
-- Database and database user must already exist.
-- DB connection is persisted in `/config/.app_config.json`.
-- If `DB_CONFIG_ENCRYPTION_KEY` is configured, DB URL is stored encrypted.
+- Database and database user must already exist and be reachable through `DATABASE_URL`.
+- The wizard can validate the configured connection but never reads or stores database credentials.
 
 ## Production Deploy (Prebuilt Image)
 
@@ -215,9 +218,8 @@ The route inventory is read directly from Flask. Every new route is included in 
 
 Required in production:
 - `APP_ENV=production`
+- `DATABASE_URL` (single PostgreSQL connection string)
 - `SECRET_KEY` (must be custom, non-default)
-- `SMTP_ENCRYPTION_KEY` (must be custom, non-default)
-- `DB_CONFIG_ENCRYPTION_KEY` (required when using `/config/.app_config.json` DB config)
 
 Recommended:
 - `APP_PUBLIC_URL` (links in emails)
@@ -235,9 +237,8 @@ Rate limits:
 ## Security and Ops Notes
 
 - In production, startup fails if required secrets are missing/default.
-- App config file is created with mode `0600`.
-- SMTP credentials are encrypted at rest.
-- DB URL in app config can be encrypted with `DB_CONFIG_ENCRYPTION_KEY`.
+- SMTP and database credentials remain outside the application in environment variables or secrets.
+- Database credentials remain outside the application in `DATABASE_URL`.
 - Container logs are rotated via Compose:
   - `max-size: 10m`
   - `max-file: 7`
@@ -248,14 +249,18 @@ Rate limits:
 - Backup files are stored at `/backups` in the container.
 - Typical mounts:
   - `./backups -> /backups`
-  - `./config -> /config`
-- Backup schedule/retention/restore/delete from:
+- Backups use PostgreSQL custom `.dump` format and are verified when created or uploaded.
+- An internal scheduler in the same application container runs the configured job at `00:00` (`TZ`, default `Europe/Madrid`); no extra cron container is required.
+- Retention keeps backups created within the configured number of days.
+- Restore requires an explicit filename confirmation and creates a safety backup immediately beforehand.
+- Backup schedule/retention/upload/restore/delete from:
   - `Management -> Backups`
 
 ## Email and Reports
 
-- SMTP settings are managed in UI (`Management -> SMTP`).
-- Sender display name is configurable.
+- SMTP settings are supplied through `SMTP_ENABLED`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
+  `SMTP_PASSWORD`, `SMTP_USE_TLS`, `SMTP_FROM_EMAIL`, and `SMTP_SENDER_NAME`.
+- Reports displays SMTP readiness without exposing credentials.
 - Monthly/yearly reports are enabled by default.
 - Reports are sent only to users:
   - active

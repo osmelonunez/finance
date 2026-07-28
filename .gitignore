@@ -3,6 +3,7 @@
 
 .env
 .env.*
+tools/docker/docker-compose.override.yaml
 
 backups
 config
@@ -17,4 +18,5 @@ htmlcov/
 
 # Generated test execution reports (keep the usage guide).
 test-reports/*.md
+test-reports/*.json
 !test-reports/README.md

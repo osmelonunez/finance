@@ -10,6 +10,18 @@ INSERT INTO settings (key, value)
 VALUES ('records_years', 1)
 ON CONFLICT (key) DO NOTHING;
 
+INSERT INTO settings (key, value, text_value)
+VALUES ('currency', 0, 'EUR')
+ON CONFLICT (key) DO NOTHING;
+
+INSERT INTO settings (key, value)
+VALUES ('loans_enabled', 1)
+ON CONFLICT (key) DO NOTHING;
+
+INSERT INTO settings (key, value)
+VALUES ('budgets_enabled', 1)
+ON CONFLICT (key) DO NOTHING;
+
 INSERT INTO settings (key, value)
 VALUES (
     'app_initialized',
@@ -17,12 +29,8 @@ VALUES (
 )
 ON CONFLICT (key) DO NOTHING;
 
-INSERT INTO backup_config (id, frequency, weekly_day, retain_count)
+INSERT INTO backup_config (id, frequency, weekly_day, retain_days)
 VALUES (1, 'daily', 0, 7)
-ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO smtp_settings (id, port, use_tls, enabled, updated_at)
-VALUES (1, 587, TRUE, FALSE, NOW())
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO email_report_config (id, monthly_enabled, yearly_enabled, monthly_template_version, yearly_template_version, updated_at)

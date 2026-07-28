@@ -1,15 +1,13 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session
 import logging
 import os
-import base64
-import smtplib
 from decimal import Decimal, InvalidOperation
-from urllib.parse import urlparse, quote_plus
 
 import psycopg2
-from db import get_db, get_database_url, get_previous_database_url, set_database_url
+from db import get_db
 from dashboard_cache import invalidate_dashboard_cache
-from i18n import format_number, t
+from feature_flags import budgets_enabled, clear_feature_flags_cache, loans_enabled
+from i18n import SUPPORTED_CURRENCIES, format_number, get_currency, t
 from email_service import notify_user_approved
 from report_service import send_monthly_report, send_yearly_report
 from validators import (
@@ -40,28 +38,6 @@ DEMO_PAYMENT_METHOD_NAMES = (
 )
 
 
-def _build_db_url_from_form(prefix: str = ""):
-    host = (request.form.get(f"{prefix}db_host") or "").strip()
-    port = (request.form.get(f"{prefix}db_port") or "").strip()
-    db_name = (request.form.get(f"{prefix}db_name") or "").strip()
-    db_user = (request.form.get(f"{prefix}db_user") or "").strip()
-    db_password = request.form.get(f"{prefix}db_password") or ""
-    if not host or not port or not db_name or not db_user:
-        return ""
-    return f"postgresql://{db_user}:{quote_plus(db_password)}@{host}:{port}/{db_name}"
-
-
-def _db_form_defaults_from_url(db_url: str):
-    parsed = urlparse(db_url or "")
-    return {
-        "db_host": parsed.hostname or "",
-        "db_port": str(parsed.port or 5432),
-        "db_name": (parsed.path or "").lstrip("/"),
-        "db_user": parsed.username or "",
-        "db_password": "",
-    }
-
-
 def _require_roles(*roles):
     if session.get("role") not in roles:
         return redirect(url_for("dashboard.dashboard"))
@@ -77,7 +53,7 @@ def _load_system_settings():
             cur.execute("SELECT COALESCE(value,1) FROM settings WHERE key='records_years'")
             row = cur.fetchone()
             records_years = int(row[0]) if row else 1
-    return initial_saving, records_years
+    return initial_saving, records_years, get_currency()
 
 
 def _load_users():
@@ -146,59 +122,6 @@ def _log_demo_data_actions(action, counts, total=None):
         logger.info("[DEMO DATA] action=%s entity=total count=%s", action, total)
 
 
-def _smtp_cipher():
-    key = (os.environ.get("SMTP_ENCRYPTION_KEY") or "").strip()
-    if not key:
-        raise RuntimeError("SMTP_ENCRYPTION_KEY is not configured.")
-    app_env = (os.environ.get("APP_ENV") or "").strip().lower()
-    strict = app_env == "production" or (os.environ.get("FINANCE_STRICT_SECRETS", "").strip().lower() in {"1", "true", "yes", "on"})
-    if strict and key == "change-this-smtp-key":
-        raise RuntimeError("SMTP_ENCRYPTION_KEY cannot use the default value in production.")
-    try:
-        from cryptography.fernet import Fernet
-    except Exception as exc:
-        raise RuntimeError(f"cryptography package is required: {exc}") from exc
-
-    candidate = key.encode("utf-8")
-    if len(candidate) != 44:
-        candidate = base64.urlsafe_b64encode(candidate[:32].ljust(32, b"0"))
-    return Fernet(candidate)
-
-
-def _load_smtp_settings():
-    with get_db() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT host, port, username, password_encrypted, from_name, from_email, use_tls, enabled
-                FROM smtp_settings
-                WHERE id=1
-                """
-            )
-            row = cur.fetchone()
-            if not row:
-                return {
-                    "host": "",
-                    "port": 587,
-                    "username": "",
-                    "password_encrypted": None,
-                    "from_name": "",
-                    "from_email": "",
-                    "use_tls": True,
-                    "enabled": False,
-                }
-            return {
-                "host": row[0] or "",
-                "port": int(row[1] or 587),
-                "username": row[2] or "",
-                "password_encrypted": row[3],
-                "from_name": row[4] or "",
-                "from_email": row[5] or "",
-                "use_tls": bool(row[6]),
-                "enabled": bool(row[7]),
-            }
-
-
 def _load_email_report_config():
     with get_db() as conn:
         with conn.cursor() as cur:
@@ -233,17 +156,6 @@ def _load_email_report_config():
                 "yearly_template_version": "v1" if (row[3] or "v1") != "v1" else "v1",
             }
 
-
-def _decrypt_smtp_password(enc_value):
-    if not enc_value:
-        return ""
-    return _smtp_cipher().decrypt(enc_value.encode("utf-8")).decode("utf-8")
-
-
-def _encrypt_smtp_password(raw_value):
-    if not raw_value:
-        return None
-    return _smtp_cipher().encrypt(raw_value.encode("utf-8")).decode("utf-8")
 
 def _load_payment_methods():
     with get_db() as conn:
@@ -385,7 +297,7 @@ def management():
     denied = _require_roles("admin", "editor")
     if denied:
         return denied
-    initial_saving, records_years = _load_system_settings()
+    initial_saving, records_years, _currency = _load_system_settings()
     return render_template(
         "management_hub.html",
         initial_saving=initial_saving,
@@ -410,141 +322,19 @@ def management_users():
     )
 
 
-@management_bp.route("/management/database")
-def management_database():
+@management_bp.route("/management/modules")
+def management_modules():
     denied = _require_roles("admin")
     if denied:
         return denied
-    current_db_form = _db_form_defaults_from_url(get_database_url())
-    tested_db_form = session.get("db_conn_form", {})
-    db_form = {**current_db_form, **tested_db_form}
     return render_template(
-        "management_database.html",
-        db_form=db_form,
-        using_env_database_url=bool(os.environ.get("DATABASE_URL", "").strip()),
-        has_previous_database_url=bool(get_previous_database_url()),
+        "management_modules.html",
+        loans_enabled=loans_enabled(),
+        budgets_enabled=budgets_enabled(),
         **_flash_payload(),
         current_page="management",
-        management_section="database",
+        management_section="modules",
     )
-
-
-@management_bp.route("/management/smtp")
-def management_smtp():
-    denied = _require_roles("admin", "editor")
-    if denied:
-        return denied
-    smtp = _load_smtp_settings()
-    return render_template(
-        "management_smtp.html",
-        smtp=smtp,
-        has_password=bool(smtp["password_encrypted"]),
-        is_admin=(session.get("role") == "admin"),
-        **_flash_payload(),
-        current_page="management",
-        management_section="smtp",
-    )
-
-
-@management_bp.route("/management/smtp/save", methods=["POST"])
-def save_smtp():
-    denied = _require_roles("admin")
-    if denied:
-        return denied
-
-    current = _load_smtp_settings()
-    host = (request.form.get("smtp_host") or "").strip()
-    username = (request.form.get("smtp_user") or "").strip()
-    from_name = (request.form.get("smtp_from_name") or "").strip()
-    from_email = (request.form.get("smtp_from") or "").strip()
-    raw_password = request.form.get("smtp_password") or ""
-    enabled = (request.form.get("smtp_enabled") == "1")
-    use_tls = (request.form.get("smtp_use_tls") == "1")
-    try:
-        port = int((request.form.get("smtp_port") or "587").strip())
-    except ValueError:
-        port = 587
-    port = min(max(port, 1), 65535)
-
-    if enabled and (not host or not username or not from_email):
-        session["management_err"] = t("SMTP host, user and from email are required when enabled.")
-        return redirect(url_for("management.management_smtp"))
-
-    try:
-        if raw_password.strip():
-            encrypted = _encrypt_smtp_password(raw_password.strip())
-        else:
-            encrypted = current["password_encrypted"]
-        with get_db() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    INSERT INTO smtp_settings (id, host, port, username, password_encrypted, from_name, from_email, use_tls, enabled, updated_at)
-                    VALUES (1, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
-                    ON CONFLICT (id) DO UPDATE SET
-                        host=EXCLUDED.host,
-                        port=EXCLUDED.port,
-                        username=EXCLUDED.username,
-                        password_encrypted=EXCLUDED.password_encrypted,
-                        from_name=EXCLUDED.from_name,
-                        from_email=EXCLUDED.from_email,
-                        use_tls=EXCLUDED.use_tls,
-                        enabled=EXCLUDED.enabled,
-                        updated_at=NOW()
-                    """,
-                    (host, port, username, encrypted, from_name or None, from_email, use_tls, enabled),
-                )
-                conn.commit()
-        session["management_msg"] = t("SMTP settings saved.")
-    except Exception as exc:
-        logger.warning("smtp_save_failed user=%s error=%s", session.get("user_name"), exc)
-        session["management_err"] = t("SMTP save failed")
-
-    return redirect(url_for("management.management_smtp"))
-
-
-@management_bp.route("/management/smtp/test", methods=["POST"])
-def test_smtp():
-    denied = _require_roles("admin")
-    if denied:
-        return denied
-
-    current = _load_smtp_settings()
-    host = (request.form.get("smtp_host") or "").strip()
-    username = (request.form.get("smtp_user") or "").strip()
-    from_email = (request.form.get("smtp_from") or "").strip()
-    test_to = (request.form.get("smtp_test_to") or "").strip() or (session.get("user_email") or "")
-    raw_password = request.form.get("smtp_password") or ""
-    use_tls = (request.form.get("smtp_use_tls") == "1")
-    try:
-        port = int((request.form.get("smtp_port") or "587").strip())
-    except ValueError:
-        port = 587
-    port = min(max(port, 1), 65535)
-
-    if not host or not username or not from_email or not test_to:
-        session["management_err"] = t("SMTP host, user, from and test email are required.")
-        return redirect(url_for("management.management_smtp"))
-
-    try:
-        smtp_password = raw_password.strip() or _decrypt_smtp_password(current["password_encrypted"])
-        if not smtp_password:
-            session["management_err"] = t("SMTP password is required for test.")
-            return redirect(url_for("management.management_smtp"))
-
-        with smtplib.SMTP(host, port, timeout=15) as server:
-            if use_tls:
-                server.starttls()
-            server.login(username, smtp_password)
-            body = "Subject: Finance SMTP test\n\nSMTP test message from Finance."
-            server.sendmail(from_email, [test_to], body)
-
-        session["management_msg"] = t("SMTP test email sent.")
-    except Exception as exc:
-        logger.warning("smtp_test_failed user=%s error=%s", session.get("user_name"), exc)
-        session["management_err"] = t("SMTP test failed")
-
-    return redirect(url_for("management.management_smtp"))
 
 
 @management_bp.route("/management/email-reports/save", methods=["POST"])
@@ -652,11 +442,15 @@ def management_system():
     denied = _require_roles("admin", "editor")
     if denied:
         return denied
-    initial_saving, records_years = _load_system_settings()
+    initial_saving, records_years, currency = _load_system_settings()
     return render_template(
         "management_system.html",
         initial_saving=initial_saving,
         records_years=records_years,
+        currency=currency,
+        currencies=SUPPORTED_CURRENCIES,
+        loans_enabled=loans_enabled(),
+        budgets_enabled=budgets_enabled(),
         is_admin=(session.get("role") == "admin"),
         **_flash_payload(),
         current_page="management",
@@ -1378,7 +1172,7 @@ def update_initial_saving():
     invalidate_dashboard_cache()
 
     session["management_msg"] = t("Initial saving updated")
-    return redirect(url_for("management.management_system"))
+    return redirect(url_for("management.management_modules"))
 
 
 @management_bp.route("/management/records-years", methods=["POST"])
@@ -1412,99 +1206,45 @@ def update_records_years():
     return redirect(url_for("management.management_system"))
 
 
-@management_bp.route("/management/db-connection/test", methods=["POST"])
-def test_db_connection():
+@management_bp.route("/management/currency", methods=["POST"])
+def update_currency():
+    if session.get("role") not in {"admin", "editor"}:
+        return redirect(url_for("dashboard.dashboard"))
+    currency = (request.form.get("currency") or "EUR").upper().strip()
+    if currency not in SUPPORTED_CURRENCIES:
+        currency = "EUR"
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """INSERT INTO settings (key, value, text_value) VALUES ('currency', 0, %s)
+                   ON CONFLICT (key) DO UPDATE SET text_value=EXCLUDED.text_value""",
+                (currency,),
+            )
+        conn.commit()
+    get_currency.cache_clear()
+    session["management_msg"] = t("Currency updated")
+    return redirect(url_for("management.management_system"))
+
+
+@management_bp.route("/management/modules", methods=["POST"])
+def update_modules():
     if session.get("role") != "admin":
         return redirect(url_for("dashboard.dashboard"))
-    if os.environ.get("DATABASE_URL", "").strip():
-        session["management_err"] = t("DATABASE_URL env is active. Update it there to change DB connection.")
-        return redirect(url_for("management.management_database"))
-
-    db_url = _build_db_url_from_form()
-    form_values = {
-        "db_host": (request.form.get("db_host") or "").strip(),
-        "db_port": (request.form.get("db_port") or "").strip(),
-        "db_name": (request.form.get("db_name") or "").strip(),
-        "db_user": (request.form.get("db_user") or "").strip(),
-        "db_password": request.form.get("db_password") or "",
-    }
-    session["db_conn_form"] = form_values
-
-    if not db_url:
-        session["management_err"] = t("Database host, port, name and user are required.")
-        return redirect(url_for("management.management_database"))
-
-    try:
-        with psycopg2.connect(db_url) as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT current_database(), COALESCE(inet_server_addr()::text, '')")
-                row = cur.fetchone()
-        db_name = row[0] if row else "unknown"
-        db_ip = row[1] if row and row[1] else "unknown"
-        session["db_conn_tested_url"] = db_url
-        logger.info("db_connection_test_ok user=%s db=%s ip=%s", session.get("user_name"), db_name, db_ip)
-        session["management_msg"] = f"{t('Connection test OK')} (db={db_name}, ip={db_ip})."
-    except Exception as exc:
-        session.pop("db_conn_tested_url", None)
-        logger.warning("db_connection_test_fail user=%s error=%s", session.get("user_name"), exc)
-        session["management_err"] = t("Connection test failed")
-    return redirect(url_for("management.management_database"))
-
-
-@management_bp.route("/management/db-connection/save", methods=["POST"])
-def save_db_connection():
-    if session.get("role") != "admin":
-        return redirect(url_for("dashboard.dashboard"))
-    if os.environ.get("DATABASE_URL", "").strip():
-        session["management_err"] = t("DATABASE_URL env is active. Update it there to change DB connection.")
-        return redirect(url_for("management.management_database"))
-
-    db_url = _build_db_url_from_form()
-    tested_url = session.get("db_conn_tested_url", "")
-
-    if not db_url:
-        session["management_err"] = t("Database host, port, name and user are required.")
-        return redirect(url_for("management.management_database"))
-    if not tested_url or tested_url != db_url:
-        session["management_err"] = t("Run a successful test for this exact connection before saving.")
-        return redirect(url_for("management.management_database"))
-
-    previous = get_database_url()
-    set_database_url(db_url, previous_database_url=previous)
-    session.pop("db_conn_tested_url", None)
-    session.pop("db_conn_form", None)
-    logger.info("db_connection_save user=%s", session.get("user_name"))
-    session["management_msg"] = t("Database connection updated.")
-    return redirect(url_for("management.management_database"))
-
-
-@management_bp.route("/management/db-connection/rollback", methods=["POST"])
-def rollback_db_connection():
-    if session.get("role") != "admin":
-        return redirect(url_for("dashboard.dashboard"))
-    if os.environ.get("DATABASE_URL", "").strip():
-        session["management_err"] = t("DATABASE_URL env is active. Update it there to change DB connection.")
-        return redirect(url_for("management.management_database"))
-
-    previous = get_previous_database_url()
-    if not previous:
-        session["management_err"] = t("No previous database connection available.")
-        return redirect(url_for("management.management_database"))
-
-    try:
-        with psycopg2.connect(previous) as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT 1")
-        current = get_database_url()
-        set_database_url(previous, previous_database_url=current)
-        session.pop("db_conn_tested_url", None)
-        session.pop("db_conn_form", None)
-        logger.info("db_connection_rollback user=%s", session.get("user_name"))
-        session["management_msg"] = t("Database connection rollback applied.")
-    except Exception as exc:
-        logger.warning("db_connection_rollback_fail user=%s error=%s", session.get("user_name"), exc)
-        session["management_err"] = t("Rollback failed")
-    return redirect(url_for("management.management_database"))
+    loans_value = 1 if (request.form.get("loans_enabled") or "") == "1" else 0
+    budgets_value = 1 if (request.form.get("budgets_enabled") or "") == "1" else 0
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """INSERT INTO settings (key, value) VALUES
+                   ('loans_enabled', %s), ('budgets_enabled', %s)
+                   ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value""",
+                (loans_value, budgets_value),
+            )
+        conn.commit()
+    clear_feature_flags_cache()
+    invalidate_dashboard_cache()
+    session["management_msg"] = t("Modules updated")
+    return redirect(url_for("management.management_modules"))
 
 
 @management_bp.route("/management/reset-db", methods=["POST"])

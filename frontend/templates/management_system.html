@@ -11,14 +11,13 @@
 <div class="mg-shell">
   <h4 class="mb-3">{{ t('Management') }}</h4>
   <div class="mg-tabs">
+    <a class="active" href="/management/system">{{ t('System') }}</a>
     {% if is_admin %}
     <a href="/management/users">{{ t('Users') }}</a>
-    <a href="/management/database">{{ t('Database') }}</a>
     <a href="/management/backups">{{ t('Backups') }}</a>
-    <a href="/management/smtp">{{ t('SMTP') }}</a>
+    <a href="/management/modules">{{ t('Modules') }}</a>
     {% endif %}
     <a href="/categories">{{ t('Categories') }}</a>
-    <a class="active" href="/management/system">{{ t('System') }}</a>
   </div>
 
   {% if message %}<div class="alert alert-success py-2">{{ t(message) }}</div>{% endif %}
@@ -28,6 +27,19 @@
     <div class="fw-semibold mb-2">{{ t('Records years window') }}</div>
     <form method="post" action="/management/records-years" class="d-flex align-items-center gap-2">
       <input type="number" class="form-control" name="records_years" min="1" max="10" value="{{ records_years }}" style="max-width: 140px;">
+      <button class="btn btn-primary">{{ t('Save') }}</button>
+    </form>
+  </div>
+
+  <div class="panel">
+    <div class="fw-semibold mb-1">{{ t('Currency') }}</div>
+    <div class="text-muted small mb-2">{{ t('This currency is used to display all amounts in the application. It does not convert existing amounts.') }}</div>
+    <form method="post" action="/management/currency" class="d-flex align-items-center gap-2">
+      <select class="form-select" name="currency" style="max-width: 220px;">
+        {% for code, details in currencies.items() %}
+        <option value="{{ code }}" {% if currency == code %}selected{% endif %}>{{ code }} ({{ details[0] }})</option>
+        {% endfor %}
+      </select>
       <button class="btn btn-primary">{{ t('Save') }}</button>
     </form>
   </div>

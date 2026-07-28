@@ -29,7 +29,7 @@
     <a href="/records/expense?bank_id={{ bank[0] }}" class="btn btn-soft">{{ t('View movements') }}</a>
   </div>
 
-  {% if not accounts and loans %}
+  {% if loans_enabled and not accounts and loans %}
   <div class="alert alert-info border mb-3">{{ t('No balance information: this bank only has associated loans') }}</div>
   {% endif %}
 
@@ -40,7 +40,7 @@
     <div class="col-md-3"><div class="bank-metric"><div class="bank-metric-label">{{ t('Movement count') }}</div><div class="bank-metric-value">{{ number(movement_count) }}</div></div></div>
   </div>
 
-  {% if loans %}
+  {% if loans_enabled and loans %}
   <div class="mb-2 fw-semibold">{{ t('Loan KPIs') }}</div>
   <div class="row g-3 mb-3">
     <div class="col-md-3"><div class="bank-metric"><div class="bank-metric-label">{{ t('Loan principal') }}</div><div class="bank-metric-value">{{ money(loan_principal) }}</div></div></div>
@@ -78,7 +78,7 @@
       </a>
       {% else %}<div class="text-muted small">{{ t('No records found.') }}</div>{% endfor %}
     </div>
-    <div class="bank-detail-card">
+    {% if loans_enabled %}<div class="bank-detail-card">
       <div class="d-flex justify-content-between mb-2"><h6 class="mb-0">{{ t('Associated loans') }}</h6><span class="text-muted small">{{ number(loans|length) }}</span></div>
       {% for loan in loans %}
       <a class="bank-method" style="--method-color:#d58a38" href="/loans/{{ loan[0] }}">
@@ -86,7 +86,7 @@
         <span class="badge {{ 'text-bg-success' if loan[2] == 'active' else 'text-bg-secondary' }}">{{ t(loan[2]|capitalize) }}</span>
       </a>
       {% else %}<div class="text-muted small">{{ t('No loans yet.') }}</div>{% endfor %}
-    </div>
+    </div>{% endif %}
   </div>
 
   <div class="bank-detail-card">

@@ -276,7 +276,7 @@ def test_default_email_footer_matches_site_footer(admin_client):
     )
 
     assert "Osmel Nuñez Alonso".encode() in preview.data
-    assert b"v3.7.0" in preview.data
+    assert b"v3.8.0" in preview.data
     assert b"https://github.com/osmelonunez/finance/releases/latest" in preview.data
     assert b"{year}" not in preview.data
     assert b"{version}" not in preview.data
@@ -677,8 +677,9 @@ def test_regular_user_can_view_reports_but_not_configuration(client, login_as):
     assert denied.headers["Location"].endswith("/")
 
 
-def test_smtp_page_links_to_reports_without_functional_report_settings(admin_client):
-    response = admin_client.get("/management/smtp")
+def test_email_delivery_shows_environment_smtp_status(admin_client, monkeypatch):
+    monkeypatch.setenv("SMTP_ENABLED", "false")
+    response = admin_client.get("/reports?section=delivery")
     assert response.status_code == 200
-    assert b'href="/reports"' in response.data
-    assert b"/management/email-reports/save" not in response.data
+    assert b"SMTP disabled" in response.data or b"SMTP desactivado" in response.data
+    assert b"/management/smtp" not in response.data

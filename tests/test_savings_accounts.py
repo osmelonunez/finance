@@ -1,5 +1,7 @@
 import pytest
 
+from dashboard_cache import invalidate_dashboard_cache
+
 
 pytestmark = [pytest.mark.routes, pytest.mark.integration]
 
@@ -37,11 +39,34 @@ def test_savings_account_can_be_created_with_initial_balance(admin_client, db_qu
     ) == ("savings", 250.5)
 
 
+def test_dashboard_only_shows_savings_breakdown_for_multiple_accounts(
+    admin_client, db_query
+):
+    one_account = admin_client.get("/?month=2026-07")
+    assert one_account.status_code == 200
+    assert b"Test Savings:" not in one_account.data
+
+    db_query(
+        """
+        INSERT INTO payment_methods (
+            name, kind, bank_name, is_active, bank_id, account_type, initial_balance
+        )
+        VALUES ('Second Savings', 'bank_account', 'Test Bank', TRUE, 1, 'savings', 250)
+        """,
+        fetch="none",
+    )
+    invalidate_dashboard_cache()
+
+    two_accounts = admin_client.get("/?month=2026-07")
+    assert b"Test Savings:" in two_accounts.data
+    assert b"Second Savings:" in two_accounts.data
+
+
 def test_saving_requires_an_active_savings_account(admin_client, db_query):
     form = admin_client.get("/records/add?from=saving")
     assert form.status_code == 200
     assert b'name="source"' not in form.data
-    assert "[Cuenta de ahorro] Test Savings".encode() in form.data
+    assert "[Test Bank · Cuenta de ahorro] Test Savings".encode() in form.data
     assert b"Test Account" not in form.data
 
     rejected = _post(
@@ -87,9 +112,9 @@ def test_expense_form_has_typed_accounts_and_requires_category(
 
     assert form.status_code == 200
     assert b'name="source"' not in form.data
-    assert "[Cuenta corriente] Test Account".encode() in form.data
-    assert "[Tarjeta] Test Card".encode() in form.data
-    assert "[Cuenta de ahorro] Test Savings".encode() in form.data
+    assert "[Test Bank · Cuenta corriente] Test Account".encode() in form.data
+    assert "[Test Bank · Tarjeta] Test Card".encode() in form.data
+    assert "[Test Bank · Cuenta de ahorro] Test Savings".encode() in form.data
     assert b'name="category" required' in form.data
 
     rejected = _post(

@@ -1,6 +1,7 @@
 from datetime import datetime
 import pytest
 
+from db import get_database_url
 from i18n import format_money, format_number
 from routes.budgets import _budget_state
 from validators import parse_year_month, validate_amount, validate_concept, validate_text_length
@@ -9,13 +10,20 @@ from validators import parse_year_month, validate_amount, validate_concept, vali
 pytestmark = pytest.mark.unit
 
 
+def test_database_url_comes_only_from_environment(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://user:pass@db:5432/finance_test")
+    assert get_database_url() == "postgresql://user:pass@db:5432/finance_test"
+    monkeypatch.delenv("DATABASE_URL")
+    assert get_database_url() == ""
+
+
 @pytest.mark.parametrize(
     "value,lang,expected",
     [
-        (1234.56, "es", "1.234,56"),
-        (1234.56, "en", "1,234.56"),
-        (1234567, "es", "1.234.567,00"),
-        (1234567, "en", "1,234,567.00"),
+        (1234.56, "es", "1.234,56 €"),
+        (1234.56, "en", "1,234.56 €"),
+        (1234567, "es", "1.234.567,00 €"),
+        (1234567, "en", "1,234,567.00 €"),
     ],
 )
 def test_format_money_groups_digits(value, lang, expected):

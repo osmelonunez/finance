@@ -1,20 +1,63 @@
+from functools import lru_cache
+
 from flask import request, session
 from decimal import Decimal, InvalidOperation
+from db import get_db
+from locales import DOMAIN_TRANSLATIONS
 
 
 SUPPORTED_LANGS = ("en", "es")
+SUPPORTED_CURRENCIES = {
+    "EUR": ("€", "suffix"),
+    "USD": ("$", "prefix"),
+    "GBP": ("£", "prefix"),
+    "JPY": ("¥", "prefix"),
+    "CHF": ("CHF", "suffix"),
+    "CAD": ("C$", "prefix"),
+    "AUD": ("A$", "prefix"),
+    "NZD": ("NZ$", "prefix"),
+    "CNY": ("CN¥", "prefix"),
+    "INR": ("₹", "prefix"),
+    "KRW": ("₩", "prefix"),
+    "MXN": ("MX$", "prefix"),
+    "BRL": ("R$", "prefix"),
+    "SEK": ("kr", "suffix"),
+    "NOK": ("kr", "suffix"),
+    "DKK": ("kr", "suffix"),
+    "PLN": ("zł", "suffix"),
+    "TRY": ("₺", "prefix"),
+    "ZAR": ("R", "prefix"),
+    "AED": ("د.إ", "suffix"),
+    "SGD": ("S$", "prefix"),
+    "HKD": ("HK$", "prefix"),
+}
 
 
-def format_money(value, lang=None):
+@lru_cache(maxsize=1)
+def get_currency():
+    """Return the single display currency configured for the whole application."""
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT text_value FROM settings WHERE key='currency'")
+                row = cur.fetchone()
+        currency = (row[0] if row and row[0] else "EUR").upper()
+        return currency if currency in SUPPORTED_CURRENCIES else "EUR"
+    except Exception:
+        return "EUR"
+
+
+def format_money(value, lang=None, currency=None):
     """Format a monetary value with locale-aware thousands and decimal separators."""
     try:
         amount = Decimal(str(value or 0))
     except (InvalidOperation, TypeError, ValueError):
         amount = Decimal("0")
     formatted = f"{amount:,.2f}"
-    if (lang or get_lang()) == "es":
-        return formatted.replace(",", "_").replace(".", ",").replace("_", ".")
-    return formatted
+    current_lang = lang or get_lang()
+    symbol, placement = SUPPORTED_CURRENCIES.get(currency or get_currency(), SUPPORTED_CURRENCIES["EUR"])
+    amount_text = formatted.replace(",", "_").replace(".", ",").replace("_", ".") if current_lang == "es" else formatted
+    return f"{symbol}{amount_text}" if placement == "prefix" else f"{amount_text} {symbol}"
 
 
 def format_number(value, lang=None, decimals=0):
@@ -73,7 +116,7 @@ DEFAULT_CATEGORY_I18N = {
 }
 
 
-TRANSLATIONS = {
+LEGACY_TRANSLATIONS = {
     "es": {
         "Dashboard": "Panel",
         "Receipt": "Recibo",
@@ -83,32 +126,8 @@ TRANSLATIONS = {
         "Incomes": "Ingresos",
         "Savings": "Ahorros",
         "Loans": "Préstamos",
-        "Budgets": "Presupuestos",
-        "Compare expected monthly spending with actual spending by category.": "Compara el gasto mensual esperado con el gasto real por categoría.",
-        "Total budget": "Presupuesto total",
-        "Actual spending": "Gasto real",
-        "Remaining": "Disponible",
-        "Categories at risk / exceeded": "Categorías en riesgo / excedidas",
         "All": "Todas",
-        "At risk": "En riesgo",
-        "Exceeded": "Excedido",
-        "Without budget": "Sin presupuesto",
-        "On track": "En objetivo",
-        "Exceeded by": "Excedido en",
-        "Monthly budget": "Presupuesto mensual",
-        "categories exceeded": "categorías excedidas",
-        "No categories match this filter.": "Ninguna categoría coincide con este filtro.",
-        "Budget must be a valid amount greater than 0.": "El presupuesto debe ser un importe válido mayor que 0.",
-        "Category has budgets. It cannot be deleted.": "La categoría tiene presupuestos y no se puede eliminar.",
-        "Previous month": "Mes anterior",
-        "Next month": "Mes siguiente",
-        "Back to current month": "Volver al mes actual",
         "Manage categories": "Gestionar categorías",
-        "Current month: edit the active budget for each category. It will continue automatically in future months.": "Mes actual: edita el presupuesto vigente de cada categoría. Se mantendrá automáticamente en los meses siguientes.",
-        "Historical month: budgets and actual spending are read-only.": "Mes histórico: los presupuestos y el gasto real son de solo lectura.",
-        "Applied budget": "Presupuesto aplicado",
-        "Remove budget": "Quitar presupuesto",
-        "This category will have no budget from the current month. Previous months will not change.": "Esta categoría quedará sin presupuesto desde el mes actual. Los meses anteriores no cambiarán.",
         "Reports": "Informes",
         "Review financial results and manage scheduled email delivery.": "Consulta los resultados financieros y gestiona el envío programado por correo.",
         "Yearly": "Anual",
@@ -116,8 +135,10 @@ TRANSLATIONS = {
         "Spending by category": "Gasto por categoría",
         "Top expenses": "Principales gastos",
         "Email delivery": "Envío por correo",
-        "SMTP remains configured in Management. Reports controls what is sent and when.": "SMTP se sigue configurando en Gestión. Informes controla qué se envía y cuándo.",
-        "Configure SMTP": "Configurar SMTP",
+        "SMTP is configured with environment variables. Reports controls what is sent and when.": "SMTP se configura mediante variables de entorno. Informes controla qué se envía y cuándo.",
+        "SMTP configured": "SMTP configurado",
+        "SMTP configuration incomplete": "Configuración SMTP incompleta",
+        "SMTP disabled": "SMTP desactivado",
         "Recent email deliveries": "Envíos recientes por correo",
         "Period": "Periodo",
         "No email deliveries yet.": "Todavía no hay envíos por correo.",
@@ -337,6 +358,12 @@ TRANSLATIONS = {
         "Categories": "Categorías",
         "System": "Sistema",
         "Database connection": "Conexión de base de datos",
+        "Database connection is managed with DATABASE_URL in Docker Compose.": "La conexión de base de datos se gestiona mediante DATABASE_URL en Docker Compose.",
+        "Database connection ready": "Conexión de base de datos preparada",
+        "Database connection unavailable. Configure DATABASE_URL in Docker Compose and restart the application.": "La conexión de base de datos no está disponible. Configura DATABASE_URL en Docker Compose y reinicia la aplicación.",
+        "Database connection unavailable. Check DATABASE_URL and container logs.": "La conexión de base de datos no está disponible. Revisa DATABASE_URL y los logs del contenedor.",
+        "Retry connection": "Reintentar conexión",
+        "Create administrator": "Crear administrador",
         "Server": "Servidor",
         "Port": "Puerto",
         "User": "Usuario",
@@ -373,6 +400,12 @@ TRANSLATIONS = {
         "Activate": "Activar",
         "Approve": "Aprobar",
         "Configure automatic backups and retention policy. Scheduled backups run at 00:00.": "Configura copias automáticas y política de retención. Las copias programadas se ejecutan a las 00:00.",
+        "Configure automatic backups and retention policy. Scheduled backups run at 00:00. Backups older than the selected retention period are deleted automatically.": "Configura copias automáticas y la retención. Las copias programadas se ejecutan a las 00:00 y las anteriores al periodo seleccionado se eliminan automáticamente.",
+        "Keep backups for": "Conservar copias durante",
+        "days": "días",
+        "Currency": "Moneda",
+        "This currency is used to display all amounts in the application. It does not convert existing amounts.": "Esta moneda se usa para mostrar todos los importes de la aplicación. No convierte los importes ya registrados.",
+        "Currency updated": "Moneda actualizada",
         "Frequency": "Frecuencia",
         "Every day": "Cada día",
         "Once a week": "Una vez por semana",
@@ -633,21 +666,8 @@ TRANSLATIONS = {
         "Amount must be a valid number.": "El importe debe ser un número válido.",
         "Amount must be greater than 0.": "El importe debe ser mayor que 0.",
         "SMTP": "SMTP",
-        "Configure SMTP and send test email.": "Configurar SMTP y enviar correo de prueba.",
-        "Use Gmail app password. Credentials are stored encrypted.": "Usa contraseña de aplicación de Gmail. Las credenciales se guardan cifradas.",
-        "From email": "Correo remitente",
-        "Sender name": "Nombre remitente",
         "TLS": "TLS",
         "Enabled": "Habilitado",
-        "Test email to": "Correo de prueba a",
-        "Use saved password if empty": "Usar contraseña guardada si está vacío",
-        "SMTP host, user and from email are required when enabled.": "Servidor SMTP, usuario y correo remitente son obligatorios cuando está habilitado.",
-        "SMTP settings saved.": "Configuración SMTP guardada.",
-        "SMTP save failed": "Falló el guardado SMTP",
-        "SMTP host, user, from and test email are required.": "Servidor SMTP, usuario, remitente y correo de prueba son obligatorios.",
-        "SMTP password is required for test.": "La contraseña SMTP es obligatoria para la prueba.",
-        "SMTP test email sent.": "Correo de prueba SMTP enviado.",
-        "SMTP test failed": "Falló la prueba SMTP",
         "Email reports": "Reportes por correo",
         "Email notifications": "Notificaciones por correo",
         "Receive emails": "Recibir correos",
@@ -669,6 +689,21 @@ TRANSLATIONS = {
         "An unexpected error occurred. Please try again.": "Ocurrió un error inesperado. Inténtalo de nuevo.",
     }
 }
+
+
+def _build_translations():
+    """Merge legacy strings with domain catalogues without changing the public API."""
+    catalogues = {
+        language: dict(strings)
+        for language, strings in LEGACY_TRANSLATIONS.items()
+    }
+    for domain_catalogue in DOMAIN_TRANSLATIONS:
+        for language, strings in domain_catalogue.items():
+            catalogues.setdefault(language, {}).update(strings)
+    return catalogues
+
+
+TRANSLATIONS = _build_translations()
 
 
 def get_lang():

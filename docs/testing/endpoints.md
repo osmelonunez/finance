@@ -2,8 +2,8 @@
 
 Este fichero se genera desde el registro de rutas de Flask. No debe editarse manualmente.
 
-- Reglas de aplicación: **98**.
-- Combinaciones endpoint-método: **104**.
+- Reglas de aplicación: **94**.
+- Combinaciones endpoint-método: **100**.
 - Se excluyen la ruta estática y los métodos automáticos `HEAD` y `OPTIONS`.
 - `Contrato`, `Autenticación` y `CSRF` indican que existe una comprobación automática genérica.
 - `Prueba específica` identifica cobertura funcional adicional; `—` significa que solo tiene cobertura genérica.
@@ -48,20 +48,20 @@ Este fichero se genera desde el registro de rutas de Flask. No debe editarse man
 | `/management/backups/download/<int:run_id>` | GET | `backups.backups_download_run` | Autenticado | Sí | Sí | N/A | — |
 | `/management/backups/restore/<int:run_id>` | POST | `backups.backups_restore_run` | Autenticado | Sí | Sí | Sí | — |
 | `/management/backups/run-now` | POST | `backups.backups_run_now` | Autenticado | Sí | Sí | Sí | — |
+| `/management/backups/upload` | POST | `backups.backups_upload` | Autenticado | Sí | Sí | Sí | — |
 | `/management/banks/<int:bank_id>/delete` | POST | `management.delete_bank` | Autenticado | Sí | Sí | Sí | `test_bank_with_linked_methods_cannot_be_deleted` |
 | `/management/banks/<int:bank_id>/update` | POST | `management.update_bank` | Autenticado | Sí | Sí | Sí | `test_deactivating_bank_deactivates_linked_methods` |
 | `/management/banks/add` | POST | `management.add_bank` | Autenticado | Sí | Sí | Sí | — |
 | `/management/categories` | GET | `categories.management_categories` | Autenticado | Sí | Sí | N/A | — |
-| `/management/database` | GET | `management.management_database` | Autenticado | Sí | Sí | N/A | — |
-| `/management/db-connection/rollback` | POST | `management.rollback_db_connection` | Autenticado | Sí | Sí | Sí | — |
-| `/management/db-connection/save` | POST | `management.save_db_connection` | Autenticado | Sí | Sí | Sí | — |
-| `/management/db-connection/test` | POST | `management.test_db_connection` | Autenticado | Sí | Sí | Sí | — |
+| `/management/currency` | POST | `management.update_currency` | Autenticado | Sí | Sí | Sí | — |
 | `/management/demo-data/clear` | POST | `management.clear_demo_data` | Autenticado | Sí | Sí | Sí | — |
 | `/management/demo-data/seed` | POST | `management.seed_demo_data` | Autenticado | Sí | Sí | Sí | — |
 | `/management/email-reports/save` | POST | `management.save_email_reports` | Autenticado | Sí | Sí | Sí | — |
 | `/management/email-reports/test-monthly` | POST | `management.test_monthly_report` | Autenticado | Sí | Sí | Sí | — |
 | `/management/email-reports/test-yearly` | POST | `management.test_yearly_report` | Autenticado | Sí | Sí | Sí | — |
 | `/management/initial-saving` | POST | `management.update_initial_saving` | Autenticado | Sí | Sí | Sí | — |
+| `/management/modules` | GET | `management.management_modules` | Autenticado | Sí | Sí | N/A | — |
+| `/management/modules` | POST | `management.update_modules` | Autenticado | Sí | Sí | Sí | — |
 | `/management/payment-methods` | GET | `management.legacy_management_payment_methods` | Autenticado | Sí | Sí | N/A | — |
 | `/management/payment-methods/<int:method_id>` | GET | `management.legacy_payment_method_detail` | Autenticado | Sí | Sí | N/A | — |
 | `/management/payment-methods/<int:method_id>/delete` | POST | `management.delete_payment_method` | Autenticado | Sí | Sí | Sí | `test_payment_method_with_movements_cannot_be_deleted` |
@@ -69,9 +69,6 @@ Este fichero se genera desde el registro de rutas de Flask. No debe editarse man
 | `/management/payment-methods/add` | POST | `management.add_payment_method` | Autenticado | Sí | Sí | Sí | `test_valid_card_is_created` |
 | `/management/records-years` | POST | `management.update_records_years` | Autenticado | Sí | Sí | Sí | — |
 | `/management/reset-db` | POST | `management.reset_db` | Autenticado | Sí | Sí | Sí | — |
-| `/management/smtp` | GET | `management.management_smtp` | Autenticado | Sí | Sí | N/A | — |
-| `/management/smtp/save` | POST | `management.save_smtp` | Autenticado | Sí | Sí | Sí | — |
-| `/management/smtp/test` | POST | `management.test_smtp` | Autenticado | Sí | Sí | Sí | — |
 | `/management/system` | GET | `management.management_system` | Autenticado | Sí | Sí | N/A | — |
 | `/management/users` | GET | `management.management_users` | Autenticado | Sí | Sí | N/A | `test_role_access_matrix` |
 | `/management/users/<int:user_id>/role` | POST | `management.update_role` | Autenticado | Sí | Sí | Sí | — |
@@ -111,6 +108,5 @@ Este fichero se genera desde el registro de rutas de Flask. No debe editarse man
 | `/reports/saved/save` | POST | `reports.save_report` | Autenticado | Sí | Sí | Sí | — |
 | `/reports/template-preview` | GET | `reports.template_preview` | Autenticado | Sí | Sí | N/A | — |
 | `/setup` | GET | `setup.setup_page` | Público | Sí | N/A | N/A | — |
-| `/setup/create-new` | POST | `setup.setup_create_new` | Público | Sí | N/A | Sí | — |
+| `/setup/initialize` | POST | `setup.setup_initialize` | Público | Sí | N/A | Sí | — |
 | `/setup/test-connection` | POST | `setup.setup_test_connection` | Público | Sí | N/A | Sí | — |
-| `/setup/use-existing` | POST | `setup.setup_use_existing` | Público | Sí | N/A | Sí | — |

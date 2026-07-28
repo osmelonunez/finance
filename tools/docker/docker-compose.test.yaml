@@ -24,11 +24,11 @@ services:
       APP_ENV: testing
       DATABASE_URL: postgresql://finance_test:finance_test@test-db:5432/finance_test
       SECRET_KEY: finance-test-secret
-      SMTP_ENCRYPTION_KEY: finance-test-smtp-key
-      DB_CONFIG_ENCRYPTION_KEY: finance-test-db-key
+      SMTP_ENABLED: "false"
       SESSION_COOKIE_SECURE: "false"
       FINANCE_DISABLE_SCHEDULERS: "true"
       BACKUP_DIR: /tmp/finance-test-backups
+      BACKUP_CRON_ENABLED: "false"
       FINANCE_ENDPOINT_CATALOG: /app/docs/testing/endpoints.md
       FINANCE_TEST_REPORT_DIR: /app/test-reports
       LOG_FORMAT: text
