@@ -5,11 +5,18 @@ from flask import Blueprint, redirect, render_template, request, session, url_fo
 
 from db import get_db
 from dashboard_cache import invalidate_dashboard_cache
+from feature_flags import budgets_enabled
 from validators import parse_year_month
 
 
 budgets_bp = Blueprint("budgets", __name__)
 logger = logging.getLogger("finance.budgets")
+
+
+@budgets_bp.before_request
+def block_disabled_budgets_module():
+    if not budgets_enabled():
+        return redirect("/")
 
 
 def _valid_month(raw_value):

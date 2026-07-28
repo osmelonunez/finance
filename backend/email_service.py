@@ -1,4 +1,3 @@
-import base64
 import logging
 import os
 import smtplib
@@ -11,55 +10,46 @@ from db import get_db
 logger = logging.getLogger("finance.email")
 
 
-def _smtp_cipher():
-    key = (os.environ.get("SMTP_ENCRYPTION_KEY") or "").strip()
-    if not key:
-        return None
-    try:
-        from cryptography.fernet import Fernet
-    except Exception:
-        return None
-
-    candidate = key.encode("utf-8")
-    if len(candidate) != 44:
-        candidate = base64.urlsafe_b64encode(candidate[:32].ljust(32, b"0"))
-    return Fernet(candidate)
+def _env_bool(name, default=False):
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _load_enabled_smtp():
-    with get_db() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT host, port, username, password_encrypted, from_name, from_email, use_tls, enabled
-                FROM smtp_settings
-                WHERE id=1
-                """
-            )
-            row = cur.fetchone()
-            if not row:
-                return None
-            host, port, username, password_encrypted, from_name, from_email, use_tls, enabled = row
-            if not enabled:
-                return None
-            if not host or not username or not from_email or not password_encrypted:
-                return None
-            cipher = _smtp_cipher()
-            if not cipher:
-                return None
-            try:
-                password = cipher.decrypt(password_encrypted.encode("utf-8")).decode("utf-8")
-            except Exception:
-                return None
-            return {
-                "host": host,
-                "port": int(port or 587),
-                "username": username,
-                "password": password,
-                "from_name": from_name or "",
-                "from_email": from_email,
-                "use_tls": bool(use_tls),
-            }
+    if not _env_bool("SMTP_ENABLED"):
+        return None
+    host = (os.environ.get("SMTP_HOST") or "").strip()
+    username = (os.environ.get("SMTP_USER") or "").strip()
+    password = os.environ.get("SMTP_PASSWORD") or ""
+    from_email = (os.environ.get("SMTP_FROM_EMAIL") or "").strip()
+    try:
+        port = int((os.environ.get("SMTP_PORT") or "587").strip())
+    except ValueError:
+        return None
+    if not host or not username or not password or not from_email or not 1 <= port <= 65535:
+        return None
+    return {
+        "host": host,
+        "port": port,
+        "username": username,
+        "password": password,
+        "from_name": (os.environ.get("SMTP_SENDER_NAME") or "").strip(),
+        "from_email": from_email,
+        "use_tls": _env_bool("SMTP_USE_TLS", True),
+    }
+
+
+def smtp_status():
+    enabled = _env_bool("SMTP_ENABLED")
+    configured = _load_enabled_smtp() is not None
+    return {
+        "enabled": enabled,
+        "configured": configured,
+        "host": (os.environ.get("SMTP_HOST") or "").strip() if configured else "",
+        "from_email": (os.environ.get("SMTP_FROM_EMAIL") or "").strip() if configured else "",
+    }
 
 
 def send_email(recipients, subject, body, html_body=None):

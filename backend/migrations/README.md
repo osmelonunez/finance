@@ -18,8 +18,8 @@ Las migraciones viven en esta carpeta como ficheros SQL planos. El runner de la 
 
 - `001_core_schema.sql`: tablas e indices base de la app: `users`, `settings`, `categories`, `payment_methods` y `records`.
 - `002_management_schema.sql`: tablas de administracion operativa: `backup_config` y `backup_runs`.
-- `003_notifications_schema.sql`: tablas de SMTP y reportes por email: `smtp_settings`, `email_report_config` y `email_report_runs`.
-- `004_seed_defaults.sql`: valores iniciales de settings, backups, SMTP, reportes y categorias por defecto.
+- `003_notifications_schema.sql`: tablas de configuracion e historial de reportes por email: `email_report_config` y `email_report_runs`.
+- `004_seed_defaults.sql`: valores iniciales de settings, backups, reportes y categorias por defecto.
 - `005_records_indexes.sql`: indices compuestos para filtros y ordenacion habituales de `records`.
 - `006_add_loans.sql`: esquema de prestamos y relacion con `records` para pagos de prestamos.
 - `007_banks.sql`: catalogo de bancos y relacion con cuentas/tarjetas y prestamos.
@@ -39,6 +39,31 @@ Las migraciones viven en esta carpeta como ficheros SQL planos. El runner de la 
 - `021_savings_accounts.sql`: clasifica cuentas como corrientes o de ahorro, añade saldo inicial y permite asignar aportaciones de ahorro a una cuenta.
 - `022_email_report_branding.sql`: añade la identidad Finance definitiva para las plantillas por email, con nombre, cabecera y pie alineado con el sitio.
 - `023_remove_record_source.sql`: elimina el origen mensual/ahorro obsoleto de `records`; la cuenta asociada pasa a ser la única referencia financiera.
+- `024_drop_smtp_settings.sql`: elimina la configuración SMTP persistida; SMTP pasa a depender exclusivamente del entorno.
+- `025_backup_reliability.sql`: añade metadatos de verificación y auditoría a las copias de seguridad.
+- `026_simplify_backup_retention.sql`: simplifica la retención automática de backups a días.
+- `027_global_currency.sql`: añade la moneda global de la aplicación.
+- `028_optional_loans_module.sql`: habilita por defecto el módulo opcional de préstamos.
+- `029_optional_budgets_module.sql`: habilita por defecto el módulo opcional de presupuestos.
+
+### Migraciones de v3.8.0
+
+1. `024_drop_smtp_settings.sql`
+   - Elimina `smtp_settings`.
+   - No afecta `email_report_config` ni `email_report_runs`.
+   - Antes de aplicarla, traslada las credenciales SMTP a variables de entorno.
+2. `025_backup_reliability.sql`
+   - Añade la verificación y el historial operativo de backups.
+3. `026_simplify_backup_retention.sql`
+   - Conserva la política de retención únicamente en días.
+4. `027_global_currency.sql`
+   - Guarda la moneda global que utiliza toda la interfaz.
+5. `028_optional_loans_module.sql`
+   - Activa inicialmente el módulo de préstamos.
+   - Puede cambiarse desde Gestión → Módulos sin eliminar préstamos ni pagos históricos.
+6. `029_optional_budgets_module.sql`
+   - Activa inicialmente el módulo de presupuestos.
+   - Puede cambiarse desde Gestión → Módulos sin eliminar presupuestos ni su histórico mensual.
 
 ### Migraciones de v3.7.0
 
@@ -150,8 +175,8 @@ Migrations live in this folder as plain SQL files. The app runner (`backend/migr
 
 - `001_core_schema.sql`: core app tables and indexes: `users`, `settings`, `categories`, `payment_methods`, and `records`.
 - `002_management_schema.sql`: operational management tables: `backup_config` and `backup_runs`.
-- `003_notifications_schema.sql`: SMTP and email reporting tables: `smtp_settings`, `email_report_config`, and `email_report_runs`.
-- `004_seed_defaults.sql`: initial settings, backup, SMTP, report, and default category values.
+- `003_notifications_schema.sql`: email report configuration and history tables: `email_report_config` and `email_report_runs`.
+- `004_seed_defaults.sql`: initial settings, backup, report, and default category values.
 - `005_records_indexes.sql`: compound indexes for common `records` filtering and sorting patterns.
 - `006_add_loans.sql`: loans schema and the relationship with `records` for loan payments.
 - `007_banks.sql`: bank catalog and relationship with accounts/cards and loans.
@@ -171,6 +196,34 @@ Migrations live in this folder as plain SQL files. The app runner (`backend/migr
 - `021_savings_accounts.sql`: classifies accounts as current or savings, adds an initial balance, and allows saving contributions to target an account.
 - `022_email_report_branding.sql`: adds the final Finance identity for email templates, with name, header, and site-aligned footer.
 - `023_remove_record_source.sql`: removes the obsolete monthly/savings origin from `records`; the linked account becomes the sole financial reference.
+- `024_drop_smtp_settings.sql`: removes persisted SMTP configuration; SMTP now depends exclusively on the environment.
+- `025_backup_reliability.sql`: adds day-based backup retention and integrity checks for custom PostgreSQL dumps.
+- `026_simplify_backup_retention.sql`: removes the temporary weekly/monthly retention fields from early v3.8.0 development databases.
+- `027_global_currency.sql`: adds the global display currency setting, defaulting to EUR.
+- `028_optional_loans_module.sql`: adds the global switch that hides and blocks the loans module without deleting data.
+- `029_optional_budgets_module.sql`: adds the global switch that hides and blocks the budgets module without deleting data.
+
+### v3.8.0 migrations
+
+1. `024_drop_smtp_settings.sql`
+   - Drops `smtp_settings`.
+   - Does not affect `email_report_config` or `email_report_runs`.
+   - Move SMTP credentials to environment variables before applying it.
+2. `025_backup_reliability.sql`
+   - Replaces the single retention count with one day-based retention window.
+   - Adds SHA-256 verification metadata to backup runs.
+   - Existing backup files remain on disk; create a fresh verified `.dump` before relying on restore.
+3. `026_simplify_backup_retention.sql`
+   - Removes temporary weekly/monthly retention fields created by an early v3.8.0 development build.
+4. `027_global_currency.sql`
+   - Adds a single global display currency (`EUR` by default).
+   - It changes formatting only; amounts are not converted.
+5. `028_optional_loans_module.sql`
+   - Adds the `loans_enabled` global setting, enabled by default.
+   - Disabling it preserves loans and history while hiding the module and blocking its routes.
+6. `029_optional_budgets_module.sql`
+   - Adds the `budgets_enabled` global setting, enabled by default.
+   - Disabling it preserves budget configuration and monthly history while hiding the module and blocking its routes.
 
 ### v3.7.0 migrations
 

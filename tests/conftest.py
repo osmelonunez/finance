@@ -22,8 +22,6 @@ os.environ.setdefault("APP_ENV", "testing")
 os.environ.setdefault("FINANCE_DISABLE_SCHEDULERS", "true")
 os.environ.setdefault("SESSION_COOKIE_SECURE", "false")
 os.environ.setdefault("SECRET_KEY", "finance-test-secret")
-os.environ.setdefault("SMTP_ENCRYPTION_KEY", "finance-test-smtp-key")
-os.environ.setdefault("DB_CONFIG_ENCRYPTION_KEY", "finance-test-db-key")
 
 ROUTE_RESULTS = {}
 TEST_OUTCOMES = {}
@@ -165,7 +163,7 @@ def _reset_and_seed_database():
             )
             cur.execute(
                 """
-                INSERT INTO backup_config (id, frequency, weekly_day, retain_count)
+                INSERT INTO backup_config (id, frequency, weekly_day, retain_days)
                 VALUES (1, 'daily', 0, 7)
                 """
             )
@@ -173,12 +171,6 @@ def _reset_and_seed_database():
                 """
                 INSERT INTO backup_runs (id, trigger, filename, file_path, status, message, created_by)
                 VALUES (1, 'manual', 'missing.sql', '/tmp/finance-test-backups/missing.sql', 'failed', 'Fixture', 'admin_test')
-                """
-            )
-            cur.execute(
-                """
-                INSERT INTO smtp_settings (id, port, use_tls, enabled)
-                VALUES (1, 587, TRUE, FALSE)
                 """
             )
             cur.execute(

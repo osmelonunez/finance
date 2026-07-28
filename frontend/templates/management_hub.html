@@ -12,28 +12,24 @@
 <div class="mg-shell">
   <h4 class="mb-3">{{ t('Management') }}</h4>
   <div class="mg-grid">
+    <a class="mg-card" href="/management/system">
+      <div class="mg-title">{{ t('System') }}</div>
+      <p class="mg-help">{{ t('Years window and demo data, plus reset.' if is_admin else 'Years window and demo data.') }}</p>
+    </a>
     {% if is_admin %}
       <a class="mg-card" href="/management/users">
         <div class="mg-title">{{ t('Users') }}</div>
         <p class="mg-help">{{ t('Approve accounts, enable/disable users and assign roles.') }}</p>
       </a>
-      <a class="mg-card" href="/management/database">
-        <div class="mg-title">{{ t('Database') }}</div>
-        <p class="mg-help">{{ t('Test, save and rollback database connection.') }}</p>
-      </a>
       <a class="mg-card" href="/management/backups">
         <div class="mg-title">{{ t('Backups') }}</div>
         <p class="mg-help">{{ t('Schedule, run and restore backups.') }}</p>
       </a>
-      <a class="mg-card" href="/management/smtp">
-        <div class="mg-title">{{ t('SMTP') }}</div>
-        <p class="mg-help">{{ t('Configure SMTP and send test email.') }}</p>
+      <a class="mg-card" href="/management/modules">
+        <div class="mg-title">{{ t('Modules') }}</div>
+        <p class="mg-help">{{ t('Enable or disable optional application modules.') }}</p>
       </a>
     {% endif %}
-    <a class="mg-card" href="/management/system">
-      <div class="mg-title">{{ t('System') }}</div>
-      <p class="mg-help">{{ t('Years window and demo data, plus reset.' if is_admin else 'Years window and demo data.') }}</p>
-    </a>
     <a class="mg-card" href="/management/categories">
       <div class="mg-title">{{ t('Categories') }}</div>
       <p class="mg-help">{{ t('Manage expense categories.') }}</p>

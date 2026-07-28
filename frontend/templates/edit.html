@@ -52,10 +52,10 @@
         <input class="form-control" name="concept" data-maxlength="40" value="{{ expense[1] }}" required>
         {% if expense[4] == 'expense' %}
         <div class="edit-options">
-            <div class="form-check">
+            {% if loans_enabled %}<div class="form-check">
                 <input class="form-check-input" type="checkbox" id="deferredCheckEdit" name="is_deferred" value="1" {{ 'checked' if expense[14] and expense[14] > 1 else '' }}>
                 <label class="form-check-label" for="deferredCheckEdit">{{ t('Deferred payment') }}</label>
-            </div>
+            </div>{% endif %}
             <div class="form-check">
                 <input class="form-check-input" type="checkbox" id="loanPaymentCheckEdit" name="is_loan_payment" value="1" {{ 'checked' if expense[16] else '' }}>
                 <label class="form-check-label" for="loanPaymentCheckEdit">{{ t('Loan payment') }}</label>
@@ -98,12 +98,12 @@
                     <option value="">{{ t('Select') }}</option>
                     {% for pm in payment_methods %}
                     <option value="{{ pm[0] }}" {{ 'selected' if expense[12] == pm[0] else '' }}>
-                        [{{ t('Card') if pm[3] == 'card' else t('Savings account') if pm[4] == 'savings' else t('Current account') }}] {{ pm[1] }}{% if not pm[2] %} ({{ t('Inactive') }}){% endif %}
+                        [{{ pm[6] ~ ' · ' if pm[6] }}{{ t('Card') if pm[3] == 'card' else t('Savings account') if pm[4] == 'savings' else t('Current account') }}] {{ pm[1] }}{% if not pm[2] %} ({{ t('Inactive') }}){% endif %}
                     </option>
                     {% endfor %}
                 </select>
             </div>
-            <div id="loanSelectWrapEdit" style="{{ '' if expense[16] else 'display:none;' }}">
+            {% if loans_enabled %}<div id="loanSelectWrapEdit" style="{{ '' if expense[16] else 'display:none;' }}">
                 <label class="form-label">{{ t('Loans') }}</label>
                 <select class="form-control edit-category" name="loan_id">
                     <option value="">{{ t('Select') }}</option>
@@ -141,7 +141,7 @@
                     placeholder="{{ t('Interest') }}">
             </div>
             <div class="form-text">{{ t('Principal and interest are tracked separately; the full payment reduces total pending debt.') }}</div>
-        </div>
+        </div>{% endif %}
     </div>
     <input type="hidden" name="type" value="expense">
     {% else %}
@@ -165,7 +165,7 @@
                 <label class="form-label">{{ t('Savings account') }}</label>
                 <select class="form-control" name="payment_method_id" required>
                     {% for pm in payment_methods if pm[3] == 'bank_account' and pm[4] == 'savings' %}
-                    <option value="{{ pm[0] }}" {{ 'selected' if expense[12] == pm[0] else '' }}>[{{ t('Savings account') }}] {{ pm[1] }}{% if not pm[2] %} ({{ t('Inactive') }}){% endif %}</option>
+                    <option value="{{ pm[0] }}" {{ 'selected' if expense[12] == pm[0] else '' }}>[{{ pm[6] ~ ' · ' if pm[6] }}{{ t('Savings account') }}] {{ pm[1] }}{% if not pm[2] %} ({{ t('Inactive') }}){% endif %}</option>
                     {% endfor %}
                 </select>
             </div>

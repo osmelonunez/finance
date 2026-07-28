@@ -217,41 +217,48 @@ Incluye:
 - Consulta histórica de solo lectura con el presupuesto aplicado y el gasto real de cada mes.
 - Gestión de categorías mantenida como responsabilidad independiente.
 - Resumen de presupuesto en el dashboard.
+- Comparativas configurables por mes, trimestre y año.
+- Evolución de ingresos, gastos, ahorro y balance.
+- Comparativas avanzadas entre periodos (MoM/YoY).
+- Filtros por categoría, banco, cuenta, tarjeta y préstamo.
+- Exportación contextual a CSV y vista preparada para imprimir o guardar como PDF.
+- Informes guardados por usuario como configuraciones reutilizables.
 - Migraciones `018_category_budgets.sql` a `023_remove_record_source.sql`.
+
+Mas detalles:
 - [Notas de release en espanol](docs/v3.7-release/notas-v3.7.0.md)
 - [Release notes in English](docs/v3.7-release/v3.7.0-release-notes.md)
-- Acceso principal como `Informes`.
-- Consulta mensual y anual de ingresos, gastos, ahorro y balance.
-- Desglose de gasto por categoria y principales gastos del periodo.
-- Configuracion funcional e historial de reportes por correo integrados en Informes.
-- Cuadricula compacta de diez plantillas de correo, cinco por fila, con vista previa real y alternancia mensual/anual sin duplicar la galeria.
-- Branding compartido configurable con nombre, cabecera y pie centrado.
-- Enlace `Abrir Finance` integrado en todas las plantillas sin mostrar la URL en el contenido.
-- Navegacion interna de Informes separada en resumen, envio por correo con historial y plantillas.
-- Comparativas por mes, trimestre y año mediante desplegables generados desde la ventana de años disponible, con variacion absoluta y porcentual.
-- Evolucion temporal de ingresos, gastos, ahorro y balance para 6 meses, 12 meses o varios años, con series activables.
-- Selector unico con las combinaciones validas Libre, MoM y YoY, desglose por categoria y rankings de aumentos y reducciones.
-- Filtros compartidos por categoria, banco, cuenta, tarjeta y prestamo aplicados a resumen, comparativas y evolucion.
-- Exportacion CSV contextual y vista especifica de impresion/guardado como PDF.
-- Informes guardados por usuario con periodos, modos y filtros reutilizables.
-- SMTP tecnico mantenido de forma independiente en Gestion.
+
+### v3.8.0 - Operacion, modulos opcionales e i18n modular
+
+Estado: en desarrollo.
+
+Objetivo: simplificar la operacion de la aplicacion, consolidar las cuentas de ahorro y completar capacidades de configuracion global sin alterar los importes historicos.
+
+Incluye:
+- `DATABASE_URL` como unica fuente de configuracion de PostgreSQL.
+- Eliminacion del fichero `.app_config.json` y su cifrado asociado.
+- Wizard simplificado para crear el primer administrador sobre la BD configurada.
+- Eliminacion de la configuracion y el acceso de BD desde Gestion.
+- SMTP configurado exclusivamente mediante variables de entorno, sin credenciales persistidas en Gestion ni en la BD.
+- Estado SMTP mostrado dentro de Informes sin exponer credenciales.
 - Cuentas bancarias clasificadas como corrientes o de ahorro.
 - Varias cuentas de ahorro con saldo inicial, aportaciones y gastos asociados.
-- Agregado `Savings Accounts` en dashboard e Informes, con desglose por cuenta.
+- Agregado `Savings Accounts` en dashboard e Informes, con desglose por cuenta cuando existe mas de una.
 - Gastos contabilizados en presupuesto e informes independientemente de la cuenta utilizada.
+- Selector global de moneda en Sistema para cambiar el formato de todos los importes sin convertir los datos existentes.
+- Copias PostgreSQL verificadas en formato `.dump`, con integridad SHA-256, carga local y restauracion confirmada con copia preventiva.
+- Retencion de copias configurada por dias y planificador interno diario a las 00:00, sin un contenedor cron adicional.
+- Cobertura automatizada ampliada para backups, restauraciones, rutas y planificador interno.
+- Módulo de préstamos opcional, activable desde `Gestión → Módulos` sin eliminar préstamos, pagos ni historial.
+- Navegación, tarjetas del dashboard, filtros y formularios de pago de préstamo ocultos cuando el módulo está desactivado; las rutas de préstamos se bloquean.
+- Módulo de presupuestos opcional, activable desde `Gestión → Módulos` sin eliminar la configuración ni el histórico mensual.
+- Los dos módulos se configuran con un único formulario y botón Guardar.
+- Actualizacion de Compose, version visible, documentacion operativa y migraciones `024` a `029`.
 
-### Evolucion de informes y analitica
-
-Estado: completado en v3.7.0.
-
-Objetivo: ampliar el modulo de Informes con comparativas, evolucion, filtros, exportacion y configuraciones reutilizables.
-
-- Comparativas configurables por mes, trimestre y año.
-- Evolucion de ingresos, gastos, ahorro y balance.
-- Comparativas avanzadas entre periodos (MoM/YoY).
-- Filtros por categoria, banco, cuenta, tarjeta y prestamo.
-- Exportacion contextual a CSV y vista preparada para imprimir o guardar como PDF.
-- Informes guardados por usuario como configuraciones reutilizables.
+Mas detalles:
+- [Notas de release en espanol](docs/v3.8-release/notas-v3.8.0.md)
+- [Release notes in English](docs/v3.8-release/v3.8.0-release-notes.md)
 
 ## Ideas futuras
 
@@ -292,19 +299,6 @@ Ideas:
 - Comparativa con el mes anterior.
 - Notas/resumen del mes.
 
-### Prestamos como modulo opcional
-
-Objetivo: permitir activar o desactivar toda la funcionalidad de prestamos desde administracion.
-
-Ideas:
-- Opcion global en Gestion o Sistema para activar/desactivar el modulo de prestamos.
-- Ocultar la navegacion de Prestamos cuando el modulo este desactivado.
-- Ocultar tarjetas, graficas y totales relacionados con prestamos en el dashboard.
-- Ocultar campos de pago de prestamo en gastos si el modulo esta desactivado.
-- Mantener los datos existentes sin borrarlos al desactivar el modulo.
-- Bloquear rutas de prestamos o redirigir con un mensaje claro cuando el modulo este desactivado.
-- Reflejar el estado del modulo en configuracion y documentacion operativa.
-
 ### Actualizacion de permisos por roles
 
 Objetivo: hacer mas flexible el control de acceso segun rol y accion dentro de la aplicacion.
@@ -321,10 +315,8 @@ Ideas:
 ### Otras ideas a valorar
 
 - Adjuntar facturas/recibos a gastos.
-- Evolucion de i18n hacia estructura modular.
 - Notificaciones internas y recordatorios.
-- Reglas automaticas por categoria/origen/cuenta.
-- Soporte multi-moneda.
+- Soporte multi-moneda con conversiones y tipos de cambio historicos.
 - API tokens para integraciones externas.
 - Metricas operativas basicas: latencias por ruta y tasa de errores.
 - Retencion configurable de logs de negocio en base de datos.

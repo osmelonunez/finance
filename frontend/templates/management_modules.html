@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .mg-shell { max-width: 900px; }
+  .mg-tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .mg-tabs a { padding: 6px 10px; border: 1px solid #d9e3ee; border-radius: 9px; text-decoration: none; color: #4a5a6b; }
+  .mg-tabs a.active { background: #eef4fb; color: #2f3b47; font-weight: 600; }
+  .panel { border: 1px solid #dfe7f0; border-radius: 12px; background: #fbfcfe; padding: 14px; margin-bottom: 12px; }
+</style>
+
+<div class="mg-shell">
+  <h4 class="mb-3">{{ t('Management') }}</h4>
+  <div class="mg-tabs">
+    <a href="/management/system">{{ t('System') }}</a>
+    <a href="/management/users">{{ t('Users') }}</a>
+    <a href="/management/backups">{{ t('Backups') }}</a>
+    <a class="active" href="/management/modules">{{ t('Modules') }}</a>
+    <a href="/categories">{{ t('Categories') }}</a>
+  </div>
+
+  {% if message %}<div class="alert alert-success py-2">{{ t(message) }}</div>{% endif %}
+  {% if error %}<div class="alert alert-danger py-2">{{ t(error) }}</div>{% endif %}
+
+  <form method="post" action="/management/modules">
+    <div class="panel">
+      <div class="fw-semibold mb-1">{{ t('Loans module') }}</div>
+      <div class="text-muted small mb-2">{{ t('When disabled, loans are hidden and cannot be changed. Existing loans and their history are kept.') }}</div>
+      <div class="form-check form-switch mb-0">
+        <input class="form-check-input" type="checkbox" role="switch" id="loansEnabled" name="loans_enabled" value="1" {% if loans_enabled %}checked{% endif %}>
+        <label class="form-check-label" for="loansEnabled">{{ t('Enable loans module') }}</label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="fw-semibold mb-1">{{ t('Budgets module') }}</div>
+      <div class="text-muted small mb-2">{{ t('When disabled, budgets are hidden and cannot be changed. Existing budgets and their history are kept.') }}</div>
+      <div class="form-check form-switch mb-0">
+        <input class="form-check-input" type="checkbox" role="switch" id="budgetsEnabled" name="budgets_enabled" value="1" {% if budgets_enabled %}checked{% endif %}>
+        <label class="form-check-label" for="budgetsEnabled">{{ t('Enable budgets module') }}</label>
+      </div>
+    </div>
+    <button class="btn btn-primary">{{ t('Save') }}</button>
+  </form>
+</div>
+{% endblock %}

@@ -76,10 +76,10 @@
                 <input class="form-check-input" type="checkbox" id="deferredCheck" name="is_deferred" value="1" {{ 'checked' if form_data and form_data.get('is_deferred') == '1' else '' }}>
                 <label class="form-check-label" for="deferredCheck">{{ t('Deferred payment') }}</label>
             </div>
-            <div class="form-check">
+            {% if loans_enabled %}<div class="form-check">
                 <input class="form-check-input" type="checkbox" id="loanPaymentCheck" name="is_loan_payment" value="1" {{ 'checked' if form_data and form_data.get('is_loan_payment') == '1' else '' }}>
                 <label class="form-check-label" for="loanPaymentCheck">{{ t('Loan payment') }}</label>
-            </div>
+            </div>{% endif %}
             <div id="deferredTotalWrap" style="{{ '' if form_data and form_data.get('is_deferred') == '1' else 'display:none;' }}">
                 <label class="form-label mb-1">{{ t('Installments') }}</label>
                 <input class="form-control form-control-sm" type="number" min="2" max="60" name="deferred_total" value="{{ form_data.get('deferred_total', '3') if form_data else '3' }}">
@@ -117,11 +117,11 @@
                 <select class="form-control" name="payment_method_id" id="paymentMethodSelect">
                     <option value="">{{ t('Select') }}</option>
                     {% for pm in payment_methods %}
-                    <option value="{{ pm[0] }}" {{ 'selected' if form_data and form_data.get('payment_method_id') == (pm[0]|string) else '' }}>[{{ t('Card') if pm[2] == 'card' else t('Savings account') if pm[3] == 'savings' else t('Current account') }}] {{ pm[1] }}</option>
+                    <option value="{{ pm[0] }}" {{ 'selected' if form_data and form_data.get('payment_method_id') == (pm[0]|string) else '' }}>[{{ pm[5] ~ ' · ' if pm[5] }}{{ t('Card') if pm[2] == 'card' else t('Savings account') if pm[3] == 'savings' else t('Current account') }}] {{ pm[1] }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="expense-loan-field" id="loanSelectWrap" style="{{ '' if form_data and form_data.get('is_loan_payment') == '1' else 'display:none;' }}">
+            {% if loans_enabled %}<div class="expense-loan-field" id="loanSelectWrap" style="{{ '' if form_data and form_data.get('is_loan_payment') == '1' else 'display:none;' }}">
                 <label class="form-label">{{ t('Loans') }}</label>
                 <select class="form-control" name="loan_id" id="loanSelect">
                     <option value="">{{ t('Select') }}</option>
@@ -158,7 +158,7 @@
                         placeholder="{{ t('Interest') }}">
                 </div>
                 <div class="form-text">{{ t('Principal and interest are tracked separately; the full payment reduces total pending debt.') }}</div>
-            </div>
+            </div>{% endif %}
         </div>
     </div>
     {% else %}
@@ -182,7 +182,7 @@
                 <select class="form-control" name="payment_method_id" required>
                     <option value="">{{ t('Select') }}</option>
                     {% for pm in payment_methods if pm[2] == 'bank_account' and pm[3] == 'savings' %}
-                    <option value="{{ pm[0] }}" {{ 'selected' if form_data and form_data.get('payment_method_id') == (pm[0]|string) else '' }}>[{{ t('Savings account') }}] {{ pm[1] }}</option>
+                    <option value="{{ pm[0] }}" {{ 'selected' if form_data and form_data.get('payment_method_id') == (pm[0]|string) else '' }}>[{{ pm[5] ~ ' · ' if pm[5] }}{{ t('Savings account') }}] {{ pm[1] }}</option>
                     {% endfor %}
                 </select>
             </div>

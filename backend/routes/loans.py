@@ -6,6 +6,7 @@ from flask import Blueprint, redirect, render_template, request, session
 
 from dashboard_cache import invalidate_dashboard_cache
 from db import get_db
+from feature_flags import loans_enabled
 from validators import (
     MAX_LOAN_DESCRIPTION_LENGTH,
     MAX_LOAN_NAME_LENGTH,
@@ -20,6 +21,12 @@ from validators import (
 loans_bp = Blueprint("loans", __name__)
 logger = logging.getLogger("finance.loans")
 LOAN_DETAIL_PAGE_SIZE = 8
+
+
+@loans_bp.before_request
+def block_disabled_loan_module():
+    if not loans_enabled():
+        return redirect("/")
 
 
 def _parse_positive_decimal(value, field_name):

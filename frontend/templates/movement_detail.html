@@ -63,7 +63,7 @@
             <div class="detail-value">{{ expense[12] or '-' }}</div>
         </div>
         {% endif %}
-        {% if expense[4] == 'expense' %}
+        {% if loans_enabled and expense[4] == 'expense' %}
         <div class="col-md-4">
             <div class="detail-label">{{ t('Loan payment') }}</div>
             <div class="detail-value">
@@ -75,7 +75,7 @@
             </div>
         </div>
         {% endif %}
-        {% if expense[4] == 'expense' and expense[16] and expense[19] is not none %}
+        {% if loans_enabled and expense[4] == 'expense' and expense[16] and expense[19] is not none %}
         <div class="col-md-4">
             <div class="detail-label">{{ t('Principal') }}</div>
             <div class="detail-value text-success">{{ money(expense[19]) }}</div>

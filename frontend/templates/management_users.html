@@ -11,12 +11,11 @@
 <div class="mg-shell">
   <h4 class="mb-3">{{ t('Management') }}</h4>
   <div class="mg-tabs">
-    <a class="active" href="/management/users">{{ t('Users') }}</a>
-    <a href="/management/database">{{ t('Database') }}</a>
-    <a href="/management/backups">{{ t('Backups') }}</a>
-    <a href="/management/smtp">{{ t('SMTP') }}</a>
-    <a href="/categories">{{ t('Categories') }}</a>
     <a href="/management/system">{{ t('System') }}</a>
+    <a class="active" href="/management/users">{{ t('Users') }}</a>
+    <a href="/management/backups">{{ t('Backups') }}</a>
+    <a href="/management/modules">{{ t('Modules') }}</a>
+    <a href="/categories">{{ t('Categories') }}</a>
   </div>
 
   {% if message %}<div class="alert alert-success py-2">{{ t(message) }}</div>{% endif %}

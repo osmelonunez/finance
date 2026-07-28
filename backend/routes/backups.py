@@ -9,6 +9,7 @@ from backup_service import (
     read_backup_page_data,
     restore_backup,
     run_backup,
+    import_backup,
     update_backup_config,
     week_day_options,
 )
@@ -51,13 +52,13 @@ def backups_update_config():
         weekly_day = 0
     weekly_day = min(max(weekly_day, 0), 6)
     try:
-        retain_count = int(request.form.get("retain_count", "7"))
+        retain_days = int(request.form.get("retain_days", "7"))
     except ValueError:
-        retain_count = 7
-    retain_count = min(max(retain_count, 1), 365)
+        retain_days = 7
+    retain_days = min(max(retain_days, 1), 365)
 
     with get_db() as conn:
-        update_backup_config(conn, frequency, weekly_day, retain_count)
+        update_backup_config(conn, frequency, weekly_day, retain_days)
     removed = enforce_keep_cleanup_now()
     if removed > 0:
         session["backup_msg"] = f"{t('Backup settings saved')}. {t('Cleanup removed')} {removed} {t('file(s)')}."
@@ -75,6 +76,19 @@ def backups_run_now():
         session["backup_msg"] = t("Backup created")
     else:
         session["backup_err"] = message
+    return redirect(url_for("backups.backups_page"))
+
+
+@backups_bp.route("/management/backups/upload", methods=["POST"])
+def backups_upload():
+    if session.get("role") != "admin":
+        return redirect(url_for("dashboard.dashboard"))
+    upload = request.files.get("backup_file")
+    if not upload or not upload.filename:
+        session["backup_err"] = "Select a .dump backup file to upload."
+    else:
+        ok, message = import_backup(upload, uploaded_by=session.get("user_name"))
+        session["backup_msg" if ok else "backup_err"] = message
     return redirect(url_for("backups.backups_page"))
 
 
@@ -101,7 +115,7 @@ def backups_download_run(run_id):
     if not row:
         session["backup_err"] = t("Backup run not found")
         return redirect(url_for("backups.backups_page"))
-    _, filename, file_path, status = row
+    _, filename, file_path, status, _checksum = row
     if status != "success" or not file_path:
         session["backup_err"] = t("Backup not available for download")
         return redirect(url_for("backups.backups_page"))

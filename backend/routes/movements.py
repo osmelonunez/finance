@@ -6,6 +6,7 @@ from flask import Blueprint, render_template, request, redirect, session
 
 from db import get_db
 from dashboard_cache import invalidate_dashboard_cache
+from feature_flags import loans_enabled
 from validators import (
     MAX_RECORD_COMMENT_LENGTH,
     parse_year_month,
@@ -76,6 +77,8 @@ def _resolve_savings_account_id(cur, raw_id, include_id=None):
 
 
 def _resolve_active_loan_id(cur, raw_id, include_id=None):
+    if not loans_enabled():
+        return None
     if not raw_id:
         return None
     try:
@@ -137,6 +140,8 @@ def _parse_loan_payment_split(cur, loan_id, amount, form):
 
 
 def _load_active_loans(cur, include_id=None):
+    if not loans_enabled():
+        return []
     params = []
     where = "l.status='active'"
     if include_id:
@@ -461,9 +466,12 @@ def add_movement():
                 cur.execute(
                     """
                     SELECT pm.id, pm.name, pm.kind, pm.account_type,
-                           parent.account_type AS parent_account_type
+                           parent.account_type AS parent_account_type,
+                           COALESCE(b.name, parent_bank.name, pm.bank_name, parent.bank_name, '') AS bank_display
                     FROM payment_methods pm
                     LEFT JOIN payment_methods parent ON parent.id=pm.parent_account_id
+                    LEFT JOIN banks b ON b.id=pm.bank_id
+                    LEFT JOIN banks parent_bank ON parent_bank.id=parent.bank_id
                     WHERE pm.is_active=TRUE
                     ORDER BY pm.kind, pm.name
                     """
@@ -675,6 +683,9 @@ def edit(id):
                 previous_record = cur.fetchone()
                 if not previous_record:
                     return redirect(_page_to_url(from_page))
+                if previous_record[8] and not loans_enabled():
+                    msg = "Loan payments cannot be changed while the loans module is disabled."
+                    return redirect(f"/records/{id}?from={from_page}&error={quote(msg)}")
 
                 type_ = request.form["type"]
                 concept = request.form["concept"]
@@ -967,14 +978,20 @@ def edit(id):
                 WHERE e.id=%s
             """, (id,))
             expense = cur.fetchone()
+            if expense and expense[16] and not loans_enabled():
+                msg = "Loan payments cannot be changed while the loans module is disabled."
+                return redirect(f"/records/{id}?from={from_page}&error={quote(msg)}")
             cur.execute("SELECT name FROM categories ORDER BY name")
             categories = [r[0] for r in cur.fetchall()]
             cur.execute(
                 """
                 SELECT pm.id, pm.name, pm.is_active, pm.kind, pm.account_type,
-                       parent.account_type AS parent_account_type
+                       parent.account_type AS parent_account_type,
+                       COALESCE(b.name, parent_bank.name, pm.bank_name, parent.bank_name, '') AS bank_display
                 FROM payment_methods pm
                 LEFT JOIN payment_methods parent ON parent.id=pm.parent_account_id
+                LEFT JOIN banks b ON b.id=pm.bank_id
+                LEFT JOIN banks parent_bank ON parent_bank.id=parent.bank_id
                 ORDER BY pm.kind, pm.name
                 """
             )
@@ -1013,6 +1030,9 @@ def duplicate(id):
             expense = cur.fetchone()
             if not expense:
                 return redirect(_page_to_url(from_page))
+            if expense[16] and not loans_enabled():
+                msg = "Loan payments cannot be duplicated while the loans module is disabled."
+                return redirect(f"/records/{id}?from={from_page}&error={quote(msg)}")
 
             is_deferred_record = bool((expense[14] or 0) > 1)
             if is_deferred_record:
@@ -1163,9 +1183,12 @@ def duplicate(id):
             cur.execute(
                 """
                 SELECT pm.id, pm.name, pm.is_active, pm.kind, pm.account_type,
-                       parent.account_type AS parent_account_type
+                       parent.account_type AS parent_account_type,
+                       COALESCE(b.name, parent_bank.name, pm.bank_name, parent.bank_name, '') AS bank_display
                 FROM payment_methods pm
                 LEFT JOIN payment_methods parent ON parent.id=pm.parent_account_id
+                LEFT JOIN banks b ON b.id=pm.bank_id
+                LEFT JOIN banks parent_bank ON parent_bank.id=parent.bank_id
                 WHERE pm.is_active=TRUE
                 ORDER BY pm.kind, pm.name
                 """
@@ -1206,6 +1229,8 @@ def delete(id):
             )
             row = cur.fetchone()
             loan_id = row[0] if row else None
+            if loan_id and not loans_enabled():
+                return redirect(f"/records/{id}?from={from_page}&error={quote('Loan payments cannot be deleted while the loans module is disabled.')}")
             cur.execute("DELETE FROM records WHERE id=%s", (id,))
             deleted = cur.rowcount
             _sync_loan_statuses(cur, [loan_id])

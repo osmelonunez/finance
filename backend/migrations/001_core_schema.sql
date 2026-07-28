@@ -26,7 +26,8 @@ ON users (LOWER(username));
 
 CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
-    value NUMERIC(12,2) NOT NULL DEFAULT 0
+    value NUMERIC(12,2) NOT NULL DEFAULT 0,
+    text_value TEXT
 );
 
 CREATE TABLE IF NOT EXISTS payment_methods (
