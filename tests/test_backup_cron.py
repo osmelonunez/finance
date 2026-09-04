@@ -46,6 +46,26 @@ def test_scheduler_runs_cycle_and_stops(monkeypatch):
     assert len(cycles) == 1
 
 
+def test_scheduler_checks_for_missed_backup_before_waiting(monkeypatch):
+    backup_cron.running = True
+    events = []
+    monkeypatch.setattr(backup_cron.signal, "signal", lambda *_args: None)
+
+    def cycle(_now):
+        events.append("cycle")
+
+    def wait(_zone):
+        events.append("wait")
+        backup_cron.running = False
+
+    monkeypatch.setattr(backup_cron, "run_scheduled_backup_cycle", cycle)
+    monkeypatch.setattr(backup_cron, "_wait_until_midnight", wait)
+
+    backup_cron.run_scheduler()
+
+    assert events == ["cycle", "wait"]
+
+
 def test_scheduler_logs_cycle_errors_and_stops(monkeypatch):
     backup_cron.running = True
     monkeypatch.setattr(backup_cron.signal, "signal", lambda *_args: None)

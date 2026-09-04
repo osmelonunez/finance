@@ -4,6 +4,8 @@
 .env
 .env.*
 tools/docker/docker-compose.override.yaml
+# Local release automation (contains workstation-specific publishing workflow).
+tools/close-release.sh
 
 backups
 config
