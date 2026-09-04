@@ -1,5 +1,6 @@
 import os
 import sys
+from datetime import datetime as RealDateTime
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -206,12 +207,29 @@ def application():
 
 
 @pytest.fixture(autouse=True)
-def clean_database(request):
+def clean_database(request, monkeypatch):
     if request.node.get_closest_marker("unit"):
         yield
         return
     request.getfixturevalue("application")
     _reset_and_seed_database()
+
+    # The integration dataset represents July 2026. Freeze application-facing
+    # clocks so these tests remain deterministic when the real calendar moves.
+    class TestDateTime(RealDateTime):
+        @classmethod
+        def now(cls, tz=None):
+            return cls(2026, 7, 28, 12, 0, tzinfo=tz)
+
+    import report_service
+    import routes.budgets
+    import routes.dashboard
+    import routes.reports
+
+    monkeypatch.setattr(report_service, "datetime", TestDateTime)
+    monkeypatch.setattr(routes.budgets, "datetime", TestDateTime)
+    monkeypatch.setattr(routes.dashboard, "datetime", TestDateTime)
+    monkeypatch.setattr(routes.reports, "datetime", TestDateTime)
     from dashboard_cache import invalidate_dashboard_cache
 
     invalidate_dashboard_cache()

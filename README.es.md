@@ -14,10 +14,10 @@ Repositorio: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
 ## Versión Actual
 
-- Versión actual: `3.8.0`
-- Release: `v3.8.0 - Operación, módulos opcionales e i18n modular`
-- El compose de producción está preparado para `f1nanc3/finance:3.8.0`
-- [Notas de la versión 3.8.0](docs/v3.8-release/notas-v3.8.0.md)
+- Versión actual: `3.8.1`
+- Release: `v3.8.1 - Fiabilidad del planificador de copias`
+- El compose de producción está preparado para `f1nanc3/finance:3.8.1`
+- [Notas de la versión 3.8.1](docs/v3.8-release/notas-v3.8.1.md)
 
 ## Funcionalidades Principales
 

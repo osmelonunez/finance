@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 
 import pytest
@@ -177,7 +178,11 @@ def test_dashboard_excludes_removed_budget(admin_client):
     assert b"3.000,00" not in response.data
 
 
-def test_demo_seed_forces_all_categories_and_clear_restores_previous_state(admin_client, db_query):
+def test_demo_seed_forces_all_categories_and_clear_restores_previous_state(admin_client, db_query, monkeypatch):
+    import routes.budgets
+
+    monkeypatch.setattr(routes.budgets, "datetime", datetime)
+    current_month = datetime.now().strftime("%Y-%m")
     new_category_id = _add_category(db_query, "Demo uncovered test")
     _post(admin_client, "/budgets/1/remove", {})
 
@@ -190,26 +195,29 @@ def test_demo_seed_forces_all_categories_and_clear_restores_previous_state(admin
         LEFT JOIN LATERAL (
             SELECT amount, is_disabled
             FROM category_budgets b
-            WHERE b.category_id=c.id AND b.month <= '2026-07'
+            WHERE b.category_id=c.id AND b.month <= %s
             ORDER BY b.month DESC
             LIMIT 1
         ) budget ON TRUE
         WHERE budget.amount IS NULL OR budget.is_disabled=TRUE
-        """
+        """,
+        (current_month,),
     )[0]
     assert uncovered == 0
     assert db_query(
-        "SELECT amount, is_disabled, updated_by FROM category_budgets WHERE category_id=1 AND month='2026-07'"
+        "SELECT amount, is_disabled, updated_by FROM category_budgets WHERE category_id=1 AND month=%s",
+        (current_month,),
     )[1:] == (False, "[DEMO_SEED_MANAGEMENT]")
     assert db_query(
-        "SELECT created_by FROM category_budgets WHERE category_id=%s AND month='2026-07'",
-        (new_category_id,),
+        "SELECT created_by FROM category_budgets WHERE category_id=%s AND month=%s",
+        (new_category_id, current_month),
     )[0] == "[DEMO_SEED_MANAGEMENT]"
 
     _post(admin_client, "/management/demo-data/clear", {})
 
     assert db_query(
-        "SELECT amount, is_disabled FROM category_budgets WHERE category_id=1 AND month='2026-07'"
+        "SELECT amount, is_disabled FROM category_budgets WHERE category_id=1 AND month=%s",
+        (current_month,),
     ) == (None, True)
     assert db_query(
         "SELECT COUNT(*) FROM category_budgets WHERE category_id=%s",

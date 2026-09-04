@@ -37,12 +37,15 @@ def run_scheduler():
     zone = ZoneInfo(os.environ.get("TZ", "UTC"))
     logger.info("backup_cron_started timezone=%s", zone.key)
     while running:
-        _wait_until_midnight(zone)
+        # Check immediately on startup so a restart or a short outage around
+        # midnight does not make the application miss the whole day's run.
+        # run_scheduled_backup_cycle uses last_run_at to prevent duplicates.
+        try:
+            run_scheduled_backup_cycle(datetime.now(zone).replace(tzinfo=None))
+        except Exception:
+            logger.exception("backup_cron_cycle_failed")
         if running:
-            try:
-                run_scheduled_backup_cycle(datetime.now(zone).replace(tzinfo=None))
-            except Exception:
-                logger.exception("backup_cron_cycle_failed")
+            _wait_until_midnight(zone)
 
 
 if __name__ == "__main__":
