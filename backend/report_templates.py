@@ -34,7 +34,7 @@ def _apply_branding(
     footer_text = escape(
         raw_footer_text
         .replace("{year}", str(datetime.now().year))
-        .replace("{version}", os.environ.get("APP_VERSION", "3.8.0"))
+        .replace("{version}", os.environ.get("APP_VERSION", "3.8.1"))
     )
     if raw_footer_text == "© {year} Osmel Nuñez Alonso · v{version} · GitHub":
         footer_text = footer_text.rsplit("GitHub", 1)[0] + (

@@ -2,7 +2,7 @@ COMPOSE=docker compose -f tools/docker/docker-compose.yaml -f tools/docker/docke
 COMPOSE_PROD=docker compose -f docker/docker-compose.yaml
 COMPOSE_TEST=docker compose -p finance-tests -f tools/docker/docker-compose.test.yaml
 IMAGE_REPO?=f1nanc3/finance
-VERSION?=3.8.0
+VERSION?=3.8.1
 PLATFORMS?=linux/amd64,linux/arm64
 
 build:
