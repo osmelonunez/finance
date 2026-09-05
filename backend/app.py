@@ -95,7 +95,7 @@ app = Flask(
     static_url_path="/static"
 )
 app.secret_key = os.environ.get("SECRET_KEY", DEFAULT_SECRET_KEY)
-app.config["APP_VERSION"] = os.environ.get("APP_VERSION", "3.8.1")
+app.config["APP_VERSION"] = os.environ.get("APP_VERSION", "3.9.0")
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -177,7 +177,7 @@ def inject_template_globals():
     lang = get_lang()
     return {
         "current_year": datetime.now().year,
-        "app_version": app.config.get("APP_VERSION", "3.8.1"),
+        "app_version": app.config.get("APP_VERSION", "3.9.0"),
         "current_lang": lang,
         "t": lambda text: t(text, lang),
         "cat_name": lambda name: category_name(name, lang),
