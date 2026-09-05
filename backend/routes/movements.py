@@ -2,11 +2,19 @@ from datetime import datetime
 from decimal import Decimal, InvalidOperation
 import logging
 from urllib.parse import quote
-from flask import Blueprint, render_template, request, redirect, session
+from flask import Blueprint, render_template, request, redirect, session, send_file
 
 from db import get_db
 from dashboard_cache import invalidate_dashboard_cache
 from feature_flags import loans_enabled
+from excel_import import (
+    BANK_FORMATS,
+    ImportValidationError,
+    build_template,
+    parse_workbook,
+    preview_bank_statement,
+)
+from i18n import category_name, get_lang
 from validators import (
     MAX_RECORD_COMMENT_LENGTH,
     parse_year_month,
@@ -424,6 +432,9 @@ def _records(fixed_type=None):
         cards=[pm for pm in payment_methods if pm[2] == "card"],
         banks=banks,
         loans=loans,
+        bank_formats=BANK_FORMATS,
+        imported_count=session.pop(f"{fixed_type}_imported_count", None),
+        imported_type=fixed_type,
         page_query=page_query
     )
 
@@ -441,6 +452,252 @@ def records_expense():
 @movements_bp.route("/records/saving")
 def records_saving():
     return _records("saving")
+
+
+@movements_bp.route("/records/expense/import/template")
+def expense_import_template():
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT name FROM categories ORDER BY name")
+            categories = [row[0] for row in cur.fetchall()]
+            cur.execute("SELECT name FROM payment_methods WHERE is_active=TRUE ORDER BY name")
+            payment_methods = [row[0] for row in cur.fetchall()]
+    return send_file(
+        build_template(categories, payment_methods),
+        as_attachment=True,
+        download_name="finance-expenses-template.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+
+@movements_bp.route("/records/expense/import", methods=["GET", "POST"])
+def import_expenses():
+    if request.method == "GET":
+        return render_template(
+            "import_movements.html",
+            current_page="expense", movement_type="expense", accounts=[],
+            bank_formats=BANK_FORMATS,
+            errors=[], rows=[], categories=[], cards=[],
+            skipped_incomes=0, positive_movements=[], bank_format="",
+        )
+    selected_rows = request.form.getlist("selected_rows")
+    errors = []
+    records = []
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            try:
+                payment_method_id = int(request.form.get("payment_method_id") or "")
+            except ValueError:
+                payment_method_id = None
+            cur.execute(
+                "SELECT id FROM payment_methods WHERE id=%s AND kind='card' AND is_active=TRUE",
+                (payment_method_id,),
+            )
+            if not cur.fetchone():
+                errors.append("Select an active card.")
+            for row_key in selected_rows:
+                concept, error = validate_concept(request.form.get(f"concept_{row_key}"))
+                if error:
+                    errors.append(f"Row {row_key}: {error}")
+                    continue
+                amount, error = validate_amount(request.form.get(f"amount_{row_key}"))
+                if error:
+                    errors.append(f"Row {row_key}: {error}")
+                    continue
+                comment, error = validate_text_length(
+                    request.form.get(f"comment_{row_key}"),
+                    "Description",
+                    MAX_RECORD_COMMENT_LENGTH,
+                )
+                if error:
+                    errors.append(f"Row {row_key}: {error}")
+                    continue
+                date_value = request.form.get(f"date_{row_key}")
+                if not date_value or parse_year_month(date_value, None) is None:
+                    errors.append(f"Row {row_key}: Date must use YYYY-MM.")
+                    continue
+                try:
+                    category_id = int(request.form.get(f"category_{row_key}") or "")
+                except ValueError:
+                    category_id = None
+                cur.execute("SELECT id FROM categories WHERE id=%s", (category_id,))
+                if not cur.fetchone():
+                    errors.append(f"Row {row_key}: Select a category.")
+                    continue
+                records.append((concept, amount, date_value, category_id, comment))
+            if not selected_rows:
+                errors.append("Select at least one expense to import.")
+            if errors:
+                return render_template(
+                    "import_movements.html", current_page="expense", movement_type="expense", errors=errors,
+                    rows=[], categories=[], cards=[], accounts=[], skipped_incomes=0, positive_movements=[],
+                    bank_formats=BANK_FORMATS, bank_format=request.form.get("bank_format", ""),
+                ), 400
+            for concept, amount, date_value, category_id, comment in records:
+                cur.execute(
+                    """
+                    INSERT INTO records (
+                        concept, amount, date, type, category_id, payment_method_id, comment,
+                        created_by, created_at, updated_at
+                    ) VALUES (%s, %s, %s, 'expense', %s, %s, %s, %s, NOW(), NOW())
+                    """,
+                    (
+                        concept, amount, date_value, category_id, payment_method_id, comment,
+                        session.get("user_name"),
+                    ),
+                )
+            conn.commit()
+    invalidate_dashboard_cache()
+    session["expense_imported_count"] = len(records)
+    logger.info(
+        "records_import user=%s type=expense bank=%s count=%s",
+        session.get("user_name"), request.form.get("bank_format"), len(records),
+    )
+    return redirect("/records/expense")
+
+
+@movements_bp.route("/records/expense/import/preview", methods=["POST"])
+def preview_expense_import():
+    upload = request.files.get("excel_file")
+    bank_format = (request.form.get("bank_format") or "").strip().lower()
+    errors = []
+    rows = []
+    skipped_incomes = 0
+    positive_movements = []
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, name FROM categories ORDER BY name")
+            raw_categories = cur.fetchall()
+            cur.execute(
+                """
+                SELECT pm.id, pm.name, COALESCE(b.name, parent_bank.name, pm.bank_name, '')
+                FROM payment_methods pm
+                LEFT JOIN payment_methods parent ON parent.id=pm.parent_account_id
+                LEFT JOIN banks b ON b.id=pm.bank_id
+                LEFT JOIN banks parent_bank ON parent_bank.id=parent.bank_id
+                WHERE pm.kind='card' AND pm.is_active=TRUE
+                ORDER BY pm.name
+                """
+            )
+            cards = cur.fetchall()
+    categories = [
+        (category_id, name, category_name(name, get_lang()))
+        for category_id, name in raw_categories
+    ]
+    if not upload or not upload.filename:
+        errors = ["Select an Excel file to import."]
+    else:
+        try:
+            rows, skipped_incomes, positive_movements = preview_bank_statement(
+                upload, bank_format, categories
+            )
+        except ImportValidationError as exc:
+            errors = exc.errors
+    return render_template(
+        "import_movements.html",
+        current_page="expense", movement_type="expense", accounts=[],
+        errors=errors,
+        rows=rows,
+        categories=categories,
+        cards=cards,
+        skipped_incomes=skipped_incomes,
+        positive_movements=positive_movements,
+        bank_format=bank_format,
+        bank_formats=BANK_FORMATS,
+    ), (400 if errors else 200)
+
+
+@movements_bp.route("/records/income/import", methods=["GET", "POST"])
+def import_incomes():
+    if request.method == "GET":
+        return render_template(
+            "import_movements.html", current_page="income", movement_type="income",
+            errors=[], rows=[], categories=[], cards=[], accounts=[],
+            skipped_incomes=0, positive_movements=[], bank_format="",
+        )
+    selected_rows = request.form.getlist("selected_rows")
+    errors = []
+    records = []
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            for row_key in selected_rows:
+                concept, error = validate_concept(request.form.get(f"concept_{row_key}"))
+                if error:
+                    errors.append(f"Row {row_key}: {error}")
+                    continue
+                amount, error = validate_amount(request.form.get(f"amount_{row_key}"))
+                if error:
+                    errors.append(f"Row {row_key}: {error}")
+                    continue
+                comment, error = validate_text_length(
+                    request.form.get(f"comment_{row_key}"), "Description", MAX_RECORD_COMMENT_LENGTH
+                )
+                if error:
+                    errors.append(f"Row {row_key}: {error}")
+                    continue
+                date_value = request.form.get(f"date_{row_key}")
+                if not date_value or parse_year_month(date_value, None) is None:
+                    errors.append(f"Row {row_key}: Date must use YYYY-MM.")
+                    continue
+                records.append((concept, amount, date_value, comment))
+            if not selected_rows:
+                errors.append("Select at least one income to import.")
+            if errors:
+                return render_template(
+                    "import_movements.html", current_page="income", movement_type="income",
+                    errors=errors, rows=[], categories=[], cards=[], accounts=[],
+                    skipped_incomes=0, positive_movements=[], bank_format=request.form.get("bank_format", ""),
+                    bank_formats=BANK_FORMATS,
+                ), 400
+            for concept, amount, date_value, comment in records:
+                cur.execute(
+                    """
+                    INSERT INTO records (
+                        concept, amount, date, type, category_id, payment_method_id, comment,
+                        created_by, created_at, updated_at
+                    ) VALUES (%s, %s, %s, 'income', NULL, NULL, %s, %s, NOW(), NOW())
+                    """,
+                    (concept, amount, date_value, comment, session.get("user_name")),
+                )
+            conn.commit()
+    invalidate_dashboard_cache()
+    session["income_imported_count"] = len(records)
+    logger.info(
+        "records_import user=%s type=income bank=%s count=%s",
+        session.get("user_name"), request.form.get("bank_format"), len(records),
+    )
+    return redirect("/records/income")
+
+
+@movements_bp.route("/records/income/import/preview", methods=["POST"])
+def preview_income_import():
+    upload = request.files.get("excel_file")
+    bank_format = (request.form.get("bank_format") or "").strip().lower()
+    errors = []
+    rows = []
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, name FROM categories ORDER BY name")
+            categories = [
+                (category_id, name, category_name(name, get_lang()))
+                for category_id, name in cur.fetchall()
+            ]
+            accounts = []
+    if not upload or not upload.filename:
+        errors = ["Select an Excel file to import."]
+    else:
+        try:
+            _expenses, _count, rows = preview_bank_statement(upload, bank_format, categories)
+            if not rows:
+                errors = ["The Excel file does not contain incomes to import."]
+        except ImportValidationError as exc:
+            errors = exc.errors
+    return render_template(
+        "import_movements.html", current_page="income", movement_type="income",
+        errors=errors, rows=rows, categories=[], cards=[], accounts=accounts,
+        skipped_incomes=0, positive_movements=[], bank_format=bank_format,
+        bank_formats=BANK_FORMATS,
+    ), (400 if errors else 200)
 
 
 def _page_to_url(page):

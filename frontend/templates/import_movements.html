@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block extra_css %}
+<style>
+  .import-page { max-width: 1500px; margin: 0 auto; }
+  .import-steps { display: flex; gap: .5rem; flex-wrap: wrap; }
+  .import-step { padding: .35rem .75rem; border-radius: 999px; background: #eef3f8; color: #526273; font-size: .82rem; }
+  .import-step.active { background: #dff3e7; color: #196b38; font-weight: 600; }
+  .import-upload-card, .import-preview-card { border: 1px solid #dbe3eb; border-radius: 16px; box-shadow: 0 8px 22px rgba(24,54,88,.07); }
+  .import-preview-table { min-width: 1180px; }
+  .import-preview-table .concept-input { min-width: 280px; }
+  .import-preview-table .category-select { min-width: 210px; }
+  .import-preview-table td { vertical-align: top; }
+  .import-preview-table .form-control-sm,
+  .import-preview-table .form-select-sm { min-height: 32px; }
+  .import-preview-scroll { max-height: 62vh; overflow: auto; }
+  .category-warning { border-color: #dc3545; background-color: #fff5f5; }
+  .import-actions { position: sticky; bottom: 0; background: #fff; border-top: 1px solid #e3e9f0; padding: 1rem 1.25rem; z-index: 4; }
+</style>
+{% endblock %}
+{% block content %}
+{% set is_income = movement_type == 'income' %}
+{% set records_url = '/records/income' if is_income else '/records/expense' %}
+{% set import_url = records_url + '/import' %}
+<div class="import-page">
+  <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
+    <div>
+      <a href="{{ records_url }}" class="text-decoration-none small">← {{ t('Back to incomes') if is_income else t('Back to expenses') }}</a>
+      <h2 class="mt-2 mb-1">{{ t('Import records') }}</h2>
+      <p class="text-muted mb-3">{{ t('Review and adjust the bank movements before adding them to Finance.') }}</p>
+      <div class="import-steps">
+        <span class="import-step {{ 'active' if not rows else '' }}">1. {{ t('Choose file') }}</span>
+        <span class="import-step {{ 'active' if rows else '' }}">2. {{ t('Review movements') }}</span>
+        <span class="import-step">3. {{ t('Confirm import') }}</span>
+      </div>
+    </div>
+  </div>
+
+  {% if errors %}
+  <div class="alert alert-danger">
+    <div class="fw-semibold mb-2">{{ t('Nothing was imported. Fix these errors and try again:') }}</div>
+    <ul class="mb-0">{% for error in errors[:50] %}<li>{{ t(error) }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+
+  {% if not rows %}
+  <div class="import-upload-card bg-white p-4 p-lg-5">
+    <div class="row align-items-center g-4">
+      <div class="col-lg-5">
+        <h4>{{ t('Select the ING statement') }}</h4>
+        <p class="text-muted mb-0">{{ t('Upload the movements file downloaded from ING.') }}</p>
+      </div>
+      <div class="col-lg-7">
+        <form method="post" action="{{ import_url }}/preview" enctype="multipart/form-data" class="row g-3">
+          <input type="hidden" name="bank_format" value="ing">
+          <div class="col-12">
+            <label class="form-label fw-semibold">{{ t('Excel file') }}</label>
+            <input class="form-control" type="file" name="excel_file" accept=".xls,.xlsx" required>
+          </div>
+          <div class="col-12 d-flex justify-content-end gap-2">
+            <a class="btn btn-secondary" href="{{ records_url }}">{{ t('Cancel') }}</a>
+            <button type="submit" class="btn btn-success">{{ t('Load and preview') }}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <form method="post" action="{{ import_url }}">
+    <input type="hidden" name="bank_format" value="{{ bank_format or '' }}">
+    <div class="import-preview-card bg-white overflow-hidden">
+      <div class="p-4 border-bottom d-flex justify-content-between align-items-start gap-3 flex-wrap">
+        <div>
+          <h4 class="mb-1">{{ t('Review incomes before importing') if is_income else t('Review expenses before importing') }}</h4>
+          <div class="text-muted">{{ rows|length }} {{ t('incomes found') if is_income else t('expenses found') }}</div>
+        </div>
+        {% if not is_income %}
+        <div style="min-width: 310px;">
+          <label class="form-label fw-semibold">{{ t('Card for all expenses') }}</label>
+          <select class="form-select" name="payment_method_id" required>
+            <option value="">{{ t('Select') }}</option>
+            {% for card_id, card_name, bank_name in cards %}<option value="{{ card_id }}">{% if bank_name %}[{{ bank_name }}] {% endif %}{{ card_name }}</option>{% endfor %}
+          </select>
+          <div class="form-text">{{ t('The selected card will be assigned to every imported expense.') }}</div>
+        </div>
+        {% endif %}
+      </div>
+
+      {% if skipped_incomes %}
+      <div class="alert alert-info m-3 mb-0">
+        <div>{{ skipped_incomes }} {{ t('positive movements were omitted; import them from Incomes.') }}</div>
+        <details class="mt-2">
+          <summary class="fw-semibold">{{ t('Show detected positive movements') }}</summary>
+          <div class="table-responsive mt-2" style="max-height:260px; overflow:auto;">
+            <table class="table table-sm table-light mb-0">
+              <thead><tr><th>{{ t('Date') }}</th><th>{{ t('Concept') }}</th><th>{{ t('ING category') }}</th><th>{{ t('Classification') }}</th><th class="text-end">{{ t('Amount') }}</th></tr></thead>
+              <tbody>{% for movement in positive_movements %}<tr>
+                <td>{{ movement.date }}</td><td>{{ movement.concept }}</td><td>{{ movement.category }}</td>
+                <td>{% if movement.kind == 'income' %}<span class="badge text-bg-success">{{ t('Income') }}</span>{% elif movement.kind == 'refund' %}<span class="badge text-bg-primary">{{ t('Refund') }}</span>{% else %}<span class="badge text-bg-secondary">{{ t('Transfer') }}</span>{% endif %}</td>
+                <td class="text-end">{{ money(movement.amount) }}</td>
+              </tr>{% endfor %}</tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+      {% endif %}
+
+      <div class="px-4 pt-3 text-muted small">{{ t('ING subcategory, comment and balance columns are ignored. Uncheck any movement you do not want to import.') }}</div>
+      <div class="import-preview-scroll mt-3">
+        <table class="table table-hover mb-0 import-preview-table">
+          <thead class="table-light sticky-top"><tr>
+            <th class="ps-4"><input type="checkbox" id="toggleAll" checked aria-label="{{ t('Select all') }}"></th>
+            <th>{{ t('Date') }}</th><th>{{ t('Concept') }}</th><th>{{ t('Description') }}</th><th>{{ t('Classification') if is_income else t('Category') }}</th>
+            <th class="text-end">{{ t('Amount') }}</th><th class="text-end pe-4">{{ t('Actions') }}</th>
+          </tr></thead>
+          <tbody>{% for row in rows %}<tr class="{{ '' if is_income else 'table-danger' if not row.category_id else 'table-warning' if row.warnings else '' }}">
+            <td class="ps-4"><input class="form-check-input import-row-check" type="checkbox" name="selected_rows" value="{{ row.source_row }}" {{ 'checked' if row.selected else '' }}></td>
+            <td>{{ row.date }}<input type="hidden" name="date_{{ row.source_row }}" value="{{ row.date }}"></td>
+            <td><input class="form-control form-control-sm concept-input" name="concept_{{ row.source_row }}" value="{{ row.concept }}" maxlength="40" required>
+              {% if row.grouped_count and row.grouped_count > 1 %}
+              <details class="small mt-1">
+                <summary class="text-info-emphasis">{{ row.grouped_count }} {{ t('movements grouped') }} · {{ t('View grouped movements') }}</summary>
+                <div class="mt-1 border rounded bg-light p-2">
+                  {% for item in row.grouped_items %}<div class="d-flex justify-content-between gap-3"><span class="text-truncate" title="{{ item.concept }}">{{ item.concept }}</span><strong class="text-nowrap">{{ money(item.amount) }}</strong></div>{% endfor %}
+                </div>
+              </details>
+              {% endif %}
+              {% for warning in row.warnings if warning != 'Category needs mapping' %}<div class="small text-warning-emphasis">{{ t(warning) }}</div>{% endfor %}
+            </td>
+            <td><input class="form-control form-control-sm" name="comment_{{ row.source_row }}" maxlength="500"></td>
+            {% if is_income %}
+            <td>{% if row.kind == 'income' %}<span class="badge text-bg-success">{{ t('Income') }}</span>{% elif row.kind == 'refund' %}<span class="badge text-bg-primary">{{ t('Refund') }}</span>{% else %}<span class="badge text-bg-secondary">{{ t('Transfer') }}</span>{% endif %}<div class="small text-muted mt-1">ING: {{ row.category or '-' }}</div></td>
+            {% else %}
+            <td><select class="form-select form-select-sm category-select {{ 'category-warning' if not row.category_id else '' }}" name="category_{{ row.source_row }}" required>
+              <option value="">{{ t('Select') }}</option>{% for category_id, category_name, display_name in categories %}<option value="{{ category_id }}" {{ 'selected' if row.category_id == category_id else '' }}>{{ display_name }}</option>{% endfor %}
+            </select><div class="small mt-1 category-source {{ 'text-danger fw-semibold' if not row.category_id else 'text-muted' }}">ING: {{ row.bank_category or '-' }} <span class="category-mapping-warning {{ 'd-none' if row.category_id else '' }}">— {{ t('Category needs mapping') }}</span></div></td>
+            {% endif %}
+            <td class="text-end">{{ money(row.amount) }}<input type="hidden" name="amount_{{ row.source_row }}" value="{{ row.amount }}"></td>
+            <td class="text-end pe-4"><button type="button" class="btn btn-sm btn-outline-danger remove-import-row" title="{{ t('Remove from preview') }}">{{ t('Remove') }}</button></td>
+          </tr>{% endfor %}</tbody>
+        </table>
+      </div>
+      <div class="import-actions d-flex justify-content-between align-items-center">
+        <a class="btn btn-secondary" href="{{ import_url }}">{{ t('Choose another file') }}</a>
+        <button class="btn btn-success" type="submit">{{ t('Import selected incomes') if is_income else t('Import selected expenses') }}</button>
+      </div>
+    </div>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}
+{% block extra_js %}
+{% if rows %}<script>
+const toggleAll = document.getElementById('toggleAll');
+function syncRow(checkbox) { checkbox.closest('tr').querySelectorAll('input:not(.import-row-check), select').forEach((field) => { field.disabled = !checkbox.checked; }); }
+document.querySelectorAll('.import-row-check').forEach((checkbox) => { syncRow(checkbox); checkbox.addEventListener('change', () => syncRow(checkbox)); });
+if (toggleAll) { toggleAll.checked = Array.from(document.querySelectorAll('.import-row-check')).every((checkbox) => checkbox.checked); toggleAll.addEventListener('change', () => { document.querySelectorAll('.import-row-check').forEach((checkbox) => { checkbox.checked = toggleAll.checked; syncRow(checkbox); }); }); }
+function updateCategoryState(select) {
+  const missing = !select.value;
+  const row = select.closest('tr');
+  const source = row.querySelector('.category-source');
+  const warning = row.querySelector('.category-mapping-warning');
+  select.classList.toggle('category-warning', missing);
+  row.classList.toggle('table-danger', missing);
+  source.classList.toggle('text-danger', missing);
+  source.classList.toggle('fw-semibold', missing);
+  source.classList.toggle('text-muted', !missing);
+  warning.classList.toggle('d-none', !missing);
+}
+document.querySelectorAll('.category-select').forEach((select) => { select.addEventListener('change', () => updateCategoryState(select)); });
+document.querySelectorAll('.remove-import-row').forEach((button) => { button.addEventListener('click', () => { const row = button.closest('tr'); const checkbox = row.querySelector('.import-row-check'); checkbox.checked = false; syncRow(checkbox); row.remove(); if (toggleAll) { const remaining = Array.from(document.querySelectorAll('.import-row-check')); toggleAll.checked = remaining.length > 0 && remaining.every((item) => item.checked); } }); });
+</script>{% endif %}
+{% endblock %}
