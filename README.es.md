@@ -14,10 +14,10 @@ Repositorio: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
 ## Versión Actual
 
-- Versión actual: `3.8.1`
-- Release: `v3.8.1 - Fiabilidad del planificador de copias`
-- El compose de producción está preparado para `f1nanc3/finance:3.8.1`
-- [Notas de la versión 3.8.1](docs/v3.8-release/notas-v3.8.1.md)
+- Versión actual: `3.9.0`
+- Release: `v3.9.0 - Importación de registros bancarios`
+- El compose de producción está preparado para `f1nanc3/finance:3.9.0`
+- [Notas de la versión 3.9.0](docs/v3.9-release/notas-v3.9.0.md)
 
 ## Funcionalidades Principales
 

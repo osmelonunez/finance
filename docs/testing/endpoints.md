@@ -2,8 +2,8 @@
 
 Este fichero se genera desde el registro de rutas de Flask. No debe editarse manualmente.
 
-- Reglas de aplicación: **94**.
-- Combinaciones endpoint-método: **100**.
+- Reglas de aplicación: **99**.
+- Combinaciones endpoint-método: **107**.
 - Se excluyen la ruta estática y los métodos automáticos `HEAD` y `OPTIONS`.
 - `Contrato`, `Autenticación` y `CSRF` indican que existe una comprobación automática genérica.
 - `Prueba específica` identifica cobertura funcional adicional; `—` significa que solo tiene cobertura genérica.
@@ -94,7 +94,14 @@ Este fichero se genera desde el registro de rutas de Flask. No debe editarse man
 | `/records/add` | GET | `movements.add_movement` | Autenticado | Sí | Sí | N/A | `test_expense_create_edit_duplicate_delete_flow` |
 | `/records/add` | POST | `movements.add_movement` | Autenticado | Sí | Sí | Sí | `test_expense_create_edit_duplicate_delete_flow` |
 | `/records/expense` | GET | `movements.records_expense` | Autenticado | Sí | Sí | N/A | — |
+| `/records/expense/import` | GET | `movements.import_expenses` | Autenticado | Sí | Sí | N/A | — |
+| `/records/expense/import` | POST | `movements.import_expenses` | Autenticado | Sí | Sí | Sí | — |
+| `/records/expense/import/preview` | POST | `movements.preview_expense_import` | Autenticado | Sí | Sí | Sí | — |
+| `/records/expense/import/template` | GET | `movements.expense_import_template` | Autenticado | Sí | Sí | N/A | — |
 | `/records/income` | GET | `movements.records_income` | Autenticado | Sí | Sí | N/A | — |
+| `/records/income/import` | GET | `movements.import_incomes` | Autenticado | Sí | Sí | N/A | — |
+| `/records/income/import` | POST | `movements.import_incomes` | Autenticado | Sí | Sí | Sí | — |
+| `/records/income/import/preview` | POST | `movements.preview_income_import` | Autenticado | Sí | Sí | Sí | — |
 | `/records/saving` | GET | `movements.records_saving` | Autenticado | Sí | Sí | N/A | — |
 | `/register` | GET | `auth.register` | Público | Sí | N/A | N/A | — |
 | `/register` | POST | `auth.register` | Público | Sí | N/A | Sí | — |

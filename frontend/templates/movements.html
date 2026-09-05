@@ -183,6 +183,10 @@
 
 {% block content %}
 
+{% if imported_count is not none %}
+<div class="alert alert-success">{{ imported_count }} {{ t('incomes were added.') if imported_type == 'income' else t('expenses were added.') }}</div>
+{% endif %}
+
 <!-- FILTERS -->
 <form method="get" class="filters-card row g-2 mb-3">
 
@@ -263,6 +267,7 @@
                 <button type="submit" class="btn btn-soft expense-filter-action">{{ t('Filter') }}</button>
             </div>
             <div class="d-flex align-items-end ms-auto">
+                <a href="/records/expense/import" class="btn btn-outline-secondary expense-filter-action me-2" style="height: 38px; display: inline-flex; align-items: center; justify-content: center;">{{ t('Import records') }}</a>
                 <a href="/records/add?from={{ current_page }}" class="btn btn-success expense-filter-action" style="height: 38px; display: inline-flex; align-items: center; justify-content: center;">{{ t('+ Add') }}</a>
             </div>
         </div>
@@ -296,6 +301,9 @@
         <button class="btn btn-soft" style="min-width: 110px;">{{ t('Filter') }}</button>
     </div>
     <div class="col-md d-flex align-items-end justify-content-end pe-0">
+        {% if fixed_type == 'income' %}
+        <a href="/records/income/import" class="btn btn-outline-secondary me-2" style="height: 38px; display: inline-flex; align-items: center; justify-content: center;">{{ t('Import records') }}</a>
+        {% endif %}
         <a href="/records/add?from={{ current_page }}" class="btn btn-success" style="height: 38px; min-width: 110px; display: inline-flex; align-items: center; justify-content: center;">{{ t('+ Add') }}</a>
     </div>
     {% endif %}

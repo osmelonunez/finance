@@ -276,7 +276,7 @@ def test_default_email_footer_matches_site_footer(admin_client):
     )
 
     assert "Osmel Nuñez Alonso".encode() in preview.data
-    assert b"v3.8.1" in preview.data
+    assert b"v3.9.0" in preview.data
     assert b"https://github.com/osmelonunez/finance/releases/latest" in preview.data
     assert b"{year}" not in preview.data
     assert b"{version}" not in preview.data

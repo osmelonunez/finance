@@ -260,6 +260,46 @@ Mas detalles:
 - [Notas de release en espanol](docs/v3.8-release/notas-v3.8.0.md)
 - [Release notes in English](docs/v3.8-release/v3.8.0-release-notes.md)
 
+### v3.8.1 - Fiabilidad del planificador de copias de seguridad
+
+Estado: completado.
+
+Objetivo: asegurar que una copia programada pendiente no se pierda cuando el planificador interno se reinicia.
+
+Incluye:
+- Ejecucion de la copia de seguridad pendiente despues de reiniciar el planificador.
+- Ajustes de version a `3.8.1` en la aplicacion, documentacion, plantillas de informes e imagen de produccion.
+- Actualizacion de pruebas de presupuestos e informes para mantener estable la suite de regresion.
+- [Notas de release en espanol](docs/v3.8-release/notas-v3.8.1.md)
+- [Release notes in English](docs/v3.8-release/v3.8.1-release-notes.md)
+
+### v3.9.0 - Importacion de registros bancarios
+
+Estado: implementado y validado en local.
+
+Objetivo: reducir el trabajo manual al registrar movimientos mediante un flujo seguro de carga, revision y confirmacion de extractos bancarios.
+
+Incluye:
+- Acceso `Importar registros` integrado en las paginas de Gastos e Ingresos.
+- Soporte inicial para extractos de ING en formatos `.xls` y `.xlsx`, con limite de 5 MB y 1.000 registros.
+- Lectura de fecha valor, categoria, descripcion e importe; subcategoria, comentario y saldo de ING se ignoran.
+- Previsualizacion editable antes de guardar, con concepto, descripcion, categoria, importe y acciones por fila.
+- Posibilidad de excluir movimientos individualmente sin importarlos.
+- Importacion atomica: si algun registro seleccionado no es valido, no se guarda ninguno.
+- Gastos vinculados obligatoriamente a una tarjeta activa existente, comun para toda la importacion.
+- Correspondencia de categorias de ING con las categorias existentes y alerta visual cuando requieren asignacion manual.
+- Eliminacion automatica de la alerta al seleccionar una categoria valida.
+- Normalizacion de conceptos frecuentes: Amazon, AHORRAMAS, Uber, PayPal e iCloud, entre otros.
+- Reglas automaticas de categoria para alimentacion, hogar, transporte, salud, ocio y suscripciones.
+- Agrupacion mensual automatica de compras de Amazon, conservando un detalle desplegable de los movimientos originales.
+- Devoluciones de Amazon descontadas del grupo de gastos del mismo mes y excluidas de la importacion de ingresos.
+- Importacion separada de movimientos positivos desde Ingresos.
+- Clasificacion visual de movimientos positivos como ingreso, devolucion o transferencia.
+- Transferencias desmarcadas por defecto para evitar contabilizarlas accidentalmente como ingresos.
+- Ingresos guardados sin categoria ni metodo de pago, de acuerdo con las reglas actuales del modelo de datos.
+- Catalogo de endpoints actualizado a 99 rutas y 107 combinaciones endpoint-metodo.
+- Cobertura automatizada del flujo de carga, previsualizacion, correspondencias, agrupaciones y confirmacion.
+
 ## Ideas futuras
 
 Estas ideas no estan comprometidas todavia y pueden moverse segun prioridad.
@@ -274,17 +314,17 @@ Ideas:
 - Permitir que las cuentas `cash` y `other` no requieran banco.
 - Definir como se calcula y presenta el saldo de estos nuevos tipos.
 
-### Importador bancario CSV
+### Evolucion del importador bancario
 
-Objetivo: acelerar el registro de movimientos desde extractos bancarios.
+Objetivo: ampliar el importador de v3.9.0 a mas bancos, formatos y controles preventivos.
 
 Ideas:
-- Importar ficheros CSV.
+- Incorporar extractos CSV.
 - Mapeo manual de columnas.
-- Previsualizacion antes de insertar.
 - Deteccion de posibles duplicados.
-- Plantillas de mapeo por banco.
-- Reglas basicas por concepto/categoria.
+- Plantillas de formato para nuevos bancos.
+- Reglas de concepto y categoria configurables por el usuario.
+- Recordar correspondencias manuales para importaciones posteriores.
 
 ### Cierre mensual
 

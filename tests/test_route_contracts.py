@@ -42,8 +42,8 @@ def test_every_post_endpoint_has_an_explicit_payload(application):
 def test_route_inventory_has_expected_size(application):
     cases = _registered_cases(application)
     rules = [rule for rule in application.url_map.iter_rules() if rule.endpoint not in IGNORED_ENDPOINTS]
-    assert len(rules) == 94
-    assert len(cases) == 100
+    assert len(rules) == 99
+    assert len(cases) == 107
 
 
 @pytest.mark.parametrize(

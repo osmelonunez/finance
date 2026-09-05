@@ -14,10 +14,10 @@ Repository: [osmelonunez/finance](https://github.com/osmelonunez/finance)
 
 ## Current Version
 
-- Current version: `3.8.1`
-- Release: `v3.8.1 - Backup scheduler reliability`
-- Production compose is prepared for `f1nanc3/finance:3.8.1`
-- [v3.8.1 release notes](docs/v3.8-release/v3.8.1-release-notes.md)
+- Current version: `3.9.0`
+- Release: `v3.9.0 - Bank record imports`
+- Production compose is prepared for `f1nanc3/finance:3.9.0`
+- [v3.9.0 release notes](docs/v3.9-release/v3.9.0-release-notes.md)
 
 ## Core Features
 
